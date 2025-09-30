@@ -1,0 +1,494 @@
+import AppLayout from '@/layouts/app-layout';
+import { dashboard } from '@/routes';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router } from '@inertiajs/react';
+import { Activity, Zap, TrendingUp, Battery, Calendar } from 'lucide-react';
+import { Line } from 'react-chartjs-2';
+import { useState } from 'react';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+} from 'chart.js';
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+);
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: dashboard().url,
+    },
+];
+
+interface Metricas {
+    potencia_actual_kw: number;
+    potencia_maxima_kw: number;
+    potencia_promedio_kw: number;
+    energia_total_kwh: number;
+    voltaje_promedio: number;
+    factor_potencia_promedio: number;
+    estado_conexion: 'online' | 'offline';
+    ultima_actualizacion_human: string;
+    numero_lecturas: number;
+}
+
+interface Dispositivo {
+    id: number;
+    nombre: string;
+    tipo: string;
+    device_id: string;
+    nave: {
+        id: number;
+        nombre: string;
+    };
+}
+
+interface Graficas {
+    potencia: {
+        labels: string[];
+        data: number[];
+    };
+    voltaje: {
+        labels: string[];
+        canal1: number[];
+        canal2: number[];
+        canal3: number[];
+    };
+    canales: {
+        labels: string[];
+        canal1: number[];
+        canal2: number[];
+        canal3: number[];
+    };
+    corrientes: {
+        labels: string[];
+        canal1: number[];
+        canal2: number[];
+        canal3: number[];
+    };
+}
+
+interface Props {
+    dispositivo?: Dispositivo;
+    dispositivos: Dispositivo[];
+    metricas?: Metricas;
+    graficas?: Graficas;
+    periodo: string;
+    sinDispositivos: boolean;
+}
+
+export default function Dashboard({
+    dispositivo,
+    dispositivos,
+    metricas,
+    graficas,
+    periodo,
+    sinDispositivos,
+}: Props) {
+    const [mostrarRangoPersonalizado, setMostrarRangoPersonalizado] = useState(false);
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState('');
+
+    const handleDispositivoChange = (dispositivoId: string) => {
+        router.get(dashboard().url, { dispositivo_id: dispositivoId, periodo });
+    };
+
+    const handlePeriodoChange = (nuevoPeriodo: string) => {
+        if (nuevoPeriodo === 'personalizado') {
+            setMostrarRangoPersonalizado(true);
+            return;
+        }
+        
+        setMostrarRangoPersonalizado(false);
+        router.get(dashboard().url, {
+            dispositivo_id: dispositivo?.id,
+            periodo: nuevoPeriodo,
+        });
+    };
+
+    const handleAplicarRangoPersonalizado = () => {
+        if (!fechaDesde || !fechaHasta) {
+            alert('Por favor selecciona ambas fechas');
+            return;
+        }
+
+        if (new Date(fechaDesde) > new Date(fechaHasta)) {
+            alert('La fecha de inicio debe ser anterior a la fecha de fin');
+            return;
+        }
+
+        router.get(dashboard().url, {
+            dispositivo_id: dispositivo?.id,
+            periodo: 'personalizado',
+            fecha_desde: fechaDesde,
+            fecha_hasta: fechaHasta,
+        });
+    };
+
+    if (sinDispositivos) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Dashboard" />
+                <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                            No hay dispositivos configurados
+                        </h2>
+                        <p className="mt-2 text-gray-600 dark:text-gray-400">
+                            Configura un dispositivo para comenzar a monitorizar
+                        </p>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
+
+    const dataPotencia = {
+        labels: graficas?.potencia.labels || [],
+        datasets: [
+            {
+                label: 'Potencia (kW)',
+                data: graficas?.potencia.data || [],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+            },
+        ],
+    };
+
+    const dataCanales = {
+        labels: graficas?.canales.labels || [],
+        datasets: [
+            {
+                label: 'Canal 1 (kW)',
+                data: graficas?.canales.canal1 || [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+            },
+            {
+                label: 'Canal 2 (kW)',
+                data: graficas?.canales.canal2 || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+            },
+            {
+                label: 'Canal 3 (kW)',
+                data: graficas?.canales.canal3 || [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                tension: 0.4,
+            },
+        ],
+    };
+
+    const dataCorrientes = {
+        labels: graficas?.corrientes.labels || [],
+        datasets: [
+            {
+                label: 'Canal 1 (A)',
+                data: graficas?.corrientes.canal1 || [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+            },
+            {
+                label: 'Canal 2 (A)',
+                data: graficas?.corrientes.canal2 || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+            },
+            {
+                label: 'Canal 3 (A)',
+                data: graficas?.corrientes.canal3 || [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                tension: 0.4,
+            },
+        ],
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top' as const,
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+            },
+        },
+    };
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Dashboard" />
+            <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-x-hidden p-2 sm:p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:gap-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1">
+                            <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
+                                {dispositivo?.nave.nombre} - {dispositivo?.nombre}
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex h-3 w-3">
+                                <span
+                                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
+                                        metricas?.estado_conexion === 'online'
+                                            ? 'bg-green-400'
+                                            : 'bg-red-400'
+                                    }`}
+                                />
+                                <span
+                                    className={`relative inline-flex h-3 w-3 rounded-full ${
+                                        metricas?.estado_conexion === 'online'
+                                            ? 'bg-green-500'
+                                            : 'bg-red-500'
+                                    }`}
+                                />
+                            </div>
+                            <span
+                                className={`text-xs font-medium sm:text-sm ${
+                                    metricas?.estado_conexion === 'online'
+                                        ? 'text-green-600 dark:text-green-400'
+                                        : 'text-red-600 dark:text-red-400'
+                                }`}
+                            >
+                                {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <select
+                            value={dispositivo?.id}
+                            onChange={(e) => handleDispositivoChange(e.target.value)}
+                            className="w-full rounded-md border-gray-300 p-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                        >
+                            {dispositivos.map((disp) => (
+                                <option key={disp.id} value={disp.id}>
+                                    {disp.nombre}
+                                </option>
+                            ))}
+                        </select>
+
+                        <div className="grid grid-cols-4 gap-1 rounded-md shadow-sm sm:inline-flex" role="group">
+                            {['hoy', 'ayer', 'semana', 'mes'].map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => handlePeriodoChange(p)}
+                                    className={`px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${
+                                        periodo === p
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                                    } border border-gray-200 first:rounded-l-lg last:rounded-r-lg dark:border-gray-600`}
+                                >
+                                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => handlePeriodoChange('personalizado')}
+                            className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-medium shadow-sm sm:text-sm ${
+                                periodo === 'personalizado' || mostrarRangoPersonalizado
+                                    ? 'border-blue-600 bg-blue-600 text-white'
+                                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <Calendar className="h-4 w-4" />
+                            Personalizado
+                        </button>
+
+                        {metricas?.ultima_actualizacion_human && (
+                            <span className="text-xs text-gray-500 sm:self-center sm:text-sm dark:text-gray-400">
+                                Última actualización: {metricas.ultima_actualizacion_human}
+                            </span>
+                        )}
+                    </div>
+
+                    {mostrarRangoPersonalizado && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                <div className="flex-1">
+                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        Fecha desde
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={fechaDesde}
+                                        onChange={(e) => setFechaDesde(e.target.value)}
+                                        className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        Fecha hasta
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={fechaHasta}
+                                        onChange={(e) => setFechaHasta(e.target.value)}
+                                        className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleAplicarRangoPersonalizado}
+                                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                    >
+                                        Aplicar
+                                    </button>
+                                    <button
+                                        onClick={() => setMostrarRangoPersonalizado(false)}
+                                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                    <MetricCard
+                        icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Potencia Actual"
+                        value={`${metricas?.potencia_actual_kw || 0} kW`}
+                        color="blue"
+                    />
+                    <MetricCard
+                        icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Potencia Máxima"
+                        value={`${metricas?.potencia_maxima_kw || 0} kW`}
+                        color="green"
+                    />
+                    <MetricCard
+                        icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Energía Total"
+                        value={`${metricas?.energia_total_kwh || 0} kWh`}
+                        color="yellow"
+                    />
+                    <MetricCard
+                        icon={<Activity className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Voltaje Promedio"
+                        value={`${metricas?.voltaje_promedio || 0} V`}
+                        color="purple"
+                    />
+                </div>
+
+                <div className="grid w-full gap-4 lg:grid-cols-2">
+                    <ChartCard title="Potencia Total">
+                        <Line data={dataPotencia} options={chartOptions} />
+                    </ChartCard>
+
+                    <ChartCard title="Potencia por Canales">
+                        <Line data={dataCanales} options={chartOptions} />
+                    </ChartCard>
+
+                    <ChartCard title="Intensidad por Canales">
+                        <Line data={dataCorrientes} options={chartOptions} />
+                    </ChartCard>
+
+                    <ChartCard title="Estadísticas">
+                        <div className="flex h-full flex-col justify-center space-y-4 p-4">
+                            <StatRow label="Lecturas totales" value={metricas?.numero_lecturas || 0} />
+                            <StatRow
+                                label="Potencia promedio"
+                                value={`${metricas?.potencia_promedio_kw || 0} kW`}
+                            />
+                            <StatRow
+                                label="Factor de potencia"
+                                value={(metricas?.factor_potencia_promedio || 0).toFixed(2)}
+                            />
+                        </div>
+                    </ChartCard>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}
+
+interface MetricCardProps {
+    icon: React.ReactNode;
+    title: string;
+    value: string;
+    color: 'blue' | 'green' | 'yellow' | 'purple';
+}
+
+function MetricCard({ icon, title, value, color }: MetricCardProps) {
+    const colorClasses = {
+        blue: 'bg-blue-500',
+        green: 'bg-green-500',
+        yellow: 'bg-yellow-500',
+        purple: 'bg-purple-500',
+    };
+
+    return (
+        <div className="flex min-w-0 items-center rounded-xl border border-sidebar-border/70 bg-white p-3 shadow sm:p-4 lg:p-6 dark:border-sidebar-border dark:bg-gray-800">
+            <div className={`flex-shrink-0 rounded-md p-2 sm:p-3 ${colorClasses[color]}`}>
+                <div className="text-white">{icon}</div>
+            </div>
+            <div className="ml-3 min-w-0 flex-1 sm:ml-5">
+                <p className="truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-gray-400">{title}</p>
+                <p className="mt-1 truncate text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl dark:text-gray-100">
+                    {value}
+                </p>
+            </div>
+        </div>
+    );
+}
+
+interface ChartCardProps {
+    title: string;
+    children: React.ReactNode;
+}
+
+function ChartCard({ title, children }: ChartCardProps) {
+    return (
+        <div className="min-w-0 rounded-xl border border-sidebar-border/70 bg-white p-3 shadow sm:p-4 dark:border-sidebar-border dark:bg-gray-800">
+            <h3 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg dark:text-gray-100">
+                {title}
+            </h3>
+            <div className="h-48 w-full sm:h-56 lg:h-64">{children}</div>
+        </div>
+    );
+}
+
+interface StatRowProps {
+    label: string;
+    value: string | number;
+}
+
+function StatRow({ label, value }: StatRowProps) {
+    return (
+        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{value}</span>
+        </div>
+    );
+}
