@@ -10,7 +10,7 @@ Artisan::command('inspire', function () {
 
 // Programar obtención de lecturas de Shelly cada 5 minutos
 Schedule::command('shelly:obtener-lecturas')
-    ->everyFiveMinutes()
+    ->everyThreeMinutes()
     ->withoutOverlapping()
     ->runInBackground()
     ->onFailure(function () {
