@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\VerifyApiKey;
 use App\Models\Dispositivo;
 use App\Models\Organizacion;
 
@@ -16,12 +17,15 @@ use App\Models\Organizacion;
 |
 */
 
-Route::middleware(['api'])->group(function () {
+Route::middleware(['api', VerifyApiKey::class])->group(function () {
     /**
      * Endpoint para n8n: Dispositivos activos agrupados por organización
      * con API Key y servidor de Shelly
      * 
      * GET /api/dispositivos-activos-por-organizacion
+     * 
+     * Requiere API Key en header: X-API-Key o Authorization
+     * También acepta: ?api_key=xxx en query string
      * 
      * Retorna un array de objetos, cada uno contiene:
      * - organizacion: { id, nombre, codigo, shelly_api_key, shelly_server }

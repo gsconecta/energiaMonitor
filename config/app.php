@@ -107,6 +107,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Key
+    |--------------------------------------------------------------------------
+    |
+    | This key is used to authenticate API requests. Set this in your ".env" file
+    | as API_KEY. The API key can be sent via:
+    | - X-API-Key header
+    | - Authorization header (Bearer token or plain token)
+    | - api_key query parameter
+    |
+    */
+
+    'api_key' => env('API_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |
