@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, Power, Activity } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -49,6 +49,7 @@ interface Props {
 }
 
 export default function DispositivosIndex({ dispositivos, sitios }: Props) {
+    const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [mostrarModal, setMostrarModal] = useState(false);
     const [dispositivoEditando, setDispositivoEditando] = useState<Dispositivo | null>(null);
     const [formData, setFormData] = useState({
@@ -129,12 +130,24 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
         e.preventDefault();
 
         if (dispositivoEditando) {
-            router.put(`/dispositivos/${dispositivoEditando.id}`, formData);
+            router.put(`/dispositivos/${dispositivoEditando.id}`, formData, {
+                onError: () => {
+                    // Mantener el modal abierto si hay errores
+                },
+                onSuccess: () => {
+                    setMostrarModal(false);
+                },
+            });
         } else {
-            router.post('/dispositivos', formData);
+            router.post('/dispositivos', formData, {
+                onError: () => {
+                    // Mantener el modal abierto si hay errores
+                },
+                onSuccess: () => {
+                    setMostrarModal(false);
+                },
+            });
         }
-
-        setMostrarModal(false);
     };
 
     const handleEliminar = (id: number) => {
@@ -372,7 +385,13 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                 }
                                 placeholder="shellyem3-c8c9a33e6505"
                                 required
+                                className={errors?.device_id ? 'border-red-500' : ''}
                             />
+                            {errors?.device_id && (
+                                <p className="text-sm text-red-600 dark:text-red-400">
+                                    {errors.device_id}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">

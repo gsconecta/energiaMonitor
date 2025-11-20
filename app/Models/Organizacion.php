@@ -18,11 +18,14 @@ class Organizacion extends Model
         'descripcion',
         'activa',
         'configuracion',
+        'shelly_api_key',
+        'shelly_server',
     ];
 
     protected $casts = [
         'activa' => 'boolean',
         'configuracion' => 'array',
+        'shelly_api_key' => 'encrypted',
     ];
 
     // Relaciones
@@ -70,5 +73,30 @@ class Organizacion extends Model
             ->first();
             
         return $pivot ? $pivot->pivot->rol : null;
+    }
+
+    /**
+     * Obtener la clave API de Shelly (desencriptada)
+     * Útil para hacer llamadas a la API de Shelly
+     */
+    public function obtenerShellyApiKey()
+    {
+        return $this->shelly_api_key;
+    }
+
+    /**
+     * Verificar si la organización tiene una clave API de Shelly configurada
+     */
+    public function tieneShellyApiKey()
+    {
+        return !empty($this->shelly_api_key);
+    }
+
+    /**
+     * Obtener el servidor de Shelly configurado
+     */
+    public function obtenerShellyServer()
+    {
+        return $this->shelly_server;
     }
 }

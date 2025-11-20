@@ -2,7 +2,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2, Plus, Users, MapPin, UserPlus, Edit, X, CheckCheck, Building2 } from 'lucide-react';
-import { useState } from 'react';
 import * as React from 'react';
 import { useForm as useReactHookForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,6 +16,14 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +37,8 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Key, Server, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -71,6 +80,9 @@ interface Organizacion {
     rol: string;
     sitios: Sitio[];
     usuarios: Usuario[];
+    shelly_api_key?: string | null;
+    tiene_shelly_api_key?: boolean;
+    shelly_server?: string | null;
 }
 
 interface Props {
@@ -82,6 +94,8 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     const [mostrarModalUsuario, setMostrarModalUsuario] = useState(false);
     const [openSheetSitio, setOpenSheetSitio] = useState(false);
     const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] = useState(false);
+    const [openDialogAPI, setOpenDialogAPI] = useState(false);
+    const [copied, setCopied] = useState<string | null>(null);
     
     const { data: formUsuario, setData: setFormUsuario, post: postUsuario, processing: processingUsuario, errors: errorsUsuario, reset: resetUsuario } = useForm({
         email: '',
@@ -294,6 +308,13 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
 
     const puedeGestionar = ['owner', 'admin'].includes(organizacion.rol);
 
+    const copiarAlPortapapeles = (texto: string, tipo: string) => {
+        navigator.clipboard.writeText(texto).then(() => {
+            setCopied(tipo);
+            setTimeout(() => setCopied(null), 2000);
+        });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={organizacion.nombre} />
@@ -337,9 +358,106 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
                         <div className="p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Información
-                            </h2>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    Información
+                                </h2>
+                                {(organizacion.tiene_shelly_api_key || organizacion.shelly_server) && (
+                                    <Dialog open={openDialogAPI} onOpenChange={setOpenDialogAPI}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" size="sm">
+                                                <Key className="h-4 w-4" />
+                                                API Shelly
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-lg">
+                                            <DialogHeader>
+                                                <DialogTitle className="flex items-center gap-2">
+                                                    <Key className="h-5 w-5" />
+                                                    Información API de Shelly
+                                                </DialogTitle>
+                                                <DialogDescription>
+                                                    Configuración de la API de Shelly para esta organización
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4">
+                                                {organizacion.shelly_server && (
+                                                    <div className="space-y-2">
+                                                        <Label className="flex items-center gap-2">
+                                                            <Server className="h-4 w-4" />
+                                                            Servidor
+                                                        </Label>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                value={organizacion.shelly_server}
+                                                                readOnly
+                                                                className="font-mono text-sm"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => copiarAlPortapapeles(organizacion.shelly_server!, 'server')}
+                                                            >
+                                                                {copied === 'server' ? (
+                                                                    <Check className="h-4 w-4 text-green-600" />
+                                                                ) : (
+                                                                    <Copy className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {organizacion.tiene_shelly_api_key && (
+                                                    <div className="space-y-2">
+                                                        <Label className="flex items-center gap-2">
+                                                            <Key className="h-4 w-4" />
+                                                            Clave API
+                                                        </Label>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                value="••••••••••••••••"
+                                                                readOnly
+                                                                className="font-mono text-sm"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                disabled
+                                                                title="La clave API está configurada. Edítala desde el formulario de edición."
+                                                            >
+                                                                <Copy className="h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            La clave API está configurada. Para verla o cambiarla, edita la organización.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {!organizacion.tiene_shelly_api_key && !organizacion.shelly_server && (
+                                                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                                            No hay configuración de API de Shelly para esta organización. 
+                                                            Configúrala desde el formulario de edición.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                                                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                                        Información para consultas API
+                                                    </p>
+                                                    <ul className="mt-2 space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                                                        <li>• Usa estas credenciales para realizar llamadas a la API de Shelly Cloud</li>
+                                                        <li>• El servidor debe coincidir con la región de tu cuenta de Shelly</li>
+                                                        <li>• Incluye la clave API en el header: Authorization: Bearer {'{api_key}'}</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
+                            </div>
                             {organizacion.descripcion && (
                                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                     {organizacion.descripcion}

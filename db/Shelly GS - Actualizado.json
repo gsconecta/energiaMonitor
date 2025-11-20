@@ -1,0 +1,306 @@
+{
+  "name": "Shelly GS - Actualizado",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost/api/dispositivos-activos-por-organizacion",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "obtener-dispositivos-api",
+      "name": "Obtener Dispositivos por Organización",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -800,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer todas las organizaciones con sus dispositivos\nconst items = $input.all();\nconst result = [];\n\nitems.forEach(item => {\n  const organizacion = item.json.organizacion;\n  const dispositivos = item.json.dispositivos || [];\n  \n  // Verificar que tenga API key y servidor configurados\n  if (!organizacion.shelly_api_key || !organizacion.shelly_server) {\n    console.log(`Organización ${organizacion.nombre} no tiene API key o servidor configurado`);\n    return;\n  }\n  \n  // Crear un item por cada dispositivo con información de su organización\n  dispositivos.forEach(dispositivo => {\n    result.push({\n      json: {\n        device_id: dispositivo.device_id,\n        dispositivo_id: dispositivo.id,\n        dispositivo_nombre: dispositivo.nombre,\n        dispositivo_tipo: dispositivo.tipo,\n        dispositivo_modelo: dispositivo.modelo,\n        organizacion_id: organizacion.id,\n        organizacion_nombre: organizacion.nombre,\n        organizacion_codigo: organizacion.codigo,\n        shelly_api_key: organizacion.shelly_api_key,\n        shelly_server: organizacion.shelly_server\n      }\n    });\n  });\n});\n\nreturn result;"
+      },
+      "id": "extraer-dispositivos",
+      "name": "Extraer Dispositivos con Credenciales",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "loop-dispositivos",
+      "name": "Loop Over Dispositivos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.all()[0];\nconst json = item.json;\n\n// Construir URL del servidor de Shelly\nconst serverBase = json.shelly_server || 'https://shelly-149-eu.shelly.cloud';\nconst statusUrl = `${serverBase}/device/status`;\n\nreturn [{\n  json: {\n    id: json.device_id,\n    auth_key: json.shelly_api_key,\n    status_url: statusUrl,\n    _dispositivo_id: json.dispositivo_id,\n    _dispositivo_nombre: json.dispositivo_nombre,\n    _dispositivo_modelo: json.dispositivo_modelo,\n    _organizacion_id: json.organizacion_id,\n    _organizacion_nombre: json.organizacion_nombre\n  }\n}];"
+      },
+      "id": "preparar-request",
+      "name": "Preparar Request Shelly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.status_url }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "auth_key",
+              "value": "={{ $json.auth_key }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "request-shelly",
+      "name": "Request Shelly Cloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        160,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener la respuesta del item actual\nconst response = $input.item.json;\n// Obtener datos del dispositivo desde el nodo anterior\nconst prepararRequest = $('Preparar Request Shelly').first().json;\nconst dispositivo_id = prepararRequest._dispositivo_id;\nconst dispositivo_nombre = prepararRequest._dispositivo_nombre;\nconst dispositivo_modelo = prepararRequest._dispositivo_modelo;\nconst organizacion_id = prepararRequest._organizacion_id;\nconst organizacion_nombre = prepararRequest._organizacion_nombre;\n\nif (!response.isok || !response.data) {\n  console.log(`Error en respuesta para ${dispositivo_nombre} de ${organizacion_nombre}`);\n  return [];\n}\n\nconst deviceStatus = response.data.device_status;\nconst emeters = deviceStatus.emeters || [];\nconst canal1 = emeters[0] || {};\nconst canal2 = emeters[1] || {};\nconst canal3 = emeters[2] || {};\n\nconst potenciaTotal = deviceStatus.total_power || 0;\nconst energiaTotal = (canal1.total || 0) + (canal2.total || 0) + (canal3.total || 0);\nconst energiaRetornadaTotal = (canal1.total_returned || 0) + (canal2.total_returned || 0) + (canal3.total_returned || 0);\n\n// Crear fecha en timezone de Madrid\nconst fecha_lectura = new Date().toLocaleString('sv-SE', { \n  timeZone: 'Europe/Madrid',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false\n}).replace(',', '');\n\nreturn [{\n  json: {\n    dispositivo_id: dispositivo_id,\n    fecha_lectura: fecha_lectura,\n    potencia_total_w: parseFloat(potenciaTotal),\n    potencia_canal_1_w: parseFloat(canal1.power || 0),\n    potencia_canal_2_w: parseFloat(canal2.power || 0),\n    potencia_canal_3_w: parseFloat(canal3.power || 0),\n    energia_total_kwh: parseFloat((energiaTotal / 1000).toFixed(2)),\n    energia_retornada_kwh: parseFloat((energiaRetornadaTotal / 1000).toFixed(2)),\n    energia_canal_1_kwh: parseFloat(((canal1.total || 0) / 1000).toFixed(2)),\n    energia_canal_2_kwh: parseFloat(((canal2.total || 0) / 1000).toFixed(2)),\n    energia_canal_3_kwh: parseFloat(((canal3.total || 0) / 1000).toFixed(2)),\n    voltaje_canal_1: parseFloat(canal1.voltage || 0),\n    voltaje_canal_2: parseFloat(canal2.voltage || 0),\n    voltaje_canal_3: parseFloat(canal3.voltage || 0),\n    voltaje_promedio: parseFloat((((canal1.voltage || 0) + (canal2.voltage || 0) + (canal3.voltage || 0)) / 3).toFixed(1)),\n    corriente_canal_1: parseFloat(canal1.current || 0),\n    corriente_canal_2: parseFloat(canal2.current || 0),\n    corriente_canal_3: parseFloat(canal3.current || 0),\n    corriente_neutro: parseFloat(deviceStatus.emeter_n?.current || 0),\n    pf_canal_1: parseFloat(canal1.pf || 0),\n    pf_canal_2: parseFloat(canal2.pf || 0),\n    pf_canal_3: parseFloat(canal3.pf || 0),\n    online: response.data.online ? 1 : 0,\n    wifi_conectado: deviceStatus.wifi_sta?.connected ? 1 : 0,\n    wifi_rssi: parseInt(deviceStatus.wifi_sta?.rssi) || null,\n    cloud_conectado: deviceStatus.cloud?.connected ? 1 : 0,\n    uptime_segundos: parseInt(deviceStatus.uptime) || null,\n    canal_1_valido: canal1.is_valid ? 1 : 0,\n    canal_2_valido: canal2.is_valid ? 1 : 0,\n    canal_3_valido: canal3.is_valid ? 1 : 0,\n    datos_raw: JSON.stringify(response.data)\n  }\n}];"
+      },
+      "id": "procesar-response",
+      "name": "Procesar Response Shelly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "lecturas",
+          "mode": "list"
+        },
+        "options": {
+          "detailedOutput": true
+        }
+      },
+      "id": "insertar-mysql",
+      "name": "Insertar Lectura en MySQL",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        400
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "ruvjvtqUEwbnjpJL",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (cada 5 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1088,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        400
+      ],
+      "id": "wait-between-requests",
+      "name": "Wait 1s entre requests"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Loop Back",
+      "typeVersion": 1,
+      "position": [
+        880,
+        400
+      ],
+      "id": "loop-back"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (cada 5 min)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Dispositivos por Organización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Dispositivos por Organización": {
+      "main": [
+        [
+          {
+            "node": "Extraer Dispositivos con Credenciales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Dispositivos con Credenciales": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Dispositivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Dispositivos": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait 1s entre requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1s entre requests": {
+      "main": [
+        [
+          {
+            "node": "Preparar Request Shelly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Request Shelly": {
+      "main": [
+        [
+          {
+            "node": "Request Shelly Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Shelly Cloud": {
+      "main": [
+        [
+          {
+            "node": "Procesar Response Shelly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Response Shelly": {
+      "main": [
+        [
+          {
+            "node": "Insertar Lectura en MySQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar Lectura en MySQL": {
+      "main": [
+        [
+          {
+            "node": "Loop Back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Back": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Dispositivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2a68f988-d11f-42bd-8814-95309e949718"
+}
+

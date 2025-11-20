@@ -1,6 +1,14 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
+import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -19,6 +27,8 @@ interface Organizacion {
     codigo: string;
     descripcion: string | null;
     activa: boolean;
+    tiene_shelly_api_key?: boolean;
+    shelly_server?: string | null;
 }
 
 interface Props {
@@ -31,6 +41,8 @@ export default function OrganizacionesEdit({ organizacion }: Props) {
         codigo: organizacion.codigo,
         descripcion: organizacion.descripcion || '',
         activa: organizacion.activa,
+        shelly_api_key: '', // Campo vacío inicialmente, solo se actualiza si el usuario introduce algo
+        shelly_server: organizacion.shelly_server || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -53,87 +65,126 @@ export default function OrganizacionesEdit({ organizacion }: Props) {
                         </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                        <form onSubmit={handleSubmit} className="p-6">
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Nombre <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={data.nombre}
-                                        onChange={(e) => setData('nombre', e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        required
-                                    />
-                                    {errors.nombre && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
-                                    )}
+                    <Card>
+                        <CardContent className="p-6">
+                            <form onSubmit={handleSubmit}>
+                                <div className="space-y-6">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="nombre">
+                                            Nombre <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="nombre"
+                                            type="text"
+                                            value={data.nombre}
+                                            onChange={(e) => setData('nombre', e.target.value)}
+                                            required
+                                            placeholder="Nombre de la organización"
+                                        />
+                                        <InputError message={errors.nombre} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="codigo">
+                                            Código <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            id="codigo"
+                                            type="text"
+                                            value={data.codigo}
+                                            onChange={(e) => setData('codigo', e.target.value)}
+                                            required
+                                            placeholder="Código único de la organización"
+                                        />
+                                        <InputError message={errors.codigo} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="descripcion">Descripción</Label>
+                                        <Textarea
+                                            id="descripcion"
+                                            value={data.descripcion}
+                                            onChange={(e) => setData('descripcion', e.target.value)}
+                                            rows={4}
+                                            placeholder="Descripción de la organización"
+                                        />
+                                        <InputError message={errors.descripcion} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="shelly_api_key">
+                                            Clave API de Shelly
+                                        </Label>
+                                        <InputPassword
+                                            id="shelly_api_key"
+                                            value={data.shelly_api_key}
+                                            onChange={(e) => setData('shelly_api_key', e.target.value)}
+                                            placeholder={
+                                                organizacion.tiene_shelly_api_key
+                                                    ? 'Dejar vacío para mantener la clave actual o escribir nueva clave'
+                                                    : 'Ingresa la clave API de Shelly'
+                                            }
+                                        />
+                                        {organizacion.tiene_shelly_api_key && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Ya existe una clave API configurada. Deja este campo vacío para mantenerla o ingresa una nueva para cambiarla.
+                                            </p>
+                                        )}
+                                        <InputError message={errors.shelly_api_key} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="shelly_server">
+                                            Servidor de Shelly
+                                        </Label>
+                                        <Input
+                                            id="shelly_server"
+                                            type="text"
+                                            value={data.shelly_server}
+                                            onChange={(e) => setData('shelly_server', e.target.value)}
+                                            placeholder="Ejemplo: https://api.shelly.cloud o https://shelly-XX-eu.shelly.cloud"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            URL del servidor de Shelly Cloud para esta organización
+                                        </p>
+                                        <InputError message={errors.shelly_server} />
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="activa"
+                                            checked={data.activa}
+                                            onCheckedChange={(checked) => setData('activa', checked === true)}
+                                        />
+                                        <Label
+                                            htmlFor="activa"
+                                            className="text-sm font-normal cursor-pointer"
+                                        >
+                                            Organización activa
+                                        </Label>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Código <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={data.codigo}
-                                        onChange={(e) => setData('codigo', e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        required
-                                    />
-                                    {errors.codigo && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.codigo}</p>
-                                    )}
+                                <div className="mt-6 flex gap-3">
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="flex-1"
+                                    >
+                                        {processing ? 'Actualizando...' : 'Actualizar'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => router.visit(`/organizaciones/${organizacion.id}`)}
+                                        className="flex-1"
+                                    >
+                                        Cancelar
+                                    </Button>
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        value={data.descripcion}
-                                        onChange={(e) => setData('descripcion', e.target.value)}
-                                        rows={4}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                    />
-                                    {errors.descripcion && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.descripcion}</p>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={data.activa}
-                                        onChange={(e) => setData('activa', e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <label className="ml-2 block text-sm text-gray-900 dark:text-gray-100">
-                                        Organización activa
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 flex gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                                >
-                                    {processing ? 'Actualizando...' : 'Actualizar'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => router.visit(`/organizaciones/${organizacion.id}`)}
-                                    className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                            </form>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </AppLayout>

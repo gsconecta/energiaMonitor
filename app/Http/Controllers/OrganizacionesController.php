@@ -103,6 +103,9 @@ class OrganizacionesController extends Controller
                 'codigo' => $organizacion->codigo,
                 'descripcion' => $organizacion->descripcion,
                 'activa' => $organizacion->activa,
+                'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
+                'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
+                'shelly_server' => $organizacion->shelly_server,
                 'rol' => $organizacion->rolUsuario(auth()->user()),
                 'sitios' => $organizacion->sitios->map(fn($s) => [
                     'id' => $s->id,
@@ -135,6 +138,9 @@ class OrganizacionesController extends Controller
                 'codigo' => $organizacion->codigo,
                 'descripcion' => $organizacion->descripcion,
                 'activa' => $organizacion->activa,
+                'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
+                'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
+                'shelly_server' => $organizacion->shelly_server,
             ],
         ]);
     }
@@ -151,7 +157,15 @@ class OrganizacionesController extends Controller
             'codigo' => 'required|string|max:255|unique:organizaciones,codigo,' . $organizacion->id,
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
+            'shelly_api_key' => 'nullable|string',
+            'shelly_server' => 'nullable|string|max:255',
         ]);
+
+        // Si el usuario envía '***' o está vacío y ya existe una clave, no actualizarla
+        if (isset($validated['shelly_api_key']) && 
+            ($validated['shelly_api_key'] === '***' || $validated['shelly_api_key'] === '')) {
+            unset($validated['shelly_api_key']);
+        }
 
         $organizacion->update($validated);
 
