@@ -112,20 +112,6 @@ class DispositivosController extends Controller
      */
     public function store(Request $request)
     {
-        // Verificar si el device_id ya está en uso antes de validar
-        $deviceId = $request->input('device_id');
-        if ($deviceId) {
-            $dispositivoExistente = Dispositivo::where('device_id', $deviceId)
-                ->whereNull('deleted_at')
-                ->first();
-            
-            if ($dispositivoExistente) {
-                return back()->withErrors([
-                    'device_id' => 'Este dispositivo ya está siendo usado por otra organización o sitio.',
-                ])->withInput();
-            }
-        }
-
         $validated = $request->validate([
             'sitio_id' => 'required|exists:sitios,id',
             'device_id' => [
@@ -135,13 +121,50 @@ class DispositivosController extends Controller
             ],
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
+            'num_fases' => 'nullable|integer|in:1,2,3',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',
             'activo' => 'boolean',
         ]);
 
-        $dispositivo = Dispositivo::create($validated);
+        // Verificar si existe un dispositivo (incluyendo eliminados) con ese device_id
+        // La restricción de unicidad en la BD no considera soft deletes, así que debemos manejarlo manualmente
+        $dispositivoExistente = Dispositivo::withTrashed()
+            ->where('device_id', $validated['device_id'])
+            ->first();
+        
+        if ($dispositivoExistente) {
+            if (!$dispositivoExistente->trashed()) {
+                // El dispositivo existe y está activo
+                return back()->withErrors([
+                    'device_id' => 'Este dispositivo ya está siendo usado por otra organización o sitio.',
+                ])->withInput();
+            } else {
+                // El dispositivo existe pero está eliminado (soft delete)
+                // Como la restricción de unicidad en la BD no permite insertar, 
+                // debemos hacer un hard delete primero y luego crear el nuevo
+                $dispositivoExistente->forceDelete();
+            }
+        }
+
+        try {
+            $dispositivo = Dispositivo::create($validated);
+            
+            // Intentar detectar automáticamente el número de fases si no se proporcionó
+            // Esto se actualizará cuando llegue la primera lectura
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Si aún así falla (por ejemplo, condición de carrera), verificar nuevamente
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                $dispositivoExistente = Dispositivo::where('device_id', $validated['device_id'])->first();
+                if ($dispositivoExistente) {
+                    return back()->withErrors([
+                        'device_id' => 'Este dispositivo ya está siendo usado por otra organización o sitio.',
+                    ])->withInput();
+                }
+            }
+            throw $e;
+        }
 
         return redirect()->route('dispositivos.index')
             ->with('success', 'Dispositivo creado correctamente');
@@ -163,6 +186,7 @@ class DispositivosController extends Controller
             ],
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
+            'num_fases' => 'nullable|integer|in:1,2,3',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',
@@ -170,6 +194,11 @@ class DispositivosController extends Controller
         ]);
 
         $dispositivo->update($validated);
+        
+        // Si no se especificó num_fases y hay lecturas, intentar detectarlo automáticamente
+        if (!isset($validated['num_fases']) || $validated['num_fases'] === null) {
+            $dispositivo->actualizarNumFasesAuto();
+        }
 
         return redirect()->route('dispositivos.index')
             ->with('success', 'Dispositivo actualizado correctamente');

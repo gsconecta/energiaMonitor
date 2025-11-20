@@ -1,0 +1,170 @@
+{
+	"info": {
+		"_postman_id": "shelly-api-collection",
+		"name": "Shelly Cloud API - Pruebas",
+		"description": "Colección de Postman para probar la API de Shelly Cloud",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Obtener Status del Dispositivo (GET)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{shelly_server}}/device/status?id={{device_id}}&auth_key={{shelly_api_key}}",
+					"host": [
+						"{{shelly_server}}"
+					],
+					"path": [
+						"device",
+						"status"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "{{device_id}}",
+							"description": "ID del dispositivo Shelly (ej: 8813bffeabf0)"
+						},
+						{
+							"key": "auth_key",
+							"value": "{{shelly_api_key}}",
+							"description": "API Key de Shelly Cloud"
+						}
+					]
+				},
+				"description": "Obtiene el estado actual del dispositivo Shelly usando método GET.\n\n**Parámetros requeridos:**\n- `id`: Device ID del dispositivo (ej: 8813bffeabf0)\n- `auth_key`: API Key de Shelly Cloud\n\n**Variables de entorno necesarias:**\n- `shelly_server`: URL del servidor de Shelly (ej: https://shelly-149-eu.shelly.cloud)\n- `device_id`: ID del dispositivo\n- `shelly_api_key`: API Key de autenticación"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Obtener Status del Dispositivo (POST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "id",
+							"value": "{{device_id}}",
+							"description": "ID del dispositivo Shelly",
+							"type": "text"
+						},
+						{
+							"key": "auth_key",
+							"value": "{{shelly_api_key}}",
+							"description": "API Key de Shelly Cloud",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{shelly_server}}/device/status",
+					"host": [
+						"{{shelly_server}}"
+					],
+					"path": [
+						"device",
+						"status"
+					]
+				},
+				"description": "Obtiene el estado actual del dispositivo Shelly usando método POST con form-urlencoded.\n\n**Parámetros requeridos:**\n- `id`: Device ID del dispositivo\n- `auth_key`: API Key de Shelly Cloud\n\n**Variables de entorno necesarias:**\n- `shelly_server`: URL del servidor de Shelly\n- `device_id`: ID del dispositivo\n- `shelly_api_key`: API Key de autenticación"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Listar Dispositivos (Shelly Cloud)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{shelly_server}}/device/list?auth_key={{shelly_api_key}}",
+					"host": [
+						"{{shelly_server}}"
+					],
+					"path": [
+						"device",
+						"list"
+					],
+					"query": [
+						{
+							"key": "auth_key",
+							"value": "{{shelly_api_key}}",
+							"description": "API Key de Shelly Cloud"
+						}
+					]
+				},
+				"description": "Lista todos los dispositivos asociados a la cuenta de Shelly Cloud.\n\n**Parámetros requeridos:**\n- `auth_key`: API Key de Shelly Cloud\n\n**Variables de entorno necesarias:**\n- `shelly_server`: URL del servidor de Shelly\n- `shelly_api_key`: API Key de autenticación"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Obtener Dispositivos desde nuestra API",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{app_api_key}}",
+						"description": "API Key de la aplicación Laravel"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{app_url}}/api/dispositivos-activos-por-organizacion",
+					"host": [
+						"{{app_url}}"
+					],
+					"path": [
+						"api",
+						"dispositivos-activos-por-organizacion"
+					]
+				},
+				"description": "Obtiene los dispositivos activos agrupados por organización desde nuestra API Laravel.\n\n**Headers requeridos:**\n- `X-API-Key`: API Key de la aplicación (o usar `Authorization: Bearer {token}`)\n\n**Alternativa:** También puedes pasar la API key como query parameter: `?api_key=xxx`\n\n**Variables de entorno necesarias:**\n- `app_url`: URL base de la aplicación (ej: https://monitor.cloudmallorca.com)\n- `app_api_key`: API Key de la aplicación Laravel"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "shelly_server",
+			"value": "https://shelly-149-eu.shelly.cloud",
+			"type": "string",
+			"description": "URL del servidor de Shelly Cloud (puede variar según región)"
+		},
+		{
+			"key": "device_id",
+			"value": "8813bffeabf0",
+			"type": "string",
+			"description": "ID del dispositivo Shelly (ejemplo)"
+		},
+		{
+			"key": "shelly_api_key",
+			"value": "TU_API_KEY_AQUI",
+			"type": "string",
+			"description": "API Key de Shelly Cloud (obtener desde la cuenta de Shelly)"
+		},
+		{
+			"key": "app_url",
+			"value": "http://localhost",
+			"type": "string",
+			"description": "URL base de la aplicación Laravel"
+		},
+		{
+			"key": "app_api_key",
+			"value": "TU_API_KEY_LARAVEL",
+			"type": "string",
+			"description": "API Key de la aplicación Laravel"
+		}
+	]
+}
+

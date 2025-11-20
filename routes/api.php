@@ -96,6 +96,47 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
     });
 
     /**
+     * Endpoint para actualizar número de fases de un dispositivo
+     * Se llama automáticamente desde n8n después de insertar una lectura
+     * 
+     * POST /api/dispositivos/{dispositivo_id}/actualizar-fases
+     * 
+     * Body: { "num_fases": 1|2|3 } (opcional, si no se envía se detecta automáticamente)
+     */
+    Route::post('/dispositivos/{dispositivo}/actualizar-fases', function (Request $request, Dispositivo $dispositivo) {
+        $validated = $request->validate([
+            'num_fases' => 'nullable|integer|in:1,2,3',
+        ]);
+
+        if (isset($validated['num_fases'])) {
+            // Actualizar manualmente con el valor proporcionado
+            $dispositivo->update(['num_fases' => $validated['num_fases']]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Número de fases actualizado manualmente',
+                'dispositivo_id' => $dispositivo->id,
+                'num_fases' => $dispositivo->num_fases,
+                'fases_label' => $dispositivo->fases_label,
+            ]);
+        } else {
+            // Detectar automáticamente desde la última lectura
+            $actualizado = $dispositivo->actualizarNumFasesAuto();
+            
+            return response()->json([
+                'success' => true,
+                'message' => $actualizado 
+                    ? 'Número de fases detectado y actualizado automáticamente'
+                    : 'Número de fases no se pudo detectar o ya estaba correcto',
+                'dispositivo_id' => $dispositivo->id,
+                'num_fases' => $dispositivo->fresh()->num_fases,
+                'fases_label' => $dispositivo->fresh()->fases_label,
+                'actualizado' => $actualizado,
+            ]);
+        }
+    });
+
+    /**
      * Query SQL directa para uso en n8n
      * Devuelve todos los campos necesarios para agrupar después
      */
