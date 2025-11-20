@@ -11,7 +11,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-interface Nave {
+interface Sitio {
     id: number;
     nombre: string;
 }
@@ -25,7 +25,7 @@ interface Dispositivo {
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
-    nave: Nave;
+    sitio: Sitio;
     lecturas_count: number;
     esta_online: boolean;
     ultima_lectura: string | null;
@@ -34,14 +34,14 @@ interface Dispositivo {
 
 interface Props {
     dispositivos: Dispositivo[];
-    naves: Nave[];
+    sitios: Sitio[];
 }
 
-export default function DispositivosIndex({ dispositivos, naves }: Props) {
+export default function DispositivosIndex({ dispositivos, sitios }: Props) {
     const [mostrarModal, setMostrarModal] = useState(false);
     const [dispositivoEditando, setDispositivoEditando] = useState<Dispositivo | null>(null);
     const [formData, setFormData] = useState({
-        nave_id: '',
+        sitio_id: '',
         device_id: '',
         nombre: '',
         tipo: 'produccion',
@@ -62,7 +62,7 @@ export default function DispositivosIndex({ dispositivos, naves }: Props) {
     const abrirModalNuevo = () => {
         setDispositivoEditando(null);
         setFormData({
-            nave_id: naves[0]?.id.toString() || '',
+            sitio_id: sitios[0]?.id.toString() || '',
             device_id: '',
             nombre: '',
             tipo: 'produccion',
@@ -77,7 +77,7 @@ export default function DispositivosIndex({ dispositivos, naves }: Props) {
     const abrirModalEditar = (dispositivo: Dispositivo) => {
         setDispositivoEditando(dispositivo);
         setFormData({
-            nave_id: dispositivo.nave.id.toString(),
+            sitio_id: dispositivo.sitio.id.toString(),
             device_id: dispositivo.device_id,
             nombre: dispositivo.nombre,
             tipo: dispositivo.tipo,
@@ -148,7 +148,7 @@ export default function DispositivosIndex({ dispositivos, naves }: Props) {
                                         Dispositivo
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                        Nave
+                                        Sitio
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         Tipo
@@ -197,7 +197,7 @@ export default function DispositivosIndex({ dispositivos, naves }: Props) {
                                             </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                            {dispositivo.nave.nombre}
+                                            {dispositivo.sitio.nombre}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4">
                                             <span
@@ -277,19 +277,19 @@ export default function DispositivosIndex({ dispositivos, naves }: Props) {
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Nave
+                                        Sitio
                                     </label>
                                     <select
-                                        value={formData.nave_id}
+                                        value={formData.sitio_id}
                                         onChange={(e) =>
-                                            setFormData({ ...formData, nave_id: e.target.value })
+                                            setFormData({ ...formData, sitio_id: e.target.value })
                                         }
                                         className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                                         required
                                     >
-                                        {naves.map((nave) => (
-                                            <option key={nave.id} value={nave.id}>
-                                                {nave.nombre}
+                                        {sitios.map((sitio) => (
+                                            <option key={sitio.id} value={sitio.id}>
+                                                {sitio.nombre}
                                             </option>
                                         ))}
                                     </select>

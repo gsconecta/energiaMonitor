@@ -13,7 +13,7 @@ class Dispositivo extends Model
     protected $table = 'dispositivos';
 
     protected $fillable = [
-        'nave_id',
+        'sitio_id',
         'device_id',
         'nombre',
         'tipo',
@@ -30,9 +30,9 @@ class Dispositivo extends Model
     ];
 
     // Relaciones
-    public function nave()
+    public function sitio()
     {
-        return $this->belongsTo(Nave::class);
+        return $this->belongsTo(Sitio::class);
     }
 
     public function lecturas()

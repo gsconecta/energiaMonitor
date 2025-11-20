@@ -4,24 +4,58 @@ namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
 use App\Models\Lectura;
-use App\Models\Nave;
+use App\Models\Sitio;
+use App\Models\Organizacion;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
+        
+        // Verificar si hay contexto seleccionado
+        $organizacionActualId = $request->session()->get('organizacion_actual_id');
+        $sitioActualId = $request->session()->get('sitio_actual_id');
+
+        // Si no hay contexto seleccionado, redirigir al selector
+        if (!$organizacionActualId || !$sitioActualId) {
+            return redirect()->route('seleccionar-contexto');
+        }
+
+        // Verificar que el usuario aún tiene acceso
+        $organizacionActual = Organizacion::find($organizacionActualId);
+        $sitioActual = Sitio::find($sitioActualId);
+
+        if (!$organizacionActual || !$organizacionActual->tieneUsuario($user)) {
+            // El usuario ya no tiene acceso, limpiar sesión y redirigir al selector
+            $request->session()->forget(['organizacion_actual_id', 'sitio_actual_id']);
+            return redirect()->route('seleccionar-contexto');
+        }
+
+        if (!$sitioActual || $sitioActual->organizacion_id !== $organizacionActual->id) {
+            // El sitio ya no pertenece a la organización, limpiar y redirigir al selector
+            $request->session()->forget(['organizacion_actual_id', 'sitio_actual_id']);
+            return redirect()->route('seleccionar-contexto');
+        }
+
         $dispositivoId = $request->get('dispositivo_id');
         $periodo = $request->get('periodo', 'hoy');
         $fechaDesde = $request->get('fecha_desde');
         $fechaHasta = $request->get('fecha_hasta');
 
-        // Obtener dispositivo (usar el primero si no se especifica)
+        // Obtener dispositivos del sitio seleccionado
+        $queryDispositivos = Dispositivo::with('sitio')
+            ->whereHas('sitio', function ($q) use ($sitioActualId) {
+                $q->where('id', $sitioActualId);
+            })
+            ->activos();
+
+        // Obtener dispositivo (usar el primero del sitio si no se especifica)
         $dispositivo = $dispositivoId 
-            ? Dispositivo::with('nave')->find($dispositivoId)
-            : Dispositivo::with('nave')->activos()->first();
+            ? Dispositivo::with('sitio')->find($dispositivoId)
+            : $queryDispositivos->first();
 
         if (!$dispositivo) {
             return Inertia::render('Dashboard/Index', [
@@ -30,15 +64,14 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Obtener todos los dispositivos para el selector
-        $dispositivos = Dispositivo::with('nave')
-            ->activos()
+        // Obtener todos los dispositivos del sitio seleccionado para el selector
+        $dispositivos = $queryDispositivos
             ->get()
             ->map(fn($d) => [
                 'id' => $d->id,
                 'nombre' => $d->nombre,
                 'tipo' => $d->tipo,
-                'nave' => $d->nave->nombre,
+                'sitio' => $d->sitio->nombre,
             ]);
 
         // Obtener lecturas según período
@@ -61,9 +94,9 @@ class DashboardController extends Controller
                 'nombre' => $dispositivo->nombre,
                 'tipo' => $dispositivo->tipo,
                 'device_id' => $dispositivo->device_id,
-                'nave' => [
-                    'id' => $dispositivo->nave->id,
-                    'nombre' => $dispositivo->nave->nombre,
+                'sitio' => [
+                    'id' => $dispositivo->sitio->id,
+                    'nombre' => $dispositivo->sitio->nombre,
                 ],
             ],
             'dispositivos' => $dispositivos,
@@ -74,27 +107,36 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function obtenerLecturas($dispositivo, $periodo)
+    private function obtenerLecturas($dispositivo, $periodo, $fechaDesde = null, $fechaHasta = null)
     {
         $query = $dispositivo->lecturas();
 
-        switch ($periodo) {
-            case 'hoy':
-                $query->whereDate('fecha_lectura', today());
-                break;
-            case 'ayer':
-                $query->whereDate('fecha_lectura', today()->subDay());
-                break;
-            case 'semana':
-                $query->whereBetween('fecha_lectura', [
-                    now()->startOfWeek(),
-                    now()->endOfWeek()
-                ]);
-                break;
-            case 'mes':
-                $query->whereMonth('fecha_lectura', now()->month)
-                      ->whereYear('fecha_lectura', now()->year);
-                break;
+        // Si se proporcionan fechas personalizadas, usarlas
+        if ($fechaDesde && $fechaHasta) {
+            $query->whereBetween('fecha_lectura', [
+                \Carbon\Carbon::parse($fechaDesde)->startOfDay(),
+                \Carbon\Carbon::parse($fechaHasta)->endOfDay()
+            ]);
+        } else {
+            // Usar períodos predefinidos
+            switch ($periodo) {
+                case 'hoy':
+                    $query->whereDate('fecha_lectura', today());
+                    break;
+                case 'ayer':
+                    $query->whereDate('fecha_lectura', today()->subDay());
+                    break;
+                case 'semana':
+                    $query->whereBetween('fecha_lectura', [
+                        now()->startOfWeek(),
+                        now()->endOfWeek()
+                    ]);
+                    break;
+                case 'mes':
+                    $query->whereMonth('fecha_lectura', now()->month)
+                          ->whereYear('fecha_lectura', now()->year);
+                    break;
+            }
         }
 
         return $query->orderBy('fecha_lectura', 'asc')->get();
@@ -112,6 +154,7 @@ class DashboardController extends Controller
                 'factor_potencia_promedio' => 0,
                 'estado_conexion' => 'offline',
                 'ultima_actualizacion' => null,
+                'ultima_actualizacion_human' => null,
                 'numero_lecturas' => 0,
             ];
         }
@@ -119,21 +162,36 @@ class DashboardController extends Controller
         $ultimaLectura = $lecturas->last();
 
         // Verificar si está online (última lectura hace menos de 10 minutos)
-        $estaOnline = $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10;
+        $estaOnline = $ultimaLectura && $ultimaLectura->fecha_lectura 
+            ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10 
+            : false;
+
+        // Calcular promedios con manejo de nulls
+        $potenciaMaxima = $lecturas->whereNotNull('potencia_total_w')->max('potencia_total_w') ?? 0;
+        $potenciaPromedio = $lecturas->whereNotNull('potencia_total_w')->avg('potencia_total_w') ?? 0;
+        $voltajePromedio = $lecturas->whereNotNull('voltaje_promedio')->avg('voltaje_promedio') ?? 0;
+
+        // Calcular factor de potencia promedio solo con valores válidos
+        $pfPromedios = collect([
+            $lecturas->whereNotNull('pf_canal_1')->avg('pf_canal_1'),
+            $lecturas->whereNotNull('pf_canal_2')->avg('pf_canal_2'),
+            $lecturas->whereNotNull('pf_canal_3')->avg('pf_canal_3'),
+        ])->filter(fn($val) => $val !== null);
+
+        $factorPotenciaPromedio = $pfPromedios->isNotEmpty() 
+            ? $pfPromedios->avg() 
+            : 0;
 
         return [
-            'potencia_actual_kw' => round($ultimaLectura->potencia_total_w / 1000, 2),
-            'potencia_maxima_kw' => round($lecturas->max('potencia_total_w') / 1000, 2),
-            'potencia_promedio_kw' => round($lecturas->avg('potencia_total_w') / 1000, 2),
-            'energia_total_kwh' => round($ultimaLectura->energia_total_kwh, 2),
-            'voltaje_promedio' => round($lecturas->avg('voltaje_promedio'), 1),
-            'factor_potencia_promedio' => round(
-                ($lecturas->avg('pf_canal_1') + $lecturas->avg('pf_canal_2') + $lecturas->avg('pf_canal_3')) / 3, 
-                2
-            ),
+            'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
+            'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
+            'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
+            'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
+            'voltaje_promedio' => round($voltajePromedio, 1),
+            'factor_potencia_promedio' => round($factorPotenciaPromedio, 2),
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
-            'ultima_actualizacion' => $ultimaLectura->fecha_lectura->toISOString(),
-            'ultima_actualizacion_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
+            'ultima_actualizacion' => $ultimaLectura->fecha_lectura?->toISOString(),
+            'ultima_actualizacion_human' => $ultimaLectura->fecha_lectura?->diffForHumans(),
             'numero_lecturas' => $lecturas->count(),
         ];
     }

@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
-        return [
+        $shared = [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
@@ -47,5 +47,31 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+
+        // Compartir contexto actual si el usuario está autenticado
+        if ($request->user()) {
+            $organizacionActualId = $request->session()->get('organizacion_actual_id');
+            $sitioActualId = $request->session()->get('sitio_actual_id');
+
+            if ($organizacionActualId && $sitioActualId) {
+                $organizacion = \App\Models\Organizacion::find($organizacionActualId);
+                $sitio = \App\Models\Sitio::find($sitioActualId);
+
+                if ($organizacion && $sitio) {
+                    $shared['organizacion_actual'] = [
+                        'id' => $organizacion->id,
+                        'nombre' => $organizacion->nombre,
+                        'codigo' => $organizacion->codigo,
+                    ];
+                    $shared['sitio_actual'] = [
+                        'id' => $sitio->id,
+                        'nombre' => $sitio->nombre,
+                        'codigo' => $sitio->codigo,
+                    ];
+                }
+            }
+        }
+
+        return $shared;
     }
 }

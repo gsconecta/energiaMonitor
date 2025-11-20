@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
-use App\Models\Nave;
+use App\Models\Sitio;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -12,11 +12,19 @@ class DispositivosController extends Controller
     /**
      * Mostrar listado de dispositivos
      */
-    public function index()
+    public function index(Request $request)
     {
-        $dispositivos = Dispositivo::with('nave')
-            ->withCount('lecturas')
-            ->orderBy('created_at', 'desc')
+        // Filtrar por sitio seleccionado si existe
+        $sitioActualId = $request->session()->get('sitio_actual_id');
+        
+        $query = Dispositivo::with('sitio')
+            ->withCount('lecturas');
+            
+        if ($sitioActualId) {
+            $query->where('sitio_id', $sitioActualId);
+        }
+        
+        $dispositivos = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($dispositivo) {
                 $ultimaLectura = $dispositivo->ultimaLectura();
@@ -30,9 +38,9 @@ class DispositivosController extends Controller
                     'ip_local' => $dispositivo->ip_local,
                     'firmware' => $dispositivo->firmware,
                     'activo' => $dispositivo->activo,
-                    'nave' => [
-                        'id' => $dispositivo->nave->id,
-                        'nombre' => $dispositivo->nave->nombre,
+                    'sitio' => [
+                        'id' => $dispositivo->sitio->id,
+                        'nombre' => $dispositivo->sitio->nombre,
                     ],
                     'lecturas_count' => $dispositivo->lecturas_count,
                     'esta_online' => $dispositivo->estaOnline(),
@@ -41,14 +49,22 @@ class DispositivosController extends Controller
                 ];
             });
 
-        $naves = Nave::activas()->get()->map(fn($nave) => [
-            'id' => $nave->id,
-            'nombre' => $nave->nombre,
+        // Obtener sitios según el contexto
+        $organizacionActualId = $request->session()->get('organizacion_actual_id');
+        
+        $querySitios = Sitio::activos();
+        if ($organizacionActualId) {
+            $querySitios->where('organizacion_id', $organizacionActualId);
+        }
+        
+        $sitios = $querySitios->get()->map(fn($sitio) => [
+            'id' => $sitio->id,
+            'nombre' => $sitio->nombre,
         ]);
 
         return Inertia::render('Dispositivos/Index', [
             'dispositivos' => $dispositivos,
-            'naves' => $naves,
+            'sitios' => $sitios,
         ]);
     }
 
@@ -58,7 +74,7 @@ class DispositivosController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nave_id' => 'required|exists:naves,id',
+            'sitio_id' => 'required|exists:sitios,id',
             'device_id' => 'required|string|unique:dispositivos,device_id',
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
@@ -80,7 +96,7 @@ class DispositivosController extends Controller
     public function update(Request $request, Dispositivo $dispositivo)
     {
         $validated = $request->validate([
-            'nave_id' => 'required|exists:naves,id',
+            'sitio_id' => 'required|exists:sitios,id',
             'device_id' => 'required|string|unique:dispositivos,device_id,' . $dispositivo->id,
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',

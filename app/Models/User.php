@@ -46,4 +46,55 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // Relación con organizaciones
+    public function organizaciones()
+    {
+        return $this->belongsToMany(Organizacion::class, 'organizacion_user')
+            ->withPivot('rol')
+            ->withTimestamps();
+    }
+
+    // Métodos útiles
+    public function organizacionesActivas()
+    {
+        return $this->organizaciones()->where('activa', true);
+    }
+
+    public function esPropietarioOrganizacion($organizacion)
+    {
+        $organizacionId = $organizacion instanceof Organizacion 
+            ? $organizacion->id 
+            : $organizacion;
+            
+        return $this->organizaciones()
+            ->where('organizacion_id', $organizacionId)
+            ->wherePivot('rol', 'owner')
+            ->exists();
+    }
+
+    public function puedeGestionarOrganizacion($organizacion)
+    {
+        $organizacionId = $organizacion instanceof Organizacion 
+            ? $organizacion->id 
+            : $organizacion;
+            
+        return $this->organizaciones()
+            ->where('organizacion_id', $organizacionId)
+            ->whereIn('rol', ['owner', 'admin'])
+            ->exists();
+    }
+
+    public function rolEnOrganizacion($organizacion)
+    {
+        $organizacionId = $organizacion instanceof Organizacion 
+            ? $organizacion->id 
+            : $organizacion;
+            
+        $pivot = $this->organizaciones()
+            ->where('organizacion_id', $organizacionId)
+            ->first();
+            
+        return $pivot ? $pivot->pivot->rol : null;
+    }
 }

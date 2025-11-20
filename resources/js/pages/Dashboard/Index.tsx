@@ -1,8 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Activity, Zap, TrendingUp, Battery, Calendar } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { Activity, Zap, TrendingUp, Battery, Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import { useState } from 'react';
 import {
@@ -52,7 +52,7 @@ interface Dispositivo {
     nombre: string;
     tipo: string;
     device_id: string;
-    nave: {
+    sitio: {
         id: number;
         nombre: string;
     };
@@ -83,6 +83,19 @@ interface Graficas {
     };
 }
 
+interface SharedProps {
+    organizacion_actual?: {
+        id: number;
+        nombre: string;
+        codigo: string;
+    };
+    sitio_actual?: {
+        id: number;
+        nombre: string;
+        codigo: string;
+    };
+}
+
 interface Props {
     dispositivo?: Dispositivo;
     dispositivos: Dispositivo[];
@@ -100,6 +113,10 @@ export default function Dashboard({
     periodo,
     sinDispositivos,
 }: Props) {
+    const page = usePage();
+    const pageProps = page.props as Partial<SharedProps>;
+    const organizacionActual = pageProps.organizacion_actual;
+    const sitioActual = pageProps.sitio_actual;
     const [mostrarRangoPersonalizado, setMostrarRangoPersonalizado] = useState(false);
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
@@ -152,6 +169,11 @@ export default function Dashboard({
                         <p className="mt-2 text-gray-600 dark:text-gray-400">
                             Configura un dispositivo para comenzar a monitorizar
                         </p>
+                        {organizacionActual && sitioActual && (
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                {organizacionActual.nombre} - {sitioActual.nombre}
+                            </p>
+                        )}
                     </div>
                 </div>
             </AppLayout>
@@ -245,11 +267,38 @@ export default function Dashboard({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-x-hidden p-2 sm:p-4 lg:p-6">
+                {/* Indicador de contexto actual */}
+                {organizacionActual && sitioActual && (
+                    <div className="flex items-center justify-between rounded-lg border border-sidebar-border/70 bg-white p-3 dark:border-sidebar-border dark:bg-gray-800">
+                        <div className="flex items-center gap-3">
+                            <Building2 className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {organizacionActual.nombre}
+                            </span>
+                            <span className="text-gray-400">/</span>
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {sitioActual.nombre}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                router.visit('/seleccionar-contexto');
+                            }}
+                            className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                            title="Cambiar contexto"
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                            Cambiar
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex flex-col gap-3 sm:gap-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex-1">
                             <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
-                                {dispositivo?.nave.nombre} - {dispositivo?.nombre}
+                                {dispositivo?.sitio.nombre} - {dispositivo?.nombre}
                             </p>
                         </div>
 

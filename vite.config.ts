@@ -20,4 +20,12 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    server: {
+        hmr: {
+            host: 'energiamonitor.test',
+        },
+        host: 'energiamonitor.test',
+        port: 5173,
+        strictPort: true,
+    },
 });
