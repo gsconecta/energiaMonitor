@@ -69,13 +69,8 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
             }
             
             // Obtener la API key usando el accessor
+            // Acceder directamente al atributo para que se ejecute el accessor
             $shellyApiKey = $organizacion->shelly_api_key;
-            
-            // Log para depuración (solo en desarrollo)
-            if (config('app.debug')) {
-                $rawValue = $organizacion->getRawShellyApiKey();
-                \Log::debug("Organización {$organizacion->id}: raw_value=" . ($rawValue ? substr($rawValue, 0, 20) . '...' : 'NULL') . ", decrypted=" . ($shellyApiKey ? 'OK' : 'NULL'));
-            }
             
             return [
                 'organizacion' => [

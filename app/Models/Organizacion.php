@@ -83,28 +83,28 @@ class Organizacion extends Model
     {
         // Si el valor es null o vacío, devolver null
         if (empty($value)) {
-            \Log::debug('shelly_api_key vacío para organización ' . ($this->id ?? 'nueva'));
             return null;
         }
 
-        // Si el valor no parece estar encriptado (no tiene el formato de Laravel),
-        // devolverlo tal cual (puede ser un valor antiguo sin encriptar)
-        // Los valores encriptados de Laravel empiezan con "eyJ" (base64 de JSON)
-        if (!str_starts_with($value, 'eyJ')) {
-            \Log::debug('shelly_api_key no encriptado (texto plano) para organización ' . ($this->id ?? 'nueva'));
-            return $value;
-        }
-
+        // Siempre intentar descifrar primero (puede estar encriptado con diferentes formatos)
         try {
             // Intentar descifrar el valor
             $decrypted = decrypt($value);
-            \Log::debug('shelly_api_key descifrado correctamente para organización ' . ($this->id ?? 'nueva'));
             return $decrypted;
         } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
             // Si falla el descifrado, puede ser porque:
-            // 1. El valor fue encriptado con otra APP_KEY
-            // En este caso, devolvemos null para evitar errores
-            \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage() . ' | Valor: ' . substr($value, 0, 20) . '...');
+            // 1. El valor no está encriptado (es texto plano)
+            // 2. El valor fue encriptado con otra APP_KEY
+            // En ambos casos, devolvemos el valor tal cual o null si parece estar corrupto
+            
+            // Si el valor parece ser texto plano legible (no muy largo y contiene caracteres alfanuméricos normales)
+            // devolverlo tal cual
+            if (strlen($value) < 200 && preg_match('/^[a-zA-Z0-9\-_]+$/', $value)) {
+                return $value;
+            }
+            
+            // Si parece estar encriptado pero no se puede descifrar, devolver null
+            \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage());
             return null;
         }
     }
