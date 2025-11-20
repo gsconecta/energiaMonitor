@@ -81,7 +81,9 @@ class Organizacion extends Model
      */
     public function getShellyApiKeyAttribute($value)
     {
+        // Si el valor es null o vacío, devolver null
         if (empty($value)) {
+            \Log::debug('shelly_api_key vacío para organización ' . ($this->id ?? 'nueva'));
             return null;
         }
 
@@ -89,17 +91,20 @@ class Organizacion extends Model
         // devolverlo tal cual (puede ser un valor antiguo sin encriptar)
         // Los valores encriptados de Laravel empiezan con "eyJ" (base64 de JSON)
         if (!str_starts_with($value, 'eyJ')) {
+            \Log::debug('shelly_api_key no encriptado (texto plano) para organización ' . ($this->id ?? 'nueva'));
             return $value;
         }
 
         try {
             // Intentar descifrar el valor
-            return decrypt($value);
+            $decrypted = decrypt($value);
+            \Log::debug('shelly_api_key descifrado correctamente para organización ' . ($this->id ?? 'nueva'));
+            return $decrypted;
         } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
             // Si falla el descifrado, puede ser porque:
             // 1. El valor fue encriptado con otra APP_KEY
             // En este caso, devolvemos null para evitar errores
-            \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage());
+            \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage() . ' | Valor: ' . substr($value, 0, 20) . '...');
             return null;
         }
     }
@@ -141,5 +146,14 @@ class Organizacion extends Model
     public function obtenerShellyServer()
     {
         return $this->shelly_server;
+    }
+
+    /**
+     * Obtener el valor crudo de shelly_api_key desde la base de datos (para depuración)
+     * Este método accede directamente al atributo sin pasar por el accessor
+     */
+    public function getRawShellyApiKey()
+    {
+        return $this->attributes['shelly_api_key'] ?? null;
     }
 }

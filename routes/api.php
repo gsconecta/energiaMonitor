@@ -68,12 +68,21 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 return null;
             }
             
+            // Obtener la API key usando el accessor
+            $shellyApiKey = $organizacion->shelly_api_key;
+            
+            // Log para depuración (solo en desarrollo)
+            if (config('app.debug')) {
+                $rawValue = $organizacion->getRawShellyApiKey();
+                \Log::debug("Organización {$organizacion->id}: raw_value=" . ($rawValue ? substr($rawValue, 0, 20) . '...' : 'NULL') . ", decrypted=" . ($shellyApiKey ? 'OK' : 'NULL'));
+            }
+            
             return [
                 'organizacion' => [
                     'id' => $organizacion->id,
                     'nombre' => $organizacion->nombre,
                     'codigo' => $organizacion->codigo,
-                    'shelly_api_key' => $organizacion->shelly_api_key, // Ya viene desencriptada automáticamente del modelo
+                    'shelly_api_key' => $shellyApiKey, // Ya viene desencriptada automáticamente del modelo
                     'shelly_server' => $organizacion->shelly_server,
                 ],
                 'dispositivos' => $grupo->map(function ($dispositivo) {
