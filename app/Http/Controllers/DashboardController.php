@@ -96,6 +96,10 @@ class DashboardController extends Controller
                 'nombre' => $dispositivo->nombre,
                 'tipo' => $dispositivo->tipo,
                 'device_id' => $dispositivo->device_id,
+                'num_fases' => $dispositivo->num_fases,
+                'nombre_canal_1' => $dispositivo->nombre_canal_1,
+                'nombre_canal_2' => $dispositivo->nombre_canal_2,
+                'nombre_canal_3' => $dispositivo->nombre_canal_3,
                 'sitio' => [
                     'id' => $dispositivo->sitio->id,
                     'nombre' => $dispositivo->sitio->nombre,

@@ -93,6 +93,73 @@ class DispositivosController extends Controller
     }
 
     /**
+     * Mostrar detalles de un dispositivo
+     */
+    public function show(Dispositivo $dispositivo)
+    {
+        $user = auth()->user();
+        
+        // Cargar relaciones necesarias
+        $dispositivo->load('sitio.organizacion');
+        
+        // Verificar que el usuario tiene acceso al sitio del dispositivo
+        $organizacionesIds = $user->organizacionesActivas()->pluck('organizaciones.id');
+        
+        if (!$organizacionesIds->contains($dispositivo->sitio->organizacion_id)) {
+            abort(403, 'No tienes acceso a este dispositivo');
+        }
+
+        $ultimaLectura = $dispositivo->ultimaLectura();
+        $lecturasCount = $dispositivo->lecturas()->count();
+        
+        // Obtener lecturas de las últimas 24 horas para las gráficas
+        $lecturas = $dispositivo->lecturas()
+            ->where('fecha_lectura', '>=', now()->subDay())
+            ->orderBy('fecha_lectura', 'asc')
+            ->get();
+        
+        // Preparar datos para gráficas de potencia por canal
+        $graficas = $this->prepararDatosGraficaCanales($lecturas);
+        
+        return Inertia::render('Dispositivos/Show', [
+            'dispositivo' => [
+                'id' => $dispositivo->id,
+                'device_id' => $dispositivo->device_id,
+                'nombre' => $dispositivo->nombre,
+                'tipo' => $dispositivo->tipo,
+                'num_fases' => $dispositivo->num_fases,
+                'fases_label' => $dispositivo->fases_label,
+                'nombre_canal_1' => $dispositivo->nombre_canal_1,
+                'nombre_canal_2' => $dispositivo->nombre_canal_2,
+                'nombre_canal_3' => $dispositivo->nombre_canal_3,
+                'modelo' => $dispositivo->modelo,
+                'ip_local' => $dispositivo->ip_local,
+                'firmware' => $dispositivo->firmware,
+                'activo' => $dispositivo->activo,
+                'configuracion' => $dispositivo->configuracion,
+                'sitio' => [
+                    'id' => $dispositivo->sitio->id,
+                    'nombre' => $dispositivo->sitio->nombre,
+                    'codigo' => $dispositivo->sitio->codigo,
+                    'organizacion' => [
+                        'id' => $dispositivo->sitio->organizacion->id,
+                        'nombre' => $dispositivo->sitio->organizacion->nombre,
+                    ],
+                ],
+                'lecturas_count' => $lecturasCount,
+                'esta_online' => $dispositivo->estaOnline(),
+                'ultima_lectura' => $ultimaLectura ? [
+                    'fecha' => $ultimaLectura->fecha_lectura->toISOString(),
+                    'fecha_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
+                    'potencia_total_kw' => round($ultimaLectura->potencia_total_w / 1000, 2),
+                    'energia_total_kwh' => round($ultimaLectura->energia_total_wh / 1000, 2),
+                ] : null,
+            ],
+            'graficas' => $graficas,
+        ]);
+    }
+
+    /**
      * Mostrar formulario de creación (redirige a index ya que el formulario está en un modal)
      */
     public function create()
@@ -123,6 +190,9 @@ class DispositivosController extends Controller
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
             'num_fases' => 'nullable|integer|in:1,2,3',
+            'nombre_canal_1' => 'nullable|string|max:255',
+            'nombre_canal_2' => 'nullable|string|max:255',
+            'nombre_canal_3' => 'nullable|string|max:255',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',
@@ -188,6 +258,9 @@ class DispositivosController extends Controller
             'nombre' => 'required|string|max:255',
             'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
             'num_fases' => 'nullable|integer|in:1,2,3',
+            'nombre_canal_1' => 'nullable|string|max:255',
+            'nombre_canal_2' => 'nullable|string|max:255',
+            'nombre_canal_3' => 'nullable|string|max:255',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',
@@ -248,5 +321,50 @@ class DispositivosController extends Controller
             return redirect()->route('dispositivos.index')
                 ->with('error', 'Error al sincronizar el dispositivo: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Preparar datos para gráfica de potencia por canales
+     */
+    private function prepararDatosGraficaCanales($lecturas)
+    {
+        if ($lecturas->isEmpty()) {
+            return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
+        }
+
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
+        return [
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
+            'canal1' => $lecturas->map(fn($l) => round($l->potencia_canal_1_w / 1000, 2))->toArray(),
+            'canal2' => $lecturas->map(fn($l) => round($l->potencia_canal_2_w / 1000, 2))->toArray(),
+            'canal3' => $lecturas->map(fn($l) => round($l->potencia_canal_3_w / 1000, 2))->toArray(),
+        ];
+    }
+
+    /**
+     * Obtener formato de fecha según el rango de lecturas
+     */
+    private function obtenerFormatoFecha($lecturas)
+    {
+        if ($lecturas->isEmpty()) {
+            return 'H:i';
+        }
+
+        $primera = $lecturas->first();
+        $ultima = $lecturas->last();
+        
+        // Si las lecturas abarcan más de un día, mostrar fecha y hora
+        if ($primera->fecha_lectura->format('Y-m-d') !== $ultima->fecha_lectura->format('Y-m-d')) {
+            return 'd/m H:i';
+        }
+        
+        // Si hay muchas lecturas (más de 24 horas de datos), mostrar fecha
+        $diferenciaHoras = $primera->fecha_lectura->diffInHours($ultima->fecha_lectura);
+        if ($diferenciaHoras > 24) {
+            return 'd/m H:i';
+        }
+        
+        return 'H:i';
     }
 }

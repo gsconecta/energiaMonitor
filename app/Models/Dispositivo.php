@@ -18,6 +18,9 @@ class Dispositivo extends Model
         'nombre',
         'tipo',
         'num_fases',
+        'nombre_canal_1',
+        'nombre_canal_2',
+        'nombre_canal_3',
         'modelo',
         'ip_local',
         'firmware',
@@ -273,5 +276,18 @@ class Dispositivo extends Model
     public function esTrifasico()
     {
         return $this->num_fases === 3;
+    }
+
+    /**
+     * Obtener el nombre de un canal por número (con valor por defecto)
+     */
+    public function getNombreCanal(int $numero): string
+    {
+        return match($numero) {
+            1 => $this->nombre_canal_1 ?? 'Canal 1',
+            2 => $this->nombre_canal_2 ?? 'Canal 2',
+            3 => $this->nombre_canal_3 ?? 'Canal 3',
+            default => "Canal {$numero}",
+        };
     }
 }

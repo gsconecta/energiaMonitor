@@ -63,6 +63,10 @@ interface Dispositivo {
     nombre: string;
     tipo: string;
     device_id: string;
+    num_fases: number | null;
+    nombre_canal_1: string | null;
+    nombre_canal_2: string | null;
+    nombre_canal_3: string | null;
     sitio: {
         id: number;
         nombre: string;
@@ -183,6 +187,27 @@ export default function Dashboard({
         });
     };
 
+    // Función helper para obtener el nombre del canal
+    const obtenerNombreCanal = (numero: number): string => {
+        if (!dispositivo) return `Canal ${numero}`;
+        
+        switch (numero) {
+            case 1:
+                return dispositivo.nombre_canal_1 || 'Canal 1';
+            case 2:
+                return dispositivo.nombre_canal_2 || 'Canal 2';
+            case 3:
+                return dispositivo.nombre_canal_3 || 'Canal 3';
+            default:
+                return `Canal ${numero}`;
+        }
+    };
+
+    // Función helper para obtener el número de fases del dispositivo
+    const obtenerNumFases = (): number => {
+        return dispositivo?.num_fases || 3; // Por defecto 3 si no está definido
+    };
+
     if (sinDispositivos) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
@@ -222,11 +247,14 @@ export default function Dashboard({
         ],
     };
 
-    const dataCanales = {
-        labels: graficas?.canales.labels || [],
-        datasets: [
-            {
-                label: 'Canal 1 (kW)',
+    // Construir datasets de canales dinámicamente según num_fases
+    const construirDatasetsCanales = () => {
+        const datasets = [];
+        const numFases = obtenerNumFases();
+        
+        if (numFases >= 1) {
+            datasets.push({
+                label: `${obtenerNombreCanal(1)} (kW)`,
                 data: graficas?.canales.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -234,9 +262,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 2 (kW)',
+            });
+        }
+        
+        if (numFases >= 2) {
+            datasets.push({
+                label: `${obtenerNombreCanal(2)} (kW)`,
                 data: graficas?.canales.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -244,9 +275,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 3 (kW)',
+            });
+        }
+        
+        if (numFases >= 3) {
+            datasets.push({
+                label: `${obtenerNombreCanal(3)} (kW)`,
                 data: graficas?.canales.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -254,15 +288,25 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-        ],
+            });
+        }
+        
+        return datasets;
     };
 
-    const dataCorrientes = {
-        labels: graficas?.corrientes.labels || [],
-        datasets: [
-            {
-                label: 'Canal 1 (A)',
+    const dataCanales = {
+        labels: graficas?.canales.labels || [],
+        datasets: construirDatasetsCanales(),
+    };
+
+    // Construir datasets de corrientes dinámicamente según num_fases
+    const construirDatasetsCorrientes = () => {
+        const datasets = [];
+        const numFases = obtenerNumFases();
+        
+        if (numFases >= 1) {
+            datasets.push({
+                label: `${obtenerNombreCanal(1)} (A)`,
                 data: graficas?.corrientes.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -270,9 +314,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 2 (A)',
+            });
+        }
+        
+        if (numFases >= 2) {
+            datasets.push({
+                label: `${obtenerNombreCanal(2)} (A)`,
                 data: graficas?.corrientes.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -280,9 +327,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 3 (A)',
+            });
+        }
+        
+        if (numFases >= 3) {
+            datasets.push({
+                label: `${obtenerNombreCanal(3)} (A)`,
                 data: graficas?.corrientes.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -290,10 +340,14 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
+            });
+        }
+        
+        // Siempre mostrar neutro si hay datos
+        if (graficas?.corrientes.neutro && graficas.corrientes.neutro.some(v => v > 0)) {
+            datasets.push({
                 label: 'Neutro (A)',
-                data: graficas?.corrientes.neutro || [],
+                data: graficas.corrientes.neutro,
                 borderColor: 'rgb(168, 85, 247)',
                 backgroundColor: 'rgba(168, 85, 247, 0.1)',
                 fill: true,
@@ -301,15 +355,25 @@ export default function Dashboard({
                 pointRadius: 0,
                 pointHoverRadius: 4,
                 borderDash: [5, 5],
-            },
-        ],
+            });
+        }
+        
+        return datasets;
     };
 
-    const dataVoltaje = {
-        labels: graficas?.voltaje.labels || [],
-        datasets: [
-            {
-                label: 'Canal 1 (V)',
+    const dataCorrientes = {
+        labels: graficas?.corrientes.labels || [],
+        datasets: construirDatasetsCorrientes(),
+    };
+
+    // Construir datasets de voltaje dinámicamente según num_fases
+    const construirDatasetsVoltaje = () => {
+        const datasets = [];
+        const numFases = obtenerNumFases();
+        
+        if (numFases >= 1) {
+            datasets.push({
+                label: `${obtenerNombreCanal(1)} (V)`,
                 data: graficas?.voltaje.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -317,9 +381,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 2 (V)',
+            });
+        }
+        
+        if (numFases >= 2) {
+            datasets.push({
+                label: `${obtenerNombreCanal(2)} (V)`,
                 data: graficas?.voltaje.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -327,9 +394,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 3 (V)',
+            });
+        }
+        
+        if (numFases >= 3) {
+            datasets.push({
+                label: `${obtenerNombreCanal(3)} (V)`,
                 data: graficas?.voltaje.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -337,15 +407,25 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-        ],
+            });
+        }
+        
+        return datasets;
     };
 
-    const dataFactorPotencia = {
-        labels: graficas?.factor_potencia.labels || [],
-        datasets: [
-            {
-                label: 'Canal 1',
+    const dataVoltaje = {
+        labels: graficas?.voltaje.labels || [],
+        datasets: construirDatasetsVoltaje(),
+    };
+
+    // Construir datasets de factor de potencia dinámicamente según num_fases
+    const construirDatasetsFactorPotencia = () => {
+        const datasets = [];
+        const numFases = obtenerNumFases();
+        
+        if (numFases >= 1) {
+            datasets.push({
+                label: obtenerNombreCanal(1),
                 data: graficas?.factor_potencia.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -353,9 +433,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 2',
+            });
+        }
+        
+        if (numFases >= 2) {
+            datasets.push({
+                label: obtenerNombreCanal(2),
                 data: graficas?.factor_potencia.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -363,9 +446,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 3',
+            });
+        }
+        
+        if (numFases >= 3) {
+            datasets.push({
+                label: obtenerNombreCanal(3),
                 data: graficas?.factor_potencia.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -373,35 +459,49 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-        ],
+            });
+        }
+        
+        return datasets;
     };
 
-    const dataEnergia = {
-        labels: graficas?.energia.labels || [],
-        datasets: [
-            {
-                label: 'Total (kWh)',
-                data: graficas?.energia.total || [],
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-            {
-                label: 'Retornada (kWh)',
-                data: graficas?.energia.retornada || [],
-                borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 1 (kWh)',
+    const dataFactorPotencia = {
+        labels: graficas?.factor_potencia.labels || [],
+        datasets: construirDatasetsFactorPotencia(),
+    };
+
+    // Construir datasets de energía dinámicamente según num_fases
+    const construirDatasetsEnergia = () => {
+        const datasets = [];
+        const numFases = obtenerNumFases();
+        
+        // Siempre mostrar Total y Retornada
+        datasets.push({
+            label: 'Total (kWh)',
+            data: graficas?.energia.total || [],
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
+        
+        datasets.push({
+            label: 'Retornada (kWh)',
+            data: graficas?.energia.retornada || [],
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
+        
+        // Agregar canales según num_fases
+        if (numFases >= 1) {
+            datasets.push({
+                label: `${obtenerNombreCanal(1)} (kWh)`,
                 data: graficas?.energia.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -409,9 +509,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 2 (kWh)',
+            });
+        }
+        
+        if (numFases >= 2) {
+            datasets.push({
+                label: `${obtenerNombreCanal(2)} (kWh)`,
                 data: graficas?.energia.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -419,9 +522,12 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-            {
-                label: 'Canal 3 (kWh)',
+            });
+        }
+        
+        if (numFases >= 3) {
+            datasets.push({
+                label: `${obtenerNombreCanal(3)} (kWh)`,
                 data: graficas?.energia.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
@@ -429,8 +535,15 @@ export default function Dashboard({
                 tension: 0.4,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            },
-        ],
+            });
+        }
+        
+        return datasets;
+    };
+
+    const dataEnergia = {
+        labels: graficas?.energia.labels || [],
+        datasets: construirDatasetsEnergia(),
     };
 
     const chartOptions = {
@@ -749,7 +862,7 @@ export default function Dashboard({
                     </ChartCard>
 
                     <ChartCard title="Estadísticas Generales">
-                        <div className="flex h-full flex-col justify-center space-y-3 p-4">
+                        <div className="grid h-full grid-cols-1 gap-3 p-4 lg:grid-cols-3">
                             <StatRow label="Lecturas totales" value={metricas?.numero_lecturas || 0} />
                             <StatRow
                                 label="Potencia promedio"
@@ -759,35 +872,47 @@ export default function Dashboard({
                                 label="Factor de potencia promedio"
                                 value={(metricas?.factor_potencia_promedio || 0).toFixed(2)}
                             />
-                            <StatRow
-                                label="Corriente promedio Canal 1"
-                                value={`${metricas?.corriente_promedio_1 || 0} A`}
-                            />
-                            <StatRow
-                                label="Corriente promedio Canal 2"
-                                value={`${metricas?.corriente_promedio_2 || 0} A`}
-                            />
-                            <StatRow
-                                label="Corriente promedio Canal 3"
-                                value={`${metricas?.corriente_promedio_3 || 0} A`}
-                            />
+                            {obtenerNumFases() >= 1 && (
+                                <StatRow
+                                    label={`Corriente promedio ${obtenerNombreCanal(1)}`}
+                                    value={`${metricas?.corriente_promedio_1 || 0} A`}
+                                />
+                            )}
+                            {obtenerNumFases() >= 2 && (
+                                <StatRow
+                                    label={`Corriente promedio ${obtenerNombreCanal(2)}`}
+                                    value={`${metricas?.corriente_promedio_2 || 0} A`}
+                                />
+                            )}
+                            {obtenerNumFases() >= 3 && (
+                                <StatRow
+                                    label={`Corriente promedio ${obtenerNombreCanal(3)}`}
+                                    value={`${metricas?.corriente_promedio_3 || 0} A`}
+                                />
+                            )}
                         </div>
                     </ChartCard>
 
                     <ChartCard title="Energía por Canal">
-                        <div className="flex h-full flex-col justify-center space-y-3 p-4">
-                            <StatRow
-                                label="Energía Canal 1"
-                                value={`${metricas?.energia_canal_1_kwh || 0} kWh`}
-                            />
-                            <StatRow
-                                label="Energía Canal 2"
-                                value={`${metricas?.energia_canal_2_kwh || 0} kWh`}
-                            />
-                            <StatRow
-                                label="Energía Canal 3"
-                                value={`${metricas?.energia_canal_3_kwh || 0} kWh`}
-                            />
+                        <div className="grid h-full grid-cols-1 gap-3 p-4 lg:grid-cols-3">
+                            {obtenerNumFases() >= 1 && (
+                                <StatRow
+                                    label={`Energía ${obtenerNombreCanal(1)}`}
+                                    value={`${metricas?.energia_canal_1_kwh || 0} kWh`}
+                                />
+                            )}
+                            {obtenerNumFases() >= 2 && (
+                                <StatRow
+                                    label={`Energía ${obtenerNombreCanal(2)}`}
+                                    value={`${metricas?.energia_canal_2_kwh || 0} kWh`}
+                                />
+                            )}
+                            {obtenerNumFases() >= 3 && (
+                                <StatRow
+                                    label={`Energía ${obtenerNombreCanal(3)}`}
+                                    value={`${metricas?.energia_canal_3_kwh || 0} kWh`}
+                                />
+                            )}
                             <StatRow
                                 label="Energía Retornada"
                                 value={`${metricas?.energia_retornada_kwh || 0} kWh`}

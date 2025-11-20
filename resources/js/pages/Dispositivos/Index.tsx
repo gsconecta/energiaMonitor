@@ -306,9 +306,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <button
+                                                onClick={() => router.visit(`/dispositivos/${dispositivo.id}`)}
+                                                className="text-left text-sm font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+                                            >
                                                 {dispositivo.nombre}
-                                            </div>
+                                            </button>
                                             <div className="text-xs text-gray-500 dark:text-gray-400">
                                                 {dispositivo.device_id}
                                             </div>
