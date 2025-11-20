@@ -84,19 +84,66 @@ Schedule::command('shelly:obtener-lecturas')
 
 ## ⚙️ Requisitos para que Funcione
 
-Para que el scheduler funcione, necesitas tener configurado un **cron job** que ejecute `php artisan schedule:run` **cada minuto**.
+**⚠️ IMPORTANTE:** Para que el scheduler funcione en producción, necesitas tener configurado un **cron job** que ejecute `php artisan schedule:run` **cada minuto**.
 
-### En Linux/Mac (crontab)
+Sin este cron job, el scheduler **NO funcionará automáticamente**, aunque el comando manual funcione correctamente.
 
-Agrega esto a tu crontab (`crontab -e`):
+### En Linux/Mac (Producción - CRÍTICO)
 
-```bash
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-```
+1. **Conecta al servidor de producción via SSH**
 
-### En Windows (Herd/Windows)
+2. **Verifica la ruta de PHP:**
+   ```bash
+   which php
+   # o
+   whereis php
+   ```
 
-Si usas Herd en Windows, configura una **Tarea Programada** que ejecute:
+3. **Edita el crontab:**
+   ```bash
+   crontab -e
+   ```
+
+4. **Agrega esta línea (ajusta la ruta al proyecto y a PHP):**
+   ```bash
+   * * * * * cd /ruta/completa/al/proyecto && /ruta/completa/a/php artisan schedule:run >> /dev/null 2>&1
+   ```
+
+   Ejemplo:
+   ```bash
+   * * * * * cd /var/www/energiaMonitor && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
+   ```
+
+5. **Verifica que se agregó correctamente:**
+   ```bash
+   crontab -l
+   ```
+
+6. **Verifica que el cron service está corriendo:**
+   ```bash
+   sudo systemctl status cron
+   # o
+   sudo service cron status
+   ```
+
+### En Servidores Compartidos (cPanel, Plesk, etc.)
+
+1. Accede al panel de control (cPanel, Plesk, etc.)
+2. Ve a la sección **Cron Jobs**
+3. Crea un nuevo cron job:
+   - **Minuto:** `*`
+   - **Hora:** `*`
+   - **Día del mes:** `*`
+   - **Mes:** `*`
+   - **Día de la semana:** `*`
+   - **Comando:** 
+     ```bash
+     cd /ruta/al/proyecto && php artisan schedule:run >> /dev/null 2>&1
+     ```
+
+### En Windows (Desarrollo Local - Herd)
+
+Si usas Herd en Windows para desarrollo local, configura una **Tarea Programada** que ejecute:
 
 ```
 php artisan schedule:run
@@ -118,6 +165,12 @@ cada minuto.
    - Programa/script: Ruta completa a `php.exe` (ej: `C:\Program Files\PHP\php.exe`)
    - Agregar argumentos: `artisan schedule:run`
    - Iniciar en: Ruta de tu proyecto (ej: `C:\Users\Francesc\Herd\energiaMonitor`)
+
+**Nota:** Para desarrollo local, también puedes usar:
+```bash
+php artisan schedule:work
+```
+Esto ejecuta el scheduler cada minuto en foreground.
 
 ### Verificar que Funciona
 
@@ -165,9 +218,36 @@ FROM lecturas
 GROUP BY dispositivo_id;
 ```
 
-## ⚠️ Nota Importante
+## ⚠️ Notas Importantes
 
-El scheduler de Laravel solo se ejecuta si `php artisan schedule:run` está configurado para ejecutarse cada minuto en el cron job o tarea programada.
+1. **El scheduler de Laravel solo se ejecuta si `php artisan schedule:run` está configurado para ejecutarse cada minuto en el cron job o tarea programada.**
 
-**Sin el cron job/tarea programada configurado, el scheduler NO funcionará automáticamente.**
+   **Sin el cron job/tarea programada configurado, el scheduler NO funcionará automáticamente.**
+
+2. **El scheduler solo se ejecuta si `APP_ENV` NO es `local`.**
+
+   Verifica que en producción tengas configurado:
+   ```env
+   APP_ENV=production
+   ```
+
+3. **Si el cron no funciona, verifica:**
+   - Que el usuario del cron tenga permisos para ejecutar PHP
+   - Que el usuario del cron tenga permisos de escritura en `storage/logs/`
+   - Que la ruta al proyecto y PHP sea correcta
+   - Los logs de Laravel: `storage/logs/laravel.log`
+
+4. **Para debugging, puedes ejecutar el scheduler manualmente:**
+   ```bash
+   php artisan schedule:run
+   ```
+   
+   O ejecutar en modo debug (foreground):
+   ```bash
+   php artisan schedule:work
+   ```
+
+## 🔍 Ver Documento de Diagnóstico
+
+Si tienes problemas con el scheduler, consulta `DIAGNOSTICO_SCHEDULER.md` para un diagnóstico detallado paso a paso.
 

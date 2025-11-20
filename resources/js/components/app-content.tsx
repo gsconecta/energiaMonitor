@@ -1,4 +1,5 @@
 import { SidebarInset } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import * as React from 'react';
 
 interface AppContentProps extends React.ComponentProps<'main'> {
@@ -8,10 +9,19 @@ interface AppContentProps extends React.ComponentProps<'main'> {
 export function AppContent({
     variant = 'header',
     children,
+    className,
     ...props
 }: AppContentProps) {
     if (variant === 'sidebar') {
-        return <SidebarInset {...props}>{children}</SidebarInset>;
+        return (
+            <SidebarInset 
+                {...props}
+                className={cn('h-svh overflow-hidden', className)}
+                style={{ maxHeight: '100svh', minHeight: '100svh' }}
+            >
+                {children}
+            </SidebarInset>
+        );
     }
 
     return (

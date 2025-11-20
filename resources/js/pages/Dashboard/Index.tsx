@@ -502,7 +502,7 @@ export default function Dashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full w-full flex-1 flex-col gap-4 overflow-x-hidden p-2 sm:p-4 lg:p-6">
+            <div className="flex w-full flex-1 flex-col gap-4 p-2 sm:p-4 lg:p-6">
                 {/* Indicador de contexto actual */}
                 {organizacionActual && sitioActual && (
                     <div className="flex items-center justify-between rounded-lg border border-sidebar-border/70 bg-white p-3 dark:border-sidebar-border dark:bg-gray-800">

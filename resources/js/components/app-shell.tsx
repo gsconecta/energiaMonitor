@@ -16,5 +16,13 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    return (
+        <SidebarProvider 
+            defaultOpen={isOpen}
+            className="h-svh overflow-hidden"
+            style={{ maxHeight: '100svh', minHeight: '100svh' }}
+        >
+            {children}
+        </SidebarProvider>
+    );
 }
