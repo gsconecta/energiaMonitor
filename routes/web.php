@@ -41,6 +41,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('dispositivos', DispositivosController::class);
     Route::post('/dispositivos/{dispositivo}/toggle-activo', [DispositivosController::class, 'toggleActivo'])
         ->name('dispositivos.toggle-activo');
+    Route::post('/dispositivos/{dispositivo}/sincronizar', [DispositivosController::class, 'sincronizar'])
+        ->name('dispositivos.sincronizar');
 });
 
 require __DIR__ . '/settings.php';

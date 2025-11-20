@@ -61,6 +61,7 @@ class DispositivosController extends Controller
                     'lecturas_count' => $dispositivo->lecturas_count,
                     'esta_online' => $dispositivo->estaOnline(),
                     'ultima_lectura' => $ultimaLectura ? $ultimaLectura->fecha_lectura->diffForHumans() : null,
+                    'ultima_lectura_fecha' => $ultimaLectura ? $ultimaLectura->fecha_lectura->toISOString() : null,
                     'potencia_actual' => $ultimaLectura ? round($ultimaLectura->potencia_total_w / 1000, 2) : 0,
                 ];
             });
@@ -226,5 +227,26 @@ class DispositivosController extends Controller
 
         return redirect()->route('dispositivos.index')
             ->with('success', 'Estado del dispositivo actualizado');
+    }
+
+    /**
+     * Sincronizar manualmente un dispositivo
+     */
+    public function sincronizar(Dispositivo $dispositivo)
+    {
+        try {
+            // Ejecutar el comando de sincronización para este dispositivo específico
+            \Artisan::call('shelly:obtener-lecturas', [
+                '--dispositivo' => $dispositivo->id,
+            ]);
+
+            $output = \Artisan::output();
+            
+            return redirect()->route('dispositivos.index')
+                ->with('success', 'Dispositivo sincronizado correctamente');
+        } catch (\Exception $e) {
+            return redirect()->route('dispositivos.index')
+                ->with('error', 'Error al sincronizar el dispositivo: ' . $e->getMessage());
+        }
     }
 }

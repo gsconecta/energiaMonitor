@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Plus, Pencil, Trash2, Power, Activity } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, Activity, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import {
     Dialog,
@@ -40,6 +40,7 @@ interface Dispositivo {
     lecturas_count: number;
     esta_online: boolean;
     ultima_lectura: string | null;
+    ultima_lectura_fecha: string | null;
     potencia_actual: number;
 }
 
@@ -52,6 +53,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
     const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [mostrarModal, setMostrarModal] = useState(false);
     const [dispositivoEditando, setDispositivoEditando] = useState<Dispositivo | null>(null);
+    const [sincronizando, setSincronizando] = useState<number | null>(null);
     const [formData, setFormData] = useState({
         sitio_id: '',
         device_id: '',
@@ -158,6 +160,49 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
     const handleToggleActivo = (id: number) => {
         router.post(`/dispositivos/${id}/toggle-activo`);
+    };
+
+    const handleSincronizar = (id: number) => {
+        setSincronizando(id);
+        router.post(
+            `/dispositivos/${id}/sincronizar`,
+            {},
+            {
+                onSuccess: () => {
+                    setSincronizando(null);
+                },
+                onError: () => {
+                    setSincronizando(null);
+                },
+                onFinish: () => {
+                    setSincronizando(null);
+                },
+            }
+        );
+    };
+
+    const obtenerTiempoDesdeUltimaLectura = (dispositivo: Dispositivo) => {
+        if (!dispositivo.ultima_lectura_fecha) {
+            return 'Sin lecturas';
+        }
+
+        const fecha = new Date(dispositivo.ultima_lectura_fecha);
+        const ahora = new Date();
+        const diffMs = ahora.getTime() - fecha.getTime();
+        const diffSegundos = Math.floor(diffMs / 1000);
+        const diffMinutos = Math.floor(diffSegundos / 60);
+        const diffHoras = Math.floor(diffMinutos / 60);
+        const diffDias = Math.floor(diffHoras / 24);
+
+        if (diffSegundos < 60) {
+            return `Hace ${diffSegundos} segundo${diffSegundos !== 1 ? 's' : ''}`;
+        } else if (diffMinutos < 60) {
+            return `Hace ${diffMinutos} minuto${diffMinutos !== 1 ? 's' : ''}`;
+        } else if (diffHoras < 24) {
+            return `Hace ${diffHoras} hora${diffHoras !== 1 ? 's' : ''}`;
+        } else {
+            return `Hace ${diffDias} día${diffDias !== 1 ? 's' : ''}`;
+        }
     };
 
     return (
@@ -289,14 +334,45 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                 }
                                             </span>
                                         </td>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                            {dispositivo.ultima_lectura || 'Sin lecturas'}
+                                        <td className="whitespace-nowrap px-6 py-4">
+                                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                                                {obtenerTiempoDesdeUltimaLectura(dispositivo)}
+                                            </div>
+                                            {dispositivo.ultima_lectura_fecha && (
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {new Date(dispositivo.ultima_lectura_fecha).toLocaleString('es-ES', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                    })}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                                             {dispositivo.potencia_actual} kW
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleSincronizar(dispositivo.id)}
+                                                    disabled={sincronizando === dispositivo.id}
+                                                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                                        sincronizando === dispositivo.id
+                                                            ? 'text-gray-400 cursor-not-allowed'
+                                                            : 'text-indigo-600'
+                                                    }`}
+                                                    title="Sincronizar manualmente"
+                                                >
+                                                    <RefreshCw
+                                                        className={`h-4 w-4 ${
+                                                            sincronizando === dispositivo.id
+                                                                ? 'animate-spin'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                </button>
                                                 <button
                                                     onClick={() => handleToggleActivo(dispositivo.id)}
                                                     className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
