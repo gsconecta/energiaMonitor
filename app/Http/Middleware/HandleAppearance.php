@@ -16,7 +16,16 @@ class HandleAppearance
      */
     public function handle(Request $request, Closure $next): Response
     {
-        View::share('appearance', $request->cookie('appearance') ?? 'system');
+        // Leer la cookie directamente desde $_COOKIE para evitar errores de descifrado
+        // si la cookie fue creada con una clave diferente
+        $appearance = $_COOKIE['appearance'] ?? null;
+        
+        // Si no existe o está vacía, usar el valor por defecto
+        if (empty($appearance)) {
+            $appearance = 'system';
+        }
+        
+        View::share('appearance', $appearance);
 
         return $next($request);
     }
