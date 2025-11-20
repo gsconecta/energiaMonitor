@@ -355,11 +355,16 @@ class ObtenerLecturasShelly extends Command
         $canal3Valido = ($canal3 && ($potenciaCanal3 > 0 || $voltajeCanal3 > 0 || $corrienteCanal3 > 0)) ? 1 : 0;
 
         // Fecha de lectura
-        $fechaLectura = now();
+        // Usar la zona horaria de la aplicación (Europe/Madrid)
+        $timezone = config('app.timezone', 'Europe/Madrid');
+        
+        $fechaLectura = now($timezone);
         if (isset($deviceStatus['ts'])) {
-            $fechaLectura = \Carbon\Carbon::createFromTimestamp($deviceStatus['ts']);
+            // El timestamp viene en segundos, crear en la zona horaria de Madrid
+            $fechaLectura = \Carbon\Carbon::createFromTimestamp($deviceStatus['ts'], $timezone);
         } elseif (isset($deviceStatus['sys']['unixtime'])) {
-            $fechaLectura = \Carbon\Carbon::createFromTimestamp($deviceStatus['sys']['unixtime']);
+            // El timestamp viene en segundos, crear en la zona horaria de Madrid
+            $fechaLectura = \Carbon\Carbon::createFromTimestamp($deviceStatus['sys']['unixtime'], $timezone);
         }
 
         // Preparar datos para insertar
