@@ -16,7 +16,17 @@ Este comando verificará automáticamente:
 - ✅ La configuración del scheduler
 - ✅ Los permisos de escritura
 - ✅ La existencia del comando
-- ⚠️  El cron job (requiere verificación manual)
+- ✅ El cron job (verificación automática)
+
+### 🔧 Solución Automática (Recomendada)
+
+Si el diagnóstico muestra que falta el cron job, puedes usar el script helper:
+
+```bash
+./configurar-cron.sh
+```
+
+Este script configurará automáticamente el cron job con las rutas correctas de tu servidor.
 
 ## ✅ Verificaciones Paso a Paso
 
@@ -169,11 +179,24 @@ which php  # Ruta de PHP
 
 ### Paso 2: Crea el cron job
 
+**Opción A: Script automático (Recomendado)**
+
+```bash
+./configurar-cron.sh
+```
+
+**Opción B: Manual**
+
 ```bash
 crontab -e
 ```
 
-Agrega esta línea (ajusta las rutas):
+Agrega esta línea (con las rutas correctas de tu servidor):
+```bash
+* * * * * cd /home/cloudmallorca-monitor/htdocs/energiaMonitor && /usr/bin/php8.4 artisan schedule:run >> /dev/null 2>&1
+```
+
+**Para otros servidores, ajusta las rutas:**
 ```bash
 * * * * * cd /ruta/completa/al/proyecto && /ruta/completa/a/php artisan schedule:run >> /dev/null 2>&1
 ```
