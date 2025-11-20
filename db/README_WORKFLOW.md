@@ -48,7 +48,7 @@ Este workflow actualizado recupera las lecturas de los dispositivos Shelly agrup
 
 Actualiza la URL en el nodo "Obtener Dispositivos por Organización":
 - Desarrollo: `http://localhost/api/dispositivos-activos-por-organizacion`
-- Producción: `https://tu-dominio.com/api/dispositivos-activos-por-organizacion`
+- Producción: `https://monitor.cloudmallorca.com/api/dispositivos-activos-por-organizacion`
 
 ### 2. Credenciales MySQL
 

@@ -50,9 +50,9 @@ Route::middleware(['api'])->group(function () {
             ->get();
 
         // Obtener organizaciones únicas con sus credenciales
+        // No usar select() para que los accessors del modelo funcionen correctamente
         $organizacionesIds = $dispositivos->pluck('organizacion_id')->unique();
         $organizaciones = Organizacion::whereIn('id', $organizacionesIds)
-            ->select('id', 'nombre', 'codigo', 'shelly_api_key', 'shelly_server')
             ->get()
             ->keyBy('id');
 

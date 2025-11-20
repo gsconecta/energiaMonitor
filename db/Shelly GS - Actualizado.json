@@ -4,7 +4,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=http://localhost/api/dispositivos-activos-por-organizacion",
+        "url": "=https://monitor.cloudmallorca.com/api/dispositivos-activos-por-organizacion",
         "options": {
           "response": {
             "response": {

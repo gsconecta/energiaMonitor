@@ -85,16 +85,20 @@ class Organizacion extends Model
             return null;
         }
 
+        // Si el valor no parece estar encriptado (no tiene el formato de Laravel),
+        // devolverlo tal cual (puede ser un valor antiguo sin encriptar)
+        // Los valores encriptados de Laravel empiezan con "eyJ" (base64 de JSON)
+        if (!str_starts_with($value, 'eyJ')) {
+            return $value;
+        }
+
         try {
-            // Intentar descifrar el valor (puede estar encriptado o no)
-            // Si está encriptado, decrypt() lo descifrará
-            // Si no está encriptado, decrypt() lanzará una excepción
+            // Intentar descifrar el valor
             return decrypt($value);
         } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
             // Si falla el descifrado, puede ser porque:
-            // 1. El valor no está encriptado (valor antiguo sin encriptar)
-            // 2. El valor fue encriptado con otra APP_KEY
-            // En ambos casos, devolvemos null para evitar errores
+            // 1. El valor fue encriptado con otra APP_KEY
+            // En este caso, devolvemos null para evitar errores
             \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage());
             return null;
         }
