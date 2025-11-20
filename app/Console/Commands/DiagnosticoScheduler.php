@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Log;
 
@@ -130,11 +131,38 @@ class DiagnosticoScheduler extends Command
             $this->line("   Ruta de PHP: <fg=cyan>{$phpPath}</>");
             $this->newLine();
             
-            $this->warn('   ⚠️  No se puede verificar automáticamente si el cron está configurado');
-            $this->line('   💡 Verifica manualmente con: crontab -l');
+            // Intentar leer el crontab del usuario actual
+            $user = get_current_user();
+            $crontabCommand = "crontab -l 2>/dev/null";
+            
+            $this->line("   Usuario actual: <fg=cyan>{$user}</>");
+            $this->line('   💡 Para verificar el cron, ejecuta: <fg=yellow>crontab -l</>');
             $this->newLine();
-            $this->line('   El cron job debería ser:');
-            $this->line("   <fg=yellow>* * * * * cd {$projectPath} && {$phpPath} artisan schedule:run >> /dev/null 2>&1</>");
+            
+            // Intentar verificar si hay un cron relacionado con schedule:run
+            $output = shell_exec($crontabCommand);
+            
+            if ($output && strpos($output, 'schedule:run') !== false) {
+                $this->info('   ✅ Se encontró un cron job con schedule:run');
+                $this->line('   Cron jobs encontrados:');
+                $lines = explode("\n", trim($output));
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if (!empty($line) && strpos($line, 'schedule:run') !== false && strpos($line, '#') !== 0) {
+                        $this->line("      <fg=green>{$line}</>");
+                    }
+                }
+            } else {
+                $this->error('   ❌ No se encontró un cron job con schedule:run');
+                $this->newLine();
+                $this->warn('   ⚠️  Este es probablemente el problema principal.');
+                $this->newLine();
+                $this->line('   📝 Para agregar el cron job, ejecuta:');
+                $this->line("      <fg=yellow>crontab -e</>");
+                $this->newLine();
+                $this->line('   📝 Y agrega esta línea:');
+                $this->line("      <fg=cyan>* * * * * cd {$projectPath} && {$phpPath} artisan schedule:run >> /dev/null 2>&1</>");
+            }
         }
         
         $this->newLine();
@@ -158,10 +186,13 @@ class DiagnosticoScheduler extends Command
     private function commandExists($command)
     {
         try {
-            \Artisan::find($command);
-            return true;
+            $kernel = app(Kernel::class);
+            $commands = $kernel->all();
+            return isset($commands[$command]);
         } catch (\Exception $e) {
-            return false;
+            // Si falla, intentar verificar si el archivo del comando existe
+            $commandFile = app_path('Console/Commands/ObtenerLecturasShelly.php');
+            return file_exists($commandFile);
         }
     }
 }
