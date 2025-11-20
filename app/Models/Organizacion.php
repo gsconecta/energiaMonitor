@@ -25,7 +25,8 @@ class Organizacion extends Model
     protected $casts = [
         'activa' => 'boolean',
         'configuracion' => 'array',
-        'shelly_api_key' => 'encrypted',
+        // No usar 'encrypted' cast aquí para evitar errores si la clave fue encriptada con otra APP_KEY
+        // En su lugar, usaremos un accessor personalizado
     ];
 
     // Relaciones
@@ -73,6 +74,44 @@ class Organizacion extends Model
             ->first();
             
         return $pivot ? $pivot->pivot->rol : null;
+    }
+
+    /**
+     * Accessor para obtener la clave API de Shelly (desencriptada de forma segura)
+     */
+    public function getShellyApiKeyAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            // Intentar descifrar el valor (puede estar encriptado o no)
+            // Si está encriptado, decrypt() lo descifrará
+            // Si no está encriptado, decrypt() lanzará una excepción
+            return decrypt($value);
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // Si falla el descifrado, puede ser porque:
+            // 1. El valor no está encriptado (valor antiguo sin encriptar)
+            // 2. El valor fue encriptado con otra APP_KEY
+            // En ambos casos, devolvemos null para evitar errores
+            \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Mutator para encriptar la clave API de Shelly antes de guardarla
+     */
+    public function setShellyApiKeyAttribute($value)
+    {
+        if (empty($value)) {
+            $this->attributes['shelly_api_key'] = null;
+            return;
+        }
+
+        // Encriptar el valor antes de guardarlo
+        $this->attributes['shelly_api_key'] = encrypt($value);
     }
 
     /**
