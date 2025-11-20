@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Activity, Zap, TrendingUp, Battery, Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
+import { Activity, Zap, TrendingUp, Battery, Calendar, Building2, MapPin, RefreshCw, Wifi, Clock, Gauge } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import { useState } from 'react';
 import {
@@ -40,9 +40,20 @@ interface Metricas {
     potencia_maxima_kw: number;
     potencia_promedio_kw: number;
     energia_total_kwh: number;
+    energia_retornada_kwh: number;
+    energia_canal_1_kwh: number;
+    energia_canal_2_kwh: number;
+    energia_canal_3_kwh: number;
     voltaje_promedio: number;
+    corriente_promedio_1: number;
+    corriente_promedio_2: number;
+    corriente_promedio_3: number;
+    corriente_neutro_promedio: number;
     factor_potencia_promedio: number;
     estado_conexion: 'online' | 'offline';
+    wifi_conectado: boolean;
+    wifi_rssi: number | null;
+    uptime_segundos: number | null;
     ultima_actualizacion_human: string;
     numero_lecturas: number;
 }
@@ -77,6 +88,21 @@ interface Graficas {
     };
     corrientes: {
         labels: string[];
+        canal1: number[];
+        canal2: number[];
+        canal3: number[];
+        neutro: number[];
+    };
+    factor_potencia: {
+        labels: string[];
+        canal1: number[];
+        canal2: number[];
+        canal3: number[];
+    };
+    energia: {
+        labels: string[];
+        total: number[];
+        retornada: number[];
         canal1: number[];
         canal2: number[];
         canal3: number[];
@@ -190,6 +216,8 @@ export default function Dashboard({
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
         ],
     };
@@ -202,21 +230,30 @@ export default function Dashboard({
                 data: graficas?.canales.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
             {
                 label: 'Canal 2 (kW)',
                 data: graficas?.canales.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
             {
                 label: 'Canal 3 (kW)',
                 data: graficas?.canales.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
         ],
     };
@@ -229,21 +266,169 @@ export default function Dashboard({
                 data: graficas?.corrientes.canal1 || [],
                 borderColor: 'rgb(239, 68, 68)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
             {
                 label: 'Canal 2 (A)',
                 data: graficas?.corrientes.canal2 || [],
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
             {
                 label: 'Canal 3 (A)',
                 data: graficas?.corrientes.canal3 || [],
                 borderColor: 'rgb(234, 179, 8)',
                 backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
                 tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Neutro (A)',
+                data: graficas?.corrientes.neutro || [],
+                borderColor: 'rgb(168, 85, 247)',
+                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderDash: [5, 5],
+            },
+        ],
+    };
+
+    const dataVoltaje = {
+        labels: graficas?.voltaje.labels || [],
+        datasets: [
+            {
+                label: 'Canal 1 (V)',
+                data: graficas?.voltaje.canal1 || [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 2 (V)',
+                data: graficas?.voltaje.canal2 || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 3 (V)',
+                data: graficas?.voltaje.canal3 || [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+        ],
+    };
+
+    const dataFactorPotencia = {
+        labels: graficas?.factor_potencia.labels || [],
+        datasets: [
+            {
+                label: 'Canal 1',
+                data: graficas?.factor_potencia.canal1 || [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 2',
+                data: graficas?.factor_potencia.canal2 || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 3',
+                data: graficas?.factor_potencia.canal3 || [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+        ],
+    };
+
+    const dataEnergia = {
+        labels: graficas?.energia.labels || [],
+        datasets: [
+            {
+                label: 'Total (kWh)',
+                data: graficas?.energia.total || [],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Retornada (kWh)',
+                data: graficas?.energia.retornada || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 1 (kWh)',
+                data: graficas?.energia.canal1 || [],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 2 (kWh)',
+                data: graficas?.energia.canal2 || [],
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Canal 3 (kWh)',
+                data: graficas?.energia.canal3 || [],
+                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
         ],
     };
@@ -251,15 +436,66 @@ export default function Dashboard({
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: 'index' as const,
+        },
         plugins: {
             legend: {
                 position: 'top' as const,
+                labels: {
+                    usePointStyle: true,
+                    padding: 15,
+                    font: {
+                        size: 12,
+                    },
+                },
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: {
+                    size: 14,
+                },
+                bodyFont: {
+                    size: 12,
+                },
+                displayColors: true,
+                callbacks: {
+                    label: function(context: any) {
+                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                    },
+                },
             },
         },
         scales: {
+            x: {
+                grid: {
+                    display: false,
+                },
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 0,
+                    font: {
+                        size: 10,
+                    },
+                },
+            },
             y: {
                 beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
+                ticks: {
+                    font: {
+                        size: 10,
+                    },
+                },
             },
+        },
+        animation: {
+            duration: 1000,
+            easing: 'easeInOutQuart' as const,
         },
     };
 
@@ -450,6 +686,43 @@ export default function Dashboard({
                     />
                 </div>
 
+                <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                    <MetricCard
+                        icon={<Gauge className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Factor de Potencia"
+                        value={(metricas?.factor_potencia_promedio || 0).toFixed(2)}
+                        color="indigo"
+                    />
+                    <MetricCard
+                        icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Energía Retornada"
+                        value={`${metricas?.energia_retornada_kwh || 0} kWh`}
+                        color="emerald"
+                    />
+                    <MetricCard
+                        icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="WiFi"
+                        value={
+                            metricas?.wifi_conectado
+                                ? metricas.wifi_rssi
+                                    ? `${metricas.wifi_rssi} dBm`
+                                    : 'Conectado'
+                                : 'Desconectado'
+                        }
+                        color={metricas?.wifi_conectado ? 'green' : 'red'}
+                    />
+                    <MetricCard
+                        icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6" />}
+                        title="Uptime"
+                        value={
+                            metricas?.uptime_segundos
+                                ? `${Math.floor((metricas.uptime_segundos || 0) / 3600)}h ${Math.floor(((metricas.uptime_segundos || 0) % 3600) / 60)}m`
+                                : 'N/A'
+                        }
+                        color="slate"
+                    />
+                </div>
+
                 <div className="grid w-full gap-4 lg:grid-cols-2">
                     <ChartCard title="Potencia Total">
                         <Line data={dataPotencia} options={chartOptions} />
@@ -459,20 +732,69 @@ export default function Dashboard({
                         <Line data={dataCanales} options={chartOptions} />
                     </ChartCard>
 
+                    <ChartCard title="Voltaje por Canales">
+                        <Line data={dataVoltaje} options={chartOptions} />
+                    </ChartCard>
+
                     <ChartCard title="Intensidad por Canales">
                         <Line data={dataCorrientes} options={chartOptions} />
                     </ChartCard>
 
-                    <ChartCard title="Estadísticas">
-                        <div className="flex h-full flex-col justify-center space-y-4 p-4">
+                    <ChartCard title="Factor de Potencia">
+                        <Line data={dataFactorPotencia} options={chartOptions} />
+                    </ChartCard>
+
+                    <ChartCard title="Energía Acumulada">
+                        <Line data={dataEnergia} options={chartOptions} />
+                    </ChartCard>
+
+                    <ChartCard title="Estadísticas Generales">
+                        <div className="flex h-full flex-col justify-center space-y-3 p-4">
                             <StatRow label="Lecturas totales" value={metricas?.numero_lecturas || 0} />
                             <StatRow
                                 label="Potencia promedio"
                                 value={`${metricas?.potencia_promedio_kw || 0} kW`}
                             />
                             <StatRow
-                                label="Factor de potencia"
+                                label="Factor de potencia promedio"
                                 value={(metricas?.factor_potencia_promedio || 0).toFixed(2)}
+                            />
+                            <StatRow
+                                label="Corriente promedio Canal 1"
+                                value={`${metricas?.corriente_promedio_1 || 0} A`}
+                            />
+                            <StatRow
+                                label="Corriente promedio Canal 2"
+                                value={`${metricas?.corriente_promedio_2 || 0} A`}
+                            />
+                            <StatRow
+                                label="Corriente promedio Canal 3"
+                                value={`${metricas?.corriente_promedio_3 || 0} A`}
+                            />
+                        </div>
+                    </ChartCard>
+
+                    <ChartCard title="Energía por Canal">
+                        <div className="flex h-full flex-col justify-center space-y-3 p-4">
+                            <StatRow
+                                label="Energía Canal 1"
+                                value={`${metricas?.energia_canal_1_kwh || 0} kWh`}
+                            />
+                            <StatRow
+                                label="Energía Canal 2"
+                                value={`${metricas?.energia_canal_2_kwh || 0} kWh`}
+                            />
+                            <StatRow
+                                label="Energía Canal 3"
+                                value={`${metricas?.energia_canal_3_kwh || 0} kWh`}
+                            />
+                            <StatRow
+                                label="Energía Retornada"
+                                value={`${metricas?.energia_retornada_kwh || 0} kWh`}
+                            />
+                            <StatRow
+                                label="Energía Total"
+                                value={`${metricas?.energia_total_kwh || 0} kWh`}
                             />
                         </div>
                     </ChartCard>
@@ -486,7 +808,7 @@ interface MetricCardProps {
     icon: React.ReactNode;
     title: string;
     value: string;
-    color: 'blue' | 'green' | 'yellow' | 'purple';
+    color: 'blue' | 'green' | 'yellow' | 'purple' | 'indigo' | 'emerald' | 'red' | 'slate';
 }
 
 function MetricCard({ icon, title, value, color }: MetricCardProps) {
@@ -495,11 +817,15 @@ function MetricCard({ icon, title, value, color }: MetricCardProps) {
         green: 'bg-green-500',
         yellow: 'bg-yellow-500',
         purple: 'bg-purple-500',
+        indigo: 'bg-indigo-500',
+        emerald: 'bg-emerald-500',
+        red: 'bg-red-500',
+        slate: 'bg-slate-500',
     };
 
     return (
-        <div className="flex min-w-0 items-center rounded-xl border border-sidebar-border/70 bg-white p-3 shadow sm:p-4 lg:p-6 dark:border-sidebar-border dark:bg-gray-800">
-            <div className={`flex-shrink-0 rounded-md p-2 sm:p-3 ${colorClasses[color]}`}>
+        <div className="flex min-w-0 items-center rounded-xl border border-sidebar-border/70 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4 lg:p-6 dark:border-sidebar-border dark:bg-gray-800">
+            <div className={`flex-shrink-0 rounded-lg p-2 sm:p-3 ${colorClasses[color]} shadow-sm`}>
                 <div className="text-white">{icon}</div>
             </div>
             <div className="ml-3 min-w-0 flex-1 sm:ml-5">
@@ -519,7 +845,7 @@ interface ChartCardProps {
 
 function ChartCard({ title, children }: ChartCardProps) {
     return (
-        <div className="min-w-0 rounded-xl border border-sidebar-border/70 bg-white p-3 shadow sm:p-4 dark:border-sidebar-border dark:bg-gray-800">
+        <div className="min-w-0 rounded-xl border border-sidebar-border/70 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4 dark:border-sidebar-border dark:bg-gray-800">
             <h3 className="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg dark:text-gray-100">
                 {title}
             </h3>
@@ -535,7 +861,7 @@ interface StatRowProps {
 
 function StatRow({ label, value }: StatRowProps) {
     return (
-        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
             <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{value}</span>
         </div>

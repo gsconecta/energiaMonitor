@@ -86,6 +86,8 @@ class DashboardController extends Controller
             'voltaje' => $this->prepararDatosGraficaVoltaje($lecturas),
             'canales' => $this->prepararDatosGraficaCanales($lecturas),
             'corrientes' => $this->prepararDatosGraficaCorrientes($lecturas),
+            'factor_potencia' => $this->prepararDatosGraficaFactorPotencia($lecturas),
+            'energia' => $this->prepararDatosGraficaEnergia($lecturas),
         ];
 
         return Inertia::render('Dashboard/Index', [
@@ -150,9 +152,20 @@ class DashboardController extends Controller
                 'potencia_maxima_kw' => 0,
                 'potencia_promedio_kw' => 0,
                 'energia_total_kwh' => 0,
+                'energia_retornada_kwh' => 0,
+                'energia_canal_1_kwh' => 0,
+                'energia_canal_2_kwh' => 0,
+                'energia_canal_3_kwh' => 0,
                 'voltaje_promedio' => 0,
+                'corriente_promedio_1' => 0,
+                'corriente_promedio_2' => 0,
+                'corriente_promedio_3' => 0,
+                'corriente_neutro_promedio' => 0,
                 'factor_potencia_promedio' => 0,
                 'estado_conexion' => 'offline',
+                'wifi_conectado' => false,
+                'wifi_rssi' => null,
+                'uptime_segundos' => null,
                 'ultima_actualizacion' => null,
                 'ultima_actualizacion_human' => null,
                 'numero_lecturas' => 0,
@@ -170,6 +183,12 @@ class DashboardController extends Controller
         $potenciaMaxima = $lecturas->whereNotNull('potencia_total_w')->max('potencia_total_w') ?? 0;
         $potenciaPromedio = $lecturas->whereNotNull('potencia_total_w')->avg('potencia_total_w') ?? 0;
         $voltajePromedio = $lecturas->whereNotNull('voltaje_promedio')->avg('voltaje_promedio') ?? 0;
+        
+        // Calcular corrientes promedio
+        $corrientePromedio1 = $lecturas->whereNotNull('corriente_canal_1')->avg('corriente_canal_1') ?? 0;
+        $corrientePromedio2 = $lecturas->whereNotNull('corriente_canal_2')->avg('corriente_canal_2') ?? 0;
+        $corrientePromedio3 = $lecturas->whereNotNull('corriente_canal_3')->avg('corriente_canal_3') ?? 0;
+        $corrienteNeutroPromedio = $lecturas->whereNotNull('corriente_neutro')->avg('corriente_neutro') ?? 0;
 
         // Calcular factor de potencia promedio solo con valores válidos
         $pfPromedios = collect([
@@ -182,14 +201,36 @@ class DashboardController extends Controller
             ? $pfPromedios->avg() 
             : 0;
 
+        // Calcular energía retornada y por canal
+        $energiaRetornada = $ultimaLectura->energia_retornada_kwh ?? 0;
+        $energiaCanal1 = $ultimaLectura->energia_canal_1_kwh ?? 0;
+        $energiaCanal2 = $ultimaLectura->energia_canal_2_kwh ?? 0;
+        $energiaCanal3 = $ultimaLectura->energia_canal_3_kwh ?? 0;
+
+        // Estado WiFi y conexión
+        $wifiConectado = $ultimaLectura->wifi_conectado ?? false;
+        $wifiRssi = $ultimaLectura->wifi_rssi ?? null;
+        $uptimeSegundos = $ultimaLectura->uptime_segundos ?? null;
+
         return [
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
             'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
             'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
             'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
+            'energia_retornada_kwh' => round($energiaRetornada, 2),
+            'energia_canal_1_kwh' => round($energiaCanal1, 2),
+            'energia_canal_2_kwh' => round($energiaCanal2, 2),
+            'energia_canal_3_kwh' => round($energiaCanal3, 2),
             'voltaje_promedio' => round($voltajePromedio, 1),
+            'corriente_promedio_1' => round($corrientePromedio1, 2),
+            'corriente_promedio_2' => round($corrientePromedio2, 2),
+            'corriente_promedio_3' => round($corrientePromedio3, 2),
+            'corriente_neutro_promedio' => round($corrienteNeutroPromedio, 2),
             'factor_potencia_promedio' => round($factorPotenciaPromedio, 2),
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
+            'wifi_conectado' => $wifiConectado,
+            'wifi_rssi' => $wifiRssi,
+            'uptime_segundos' => $uptimeSegundos,
             'ultima_actualizacion' => $ultimaLectura->fecha_lectura?->toISOString(),
             'ultima_actualizacion_human' => $ultimaLectura->fecha_lectura?->diffForHumans(),
             'numero_lecturas' => $lecturas->count(),
@@ -202,8 +243,10 @@ class DashboardController extends Controller
             return ['labels' => [], 'data' => []];
         }
 
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
         return [
-            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format('H:i'))->toArray(),
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
             'data' => $lecturas->map(fn($l) => round($l->potencia_total_w / 1000, 2))->toArray(),
         ];
     }
@@ -214,8 +257,10 @@ class DashboardController extends Controller
             return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
         }
 
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
         return [
-            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format('H:i'))->toArray(),
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
             'canal1' => $lecturas->pluck('voltaje_canal_1')->toArray(),
             'canal2' => $lecturas->pluck('voltaje_canal_2')->toArray(),
             'canal3' => $lecturas->pluck('voltaje_canal_3')->toArray(),
@@ -228,8 +273,10 @@ class DashboardController extends Controller
             return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
         }
 
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
         return [
-            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format('H:i'))->toArray(),
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
             'canal1' => $lecturas->map(fn($l) => round($l->potencia_canal_1_w / 1000, 2))->toArray(),
             'canal2' => $lecturas->map(fn($l) => round($l->potencia_canal_2_w / 1000, 2))->toArray(),
             'canal3' => $lecturas->map(fn($l) => round($l->potencia_canal_3_w / 1000, 2))->toArray(),
@@ -239,14 +286,74 @@ class DashboardController extends Controller
     private function prepararDatosGraficaCorrientes($lecturas)
     {
         if ($lecturas->isEmpty()) {
-            return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
+            return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => [], 'neutro' => []];
         }
 
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
         return [
-            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format('H:i'))->toArray(),
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
             'canal1' => $lecturas->pluck('corriente_canal_1')->toArray(),
             'canal2' => $lecturas->pluck('corriente_canal_2')->toArray(),
             'canal3' => $lecturas->pluck('corriente_canal_3')->toArray(),
+            'neutro' => $lecturas->pluck('corriente_neutro')->toArray(),
         ];
+    }
+
+    private function prepararDatosGraficaFactorPotencia($lecturas)
+    {
+        if ($lecturas->isEmpty()) {
+            return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
+        }
+
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
+        return [
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
+            'canal1' => $lecturas->pluck('pf_canal_1')->toArray(),
+            'canal2' => $lecturas->pluck('pf_canal_2')->toArray(),
+            'canal3' => $lecturas->pluck('pf_canal_3')->toArray(),
+        ];
+    }
+
+    private function prepararDatosGraficaEnergia($lecturas)
+    {
+        if ($lecturas->isEmpty()) {
+            return ['labels' => [], 'total' => [], 'retornada' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
+        }
+
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
+        return [
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
+            'total' => $lecturas->pluck('energia_total_kwh')->toArray(),
+            'retornada' => $lecturas->pluck('energia_retornada_kwh')->toArray(),
+            'canal1' => $lecturas->pluck('energia_canal_1_kwh')->toArray(),
+            'canal2' => $lecturas->pluck('energia_canal_2_kwh')->toArray(),
+            'canal3' => $lecturas->pluck('energia_canal_3_kwh')->toArray(),
+        ];
+    }
+
+    private function obtenerFormatoFecha($lecturas)
+    {
+        if ($lecturas->isEmpty()) {
+            return 'H:i';
+        }
+
+        $primera = $lecturas->first();
+        $ultima = $lecturas->last();
+        
+        // Si las lecturas abarcan más de un día, mostrar fecha y hora
+        if ($primera->fecha_lectura->format('Y-m-d') !== $ultima->fecha_lectura->format('Y-m-d')) {
+            return 'd/m H:i';
+        }
+        
+        // Si hay muchas lecturas (más de 24 horas de datos), mostrar fecha
+        $diferenciaHoras = $primera->fecha_lectura->diffInHours($ultima->fecha_lectura);
+        if ($diferenciaHoras > 24) {
+            return 'd/m H:i';
+        }
+        
+        return 'H:i';
     }
 }
