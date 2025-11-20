@@ -10,7 +10,7 @@ import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Building2 } from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -43,6 +43,18 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     >
                         <Settings className="mr-2" />
                         Settings
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href="/seleccionar-contexto"
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <Building2 className="mr-2" />
+                        Cambiar Organización
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>

@@ -1,6 +1,7 @@
 import { AppContent } from '@/components/app-content';
 import { AppHeader } from '@/components/app-header';
 import { AppShell } from '@/components/app-shell';
+import Footer from '@/components/shadcn-studio/blocks/footer-component-01/footer-component-01';
 import { type BreadcrumbItem } from '@/types';
 import type { PropsWithChildren } from 'react';
 
@@ -11,7 +12,12 @@ export default function AppHeaderLayout({
     return (
         <AppShell>
             <AppHeader breadcrumbs={breadcrumbs} />
-            <AppContent>{children}</AppContent>
+            <AppContent className="flex flex-col">
+                <div className="flex-1">
+                    {children}
+                </div>
+                <Footer />
+            </AppContent>
         </AppShell>
     );
 }

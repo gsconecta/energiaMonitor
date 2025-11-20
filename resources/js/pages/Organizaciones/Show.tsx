@@ -1,8 +1,35 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Trash2, Plus, Users, MapPin, UserPlus, Edit, X } from 'lucide-react';
+import { Pencil, Trash2, Plus, Users, MapPin, UserPlus, Edit, X, CheckCheck, Building2 } from 'lucide-react';
 import { useState } from 'react';
+import * as React from 'react';
+import { useForm as useReactHookForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -20,6 +47,12 @@ interface Sitio {
     nombre: string;
     codigo: string;
     activa: boolean;
+}
+
+interface SitioSimple {
+    id: number;
+    nombre: string;
+    codigo: string;
 }
 
 interface Usuario {
@@ -42,14 +75,170 @@ interface Organizacion {
 
 interface Props {
     organizacion: Organizacion;
+    todos_sitios?: SitioSimple[];
 }
 
-export default function OrganizacionesShow({ organizacion }: Props) {
+export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: Props) {
     const [mostrarModalUsuario, setMostrarModalUsuario] = useState(false);
+    const [openSheetSitio, setOpenSheetSitio] = useState(false);
+    const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] = useState(false);
+    
     const { data: formUsuario, setData: setFormUsuario, post: postUsuario, processing: processingUsuario, errors: errorsUsuario, reset: resetUsuario } = useForm({
         email: '',
         rol: 'member',
     });
+
+    const inertiaFormSitio = useForm({
+        organizacion_id: organizacion.id.toString(),
+        nombre: '',
+        codigo: '',
+        ubicacion: '',
+        descripcion: '',
+        activa: true,
+    });
+
+    // Función para generar código único basado en el nombre
+    const generarCodigoSitio = (nombre: string): string => {
+        if (!nombre) return '';
+        
+        let codigo = nombre.toLowerCase();
+        codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        codigo = codigo.replace(/[^a-z0-9]+/g, '-');
+        codigo = codigo.replace(/^-+|-+$/g, '');
+        
+        if (codigo.length > 50) {
+            codigo = codigo.substring(0, 50);
+        }
+        
+        if (!codigo) {
+            codigo = 'sitio';
+        }
+        
+        // Verificar si el código ya existe en los sitios de la organización
+        const codigoBase = codigo;
+        let codigoFinal = codigoBase;
+        let contador = 1;
+        
+        while (todos_sitios.some(s => s.codigo === codigoFinal)) {
+            codigoFinal = `${codigoBase}-${contador}`;
+            contador++;
+        }
+        
+        return codigoFinal;
+    };
+
+    const formSchemaSitio = z.object({
+        nombre: z.string().min(1, 'El nombre es requerido').min(2, 'El nombre debe tener al menos 2 caracteres'),
+        codigo: z.string().min(1, 'El código es requerido'),
+        ubicacion: z.string().optional(),
+        descripcion: z.string().optional(),
+        activa: z.boolean().default(true),
+    });
+
+    const formSitio = useReactHookForm<z.infer<typeof formSchemaSitio>>({
+        resolver: zodResolver(formSchemaSitio),
+        defaultValues: {
+            nombre: '',
+            codigo: '',
+            ubicacion: '',
+            descripcion: '',
+            activa: true,
+        },
+    });
+
+    const watchNombreSitio = formSitio.watch('nombre');
+
+    // Auto-generar código cuando cambia el nombre
+    React.useEffect(() => {
+        if (!codigoSitioEditadoManualmente && watchNombreSitio) {
+            const codigoGenerado = generarCodigoSitio(watchNombreSitio);
+            formSitio.setValue('codigo', codigoGenerado);
+        }
+    }, [watchNombreSitio, codigoSitioEditadoManualmente]);
+
+    // Resetear formulario cuando se abre/cierra el Sheet
+    React.useEffect(() => {
+        if (openSheetSitio) {
+            formSitio.reset({
+                nombre: '',
+                codigo: '',
+                ubicacion: '',
+                descripcion: '',
+                activa: true,
+            });
+            setCodigoSitioEditadoManualmente(false);
+            inertiaFormSitio.reset();
+        }
+    }, [openSheetSitio]);
+
+    const onSubmitSitio = (data: z.infer<typeof formSchemaSitio>) => {
+        formSitio.clearErrors();
+        
+        // Obtener los valores actuales del formulario directamente
+        const formValues = formSitio.getValues();
+        
+        // Asegurar que los valores no estén vacíos
+        const codigoValue = (formValues.codigo || data.codigo || '').trim();
+        const nombreValue = (formValues.nombre || data.nombre || '').trim();
+        const ubicacionValue = (formValues.ubicacion || data.ubicacion || '').trim();
+        const descripcionValue = (formValues.descripcion || data.descripcion || '').trim();
+        const activaValue = formValues.activa !== undefined ? formValues.activa : (data.activa !== undefined ? data.activa : true);
+        
+        if (!codigoValue) {
+            formSitio.setError('codigo', {
+                type: 'manual',
+                message: 'El código es requerido',
+            });
+            return;
+        }
+        
+        if (!nombreValue) {
+            formSitio.setError('nombre', {
+                type: 'manual',
+                message: 'El nombre es requerido',
+            });
+            return;
+        }
+        
+        // Preparar los datos para enviar
+        const formData = {
+            organizacion_id: organizacion.id.toString(),
+            nombre: nombreValue,
+            codigo: codigoValue,
+            ubicacion: ubicacionValue,
+            descripcion: descripcionValue,
+            activa: activaValue,
+        };
+        
+        inertiaFormSitio.setData(formData);
+        
+        inertiaFormSitio.post('/sitios', {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.custom(() => (
+                    <Alert className='border-green-600 text-green-600 dark:border-green-400 dark:text-green-400'>
+                        <CheckCheck />
+                        <AlertTitle>Sitio creado exitosamente!</AlertTitle>
+                    </Alert>
+                ));
+                setOpenSheetSitio(false);
+                formSitio.reset();
+                setCodigoSitioEditadoManualmente(false);
+                inertiaFormSitio.reset();
+            },
+            onError: (errors) => {
+                Object.keys(errors).forEach((key) => {
+                    const fieldName = key as keyof z.infer<typeof formSchemaSitio>;
+                    if (fieldName in formSchemaSitio.shape) {
+                        formSitio.setError(fieldName, {
+                            type: 'server',
+                            message: Array.isArray(errors[key]) ? errors[key][0] : errors[key],
+                        });
+                    }
+                });
+            },
+        });
+    };
 
     const getRolBadgeColor = (rol: string) => {
         switch (rol) {
@@ -194,13 +383,152 @@ export default function OrganizacionesShow({ organizacion }: Props) {
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Sitios
                             </h2>
-                            <button
-                                onClick={() => router.visit('/sitios/create', { data: { organizacion_id: organizacion.id } })}
-                                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Nuevo Sitio
-                            </button>
+                            <Sheet open={openSheetSitio} onOpenChange={setOpenSheetSitio}>
+                                <SheetTrigger asChild>
+                                    <Button size="sm">
+                                        <Plus className="h-4 w-4" />
+                                        Nuevo Sitio
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent side="left">
+                                    <SheetHeader>
+                                        <SheetTitle className="text-center text-xl font-bold">
+                                            Crear Sitio
+                                        </SheetTitle>
+                                        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                                            <Building2 className="h-4 w-4" />
+                                            <span>Organización: {organizacion.nombre}</span>
+                                        </div>
+                                    </SheetHeader>
+                                    <Form {...formSitio}>
+                                        <form 
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                const formValues = formSitio.getValues();
+                                                console.log('Valores del formulario sitio al hacer submit:', formValues);
+                                                formSitio.handleSubmit(onSubmitSitio)(e);
+                                            }} 
+                                            className="w-full"
+                                        >
+                                            <div className="space-y-4 p-4 pt-0">
+                                                <FormField
+                                                    control={formSitio.control}
+                                                    name="nombre"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>
+                                                                Nombre <span className="text-red-500">*</span>
+                                                            </FormLabel>
+                                                            <FormControl>
+                                                                <Input 
+                                                                    placeholder="Nave Industrial 1" 
+                                                                    {...field}
+                                                                    value={field.value || ''}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={formSitio.control}
+                                                    name="codigo"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>
+                                                                Código <span className="text-red-500">*</span>
+                                                            </FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    placeholder="Se generará automáticamente"
+                                                                    {...field}
+                                                                    value={field.value || ''}
+                                                                    onChange={(e) => {
+                                                                        const value = e.target.value;
+                                                                        field.onChange(value);
+                                                                        if (value && !codigoSitioEditadoManualmente) {
+                                                                            setCodigoSitioEditadoManualmente(true);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Código único para identificar el sitio (se genera automáticamente, puedes editarlo)
+                                                            </p>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={formSitio.control}
+                                                    name="ubicacion"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Ubicación</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    placeholder="Calle Principal 123, Ciudad"
+                                                                    {...field}
+                                                                    value={field.value || ''}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={formSitio.control}
+                                                    name="descripcion"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Descripción</FormLabel>
+                                                            <FormControl>
+                                                                <Textarea
+                                                                    placeholder="Descripción del sitio..."
+                                                                    rows={3}
+                                                                    {...field}
+                                                                    value={field.value || ''}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={formSitio.control}
+                                                    name="activa"
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex items-center space-x-2">
+                                                            <FormControl>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={field.value}
+                                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="!mt-0 cursor-pointer">
+                                                                Sitio activo
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                            <SheetFooter>
+                                                <Button 
+                                                    type="submit" 
+                                                    disabled={inertiaFormSitio.processing}
+                                                >
+                                                    {inertiaFormSitio.processing ? 'Creando...' : 'Crear Sitio'}
+                                                </Button>
+                                                <SheetClose asChild>
+                                                    <Button variant="outline">Cancelar</Button>
+                                                </SheetClose>
+                                            </SheetFooter>
+                                        </form>
+                                    </Form>
+                                </SheetContent>
+                            </Sheet>
                         </div>
                         {organizacion.sitios.length === 0 ? (
                             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">

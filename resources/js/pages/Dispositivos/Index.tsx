@@ -3,6 +3,17 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, Power, Activity } from 'lucide-react';
 import { useState } from 'react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,11 +63,36 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
     });
 
     const tiposDispositivo = [
-        { value: 'produccion', label: 'Producción Solar', color: 'text-yellow-600' },
-        { value: 'consumo', label: 'Consumo', color: 'text-blue-600' },
-        { value: 'red', label: 'Red Eléctrica', color: 'text-green-600' },
-        { value: 'bateria', label: 'Batería', color: 'text-purple-600' },
-        { value: 'otro', label: 'Otro', color: 'text-gray-600' },
+        { 
+            value: 'produccion', 
+            label: 'Producción Solar', 
+            color: 'text-yellow-600',
+            descripcion: 'Mide la energía generada por paneles solares o sistemas de generación renovable.'
+        },
+        { 
+            value: 'consumo', 
+            label: 'Consumo', 
+            color: 'text-blue-600',
+            descripcion: 'Mide el consumo de energía eléctrica de la instalación o equipos.'
+        },
+        { 
+            value: 'red', 
+            label: 'Red Eléctrica', 
+            color: 'text-green-600',
+            descripcion: 'Mide la energía que entra o sale de la red eléctrica (importación/exportación).'
+        },
+        { 
+            value: 'bateria', 
+            label: 'Batería', 
+            color: 'text-purple-600',
+            descripcion: 'Mide la energía almacenada o descargada de sistemas de baterías.'
+        },
+        { 
+            value: 'otro', 
+            label: 'Otro', 
+            color: 'text-gray-600',
+            descripcion: 'Otro tipo de dispositivo de medición de energía.'
+        },
     ];
 
     const abrirModalNuevo = () => {
@@ -133,6 +169,32 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                         <Plus className="h-4 w-4" />
                         Nuevo Dispositivo
                     </button>
+                </div>
+
+                {/* Información de tipos de dispositivos */}
+                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
+                    <div className="p-4">
+                        <h2 className="mb-3 text-xl font-bold text-gray-900 dark:text-gray-100">
+                            Tipos de Dispositivos
+                        </h2>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {tiposDispositivo.map((tipo) => (
+                                <div
+                                    key={tipo.value}
+                                    className="rounded-lg border border-sidebar-border/70 bg-gray-50 p-3 dark:border-sidebar-border dark:bg-gray-900"
+                                >
+                                    <div className="mb-1.5">
+                                        <span className={`text-base font-bold ${tipo.color}`}>
+                                            {tipo.label}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                                        {tipo.descripcion}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Tabla de dispositivos */}
@@ -262,155 +324,137 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
             </div>
 
             {/* Modal de crear/editar */}
-            {mostrarModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="flex min-h-screen items-center justify-center px-4">
-                        <div
-                            className="fixed inset-0 bg-black bg-opacity-30"
-                            onClick={() => setMostrarModal(false)}
-                        />
-                        <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-                            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {dispositivoEditando ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
-                            </h3>
+            <Dialog open={mostrarModal} onOpenChange={setMostrarModal}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {dispositivoEditando ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {dispositivoEditando
+                                ? 'Modifica la información del dispositivo'
+                                : 'Completa los datos para crear un nuevo dispositivo'}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Sitio
-                                    </label>
-                                    <select
-                                        value={formData.sitio_id}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, sitio_id: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        required
-                                    >
-                                        {sitios.map((sitio) => (
-                                            <option key={sitio.id} value={sitio.id}>
-                                                {sitio.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Device ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.device_id}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, device_id: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        placeholder="shellyem3-c8c9a33e6505"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Nombre
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.nombre}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, nombre: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        placeholder="Shelly Producción Solar"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Tipo
-                                    </label>
-                                    <select
-                                        value={formData.tipo}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, tipo: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        required
-                                    >
-                                        {tiposDispositivo.map((tipo) => (
-                                            <option key={tipo.value} value={tipo.value}>
-                                                {tipo.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Modelo
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.modelo}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, modelo: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        placeholder="Shelly EM3"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        IP Local
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.ip_local}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, ip_local: e.target.value })
-                                        }
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        placeholder="192.168.1.148"
-                                    />
-                                </div>
-
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.activo}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, activo: e.target.checked })
-                                        }
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <label className="ml-2 block text-sm text-gray-900 dark:text-gray-100">
-                                        Dispositivo activo
-                                    </label>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <button
-                                        type="submit"
-                                        className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                    >
-                                        {dispositivoEditando ? 'Actualizar' : 'Crear'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMostrarModal(false)}
-                                        className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </form>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="sitio_id">
+                                Sitio <span className="text-red-500">*</span>
+                            </Label>
+                            <select
+                                id="sitio_id"
+                                value={formData.sitio_id}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, sitio_id: e.target.value })
+                                }
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                required
+                            >
+                                {sitios.map((sitio) => (
+                                    <option key={sitio.id} value={sitio.id}>
+                                        {sitio.nombre}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                    </div>
-                </div>
-            )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="device_id">
+                                Device ID <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="device_id"
+                                type="text"
+                                value={formData.device_id}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, device_id: e.target.value })
+                                }
+                                placeholder="shellyem3-c8c9a33e6505"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="nombre">
+                                Nombre <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="nombre"
+                                type="text"
+                                value={formData.nombre}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, nombre: e.target.value })
+                                }
+                                placeholder="Shelly Producción Solar"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="tipo">
+                                Tipo <span className="text-red-500">*</span>
+                            </Label>
+                            <select
+                                id="tipo"
+                                value={formData.tipo}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, tipo: e.target.value })
+                                }
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                required
+                            >
+                                {tiposDispositivo.map((tipo) => (
+                                    <option key={tipo.value} value={tipo.value}>
+                                        {tipo.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="modelo">Modelo</Label>
+                            <Input
+                                id="modelo"
+                                type="text"
+                                value={formData.modelo}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, modelo: e.target.value })
+                                }
+                                placeholder="Shelly EM3"
+                            />
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                id="activo"
+                                type="checkbox"
+                                checked={formData.activo}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, activo: e.target.checked })
+                                }
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <Label htmlFor="activo" className="cursor-pointer">
+                                Dispositivo activo
+                            </Label>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setMostrarModal(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button type="submit">
+                                {dispositivoEditando ? 'Actualizar' : 'Crear'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

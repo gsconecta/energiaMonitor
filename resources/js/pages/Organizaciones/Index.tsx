@@ -1,7 +1,35 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Plus, Building2, Users, MapPin } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Plus, Building2, Users, MapPin, CheckCheck } from 'lucide-react';
+import { useState } from 'react';
+import * as React from 'react';
+import { useForm as useReactHookForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -21,11 +49,148 @@ interface Organizacion {
     users_count: number;
 }
 
-interface Props {
-    organizaciones: Organizacion[];
+interface OrganizacionSimple {
+    id: number;
+    nombre: string;
+    codigo: string;
 }
 
-export default function OrganizacionesIndex({ organizaciones }: Props) {
+interface Props {
+    organizaciones: Organizacion[];
+    todas_organizaciones?: OrganizacionSimple[];
+}
+
+export default function OrganizacionesIndex({ organizaciones, todas_organizaciones = [] }: Props) {
+    const [open, setOpen] = useState(false);
+    const [codigoEditadoManualmente, setCodigoEditadoManualmente] = useState(false);
+    
+    const inertiaForm = useForm({
+        nombre: '',
+        codigo: '',
+        descripcion: '',
+    });
+
+    // Función para generar código único basado en el nombre
+    const generarCodigo = (nombre: string): string => {
+        if (!nombre) return '';
+        
+        let codigo = nombre.toLowerCase();
+        codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        codigo = codigo.replace(/[^a-z0-9]+/g, '-');
+        codigo = codigo.replace(/^-+|-+$/g, '');
+        
+        if (codigo.length > 50) {
+            codigo = codigo.substring(0, 50);
+        }
+        
+        if (!codigo) {
+            codigo = 'organizacion';
+        }
+        
+        const codigoBase = codigo;
+        let codigoFinal = codigoBase;
+        let contador = 1;
+        
+        while (todas_organizaciones.some(org => org.codigo === codigoFinal)) {
+            codigoFinal = `${codigoBase}-${contador}`;
+            contador++;
+        }
+        
+        return codigoFinal;
+    };
+
+    const formSchema = z.object({
+        nombre: z.string().min(1, 'El nombre es requerido').min(2, 'El nombre debe tener al menos 2 caracteres'),
+        codigo: z.string().min(1, 'El código es requerido'),
+        descripcion: z.string().optional(),
+    });
+
+    const form = useReactHookForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            nombre: '',
+            codigo: '',
+            descripcion: '',
+        },
+    });
+
+    const watchNombre = form.watch('nombre');
+
+    // Auto-generar código cuando cambia el nombre
+    React.useEffect(() => {
+        if (!codigoEditadoManualmente && watchNombre) {
+            const codigoGenerado = generarCodigo(watchNombre);
+            form.setValue('codigo', codigoGenerado);
+        }
+    }, [watchNombre, codigoEditadoManualmente]);
+
+
+    const onSubmit = (data: z.infer<typeof formSchema>) => {
+        // Resetear errores previos
+        form.clearErrors();
+        
+        // Obtener los valores actuales del formulario directamente
+        const formValues = form.getValues();
+        
+        // Asegurar que el código no esté vacío
+        const codigoValue = (formValues.codigo || data.codigo || '').trim();
+        const nombreValue = (formValues.nombre || data.nombre || '').trim();
+        const descripcionValue = (formValues.descripcion || data.descripcion || '').trim();
+        
+        if (!codigoValue) {
+            form.setError('codigo', {
+                type: 'manual',
+                message: 'El código es requerido',
+            });
+            return;
+        }
+        
+        if (!nombreValue) {
+            form.setError('nombre', {
+                type: 'manual',
+                message: 'El nombre es requerido',
+            });
+            return;
+        }
+        
+        // Preparar los datos para enviar
+        const formData = {
+            nombre: nombreValue,
+            codigo: codigoValue,
+            descripcion: descripcionValue,
+        };
+        
+        inertiaForm.setData(formData);
+        
+        inertiaForm.post('/organizaciones', {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.custom(() => (
+                    <Alert className='border-green-600 text-green-600 dark:border-green-400 dark:text-green-400'>
+                        <CheckCheck />
+                        <AlertTitle>Organización creada exitosamente!</AlertTitle>
+                    </Alert>
+                ));
+                setOpen(false);
+                form.reset();
+                setCodigoEditadoManualmente(false);
+                inertiaForm.reset();
+            },
+            onError: (errors) => {
+                // Mapear errores de Laravel a los campos del formulario
+                Object.keys(errors).forEach((key) => {
+                    const fieldName = key as keyof z.infer<typeof formSchema>;
+                    if (fieldName in formSchema.shape) {
+                        form.setError(fieldName, {
+                            type: 'server',
+                            message: Array.isArray(errors[key]) ? errors[key][0] : errors[key],
+                        });
+                    }
+                });
+            },
+        });
+    };
+
     const getRolBadgeColor = (rol: string) => {
         switch (rol) {
             case 'owner':
@@ -71,13 +236,111 @@ export default function OrganizacionesIndex({ organizaciones }: Props) {
                             Gestiona tus organizaciones y sus sitios
                         </p>
                     </div>
-                    <button
-                        onClick={() => router.visit('/organizaciones/create')}
-                        className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Nueva Organización
-                    </button>
+                    <Sheet open={open} onOpenChange={setOpen}>
+                        <SheetTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4" />
+                                Nueva Organización
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent>
+                            <SheetHeader>
+                                <SheetTitle className="text-center text-xl font-bold">
+                                    Crear Organización
+                                </SheetTitle>
+                            </SheetHeader>
+                            <Form {...form}>
+                                <form 
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        form.handleSubmit(onSubmit)(e);
+                                    }} 
+                                    className="w-full"
+                                >
+                                    <div className="space-y-4 p-4 pt-0">
+                                        <FormField
+                                            control={form.control}
+                                            name="nombre"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Nombre <span className="text-red-500">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input 
+                                                            placeholder="Mi Empresa" 
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="codigo"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Código <span className="text-red-500">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Se generará automáticamente"
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                field.onChange(value);
+                                                                // Marcar como editado manualmente si el usuario escribe algo
+                                                                if (value && !codigoEditadoManualmente) {
+                                                                    setCodigoEditadoManualmente(true);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Código único para identificar la organización (se genera automáticamente, puedes editarlo)
+                                                    </p>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="descripcion"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descripción</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Descripción de la organización..."
+                                                            rows={3}
+                                                            {...field}
+                                                            value={field.value || ''}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <SheetFooter>
+                                        <Button 
+                                            type="submit" 
+                                            disabled={inertiaForm.processing}
+                                        >
+                                            {inertiaForm.processing ? 'Creando...' : 'Crear Organización'}
+                                        </Button>
+                                        <SheetClose asChild>
+                                            <Button variant="outline">Cancelar</Button>
+                                        </SheetClose>
+                                    </SheetFooter>
+                                </form>
+                            </Form>
+                        </SheetContent>
+                    </Sheet>
                 </div>
 
                 {/* Grid de organizaciones */}

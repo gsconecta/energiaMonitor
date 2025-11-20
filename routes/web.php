@@ -22,7 +22,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // Organizaciones
-    Route::resource('organizaciones', OrganizacionesController::class);
+    Route::resource('organizaciones', OrganizacionesController::class)
+        ->parameters(['organizaciones' => 'organizacion']);
     Route::post('/organizaciones/{organizacion}/usuarios', 
         [OrganizacionesController::class, 'agregarUsuario'])
         ->name('organizaciones.usuarios.store');

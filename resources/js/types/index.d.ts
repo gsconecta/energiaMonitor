@@ -22,11 +22,25 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface OrganizacionActual {
+    id: number;
+    nombre: string;
+    codigo: string;
+}
+
+export interface SitioActual {
+    id: number;
+    nombre: string;
+    codigo: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    organizacion_actual?: OrganizacionActual | null;
+    sitio_actual?: SitioActual | null;
     [key: string]: unknown;
 }
 

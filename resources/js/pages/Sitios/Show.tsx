@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Pencil, Trash2, Building2, MapPin, Zap, Plus } from 'lucide-react';
+import { Pencil, Trash2, Building2, MapPin, Zap, Plus, RefreshCw } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -48,6 +48,17 @@ export default function SitiosShow({ sitio }: Props) {
         }
     };
 
+    const handleCambiarSitio = () => {
+        router.post('/seleccionar-contexto', {
+            organizacion_id: sitio.organizacion.id,
+            sitio_id: sitio.id,
+        }, {
+            onSuccess: () => {
+                router.visit('/dashboard');
+            },
+        });
+    };
+
     const tiposDispositivo = [
         { value: 'produccion', label: 'Producción Solar', color: 'text-yellow-600' },
         { value: 'consumo', label: 'Consumo', color: 'text-blue-600' },
@@ -72,6 +83,13 @@ export default function SitiosShow({ sitio }: Props) {
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={handleCambiarSitio}
+                            className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                            Cambiar a este sitio
+                        </button>
                         <button
                             onClick={() => router.visit(`/sitios/${sitio.id}/edit`)}
                             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"

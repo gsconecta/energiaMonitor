@@ -105,6 +105,13 @@ class SitiosController extends Controller
 
         $sitio = Sitio::create($validated);
 
+        // Si viene de la página de selección de contexto, volver ahí
+        if ($request->header('Referer') && str_contains($request->header('Referer'), 'seleccionar-contexto')) {
+            return redirect()
+                ->route('seleccionar-contexto')
+                ->with('success', 'Sitio creado correctamente');
+        }
+
         return redirect()
             ->route('sitios.show', $sitio)
             ->with('success', 'Sitio creado correctamente');

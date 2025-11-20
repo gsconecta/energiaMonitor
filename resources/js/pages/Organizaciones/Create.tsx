@@ -1,7 +1,12 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/react';
-import { Building2 } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -14,16 +19,89 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface Organizacion {
+    id: number;
+    nombre: string;
+    codigo: string;
+}
+
+interface Props {
+    organizaciones?: Organizacion[];
+}
+
 export default function OrganizacionesCreate() {
-    const { data, setData, post, processing, errors } = useForm({
+    const page = usePage<Props>();
+    const organizaciones = page.props.organizaciones || [];
+    
+    const [codigoEditadoManualmente, setCodigoEditadoManualmente] = useState(false);
+    
+    const form = useForm({
         nombre: '',
         codigo: '',
         descripcion: '',
     });
 
+    // Función para generar código único basado en el nombre
+    const generarCodigo = (nombre: string): string => {
+        if (!nombre) return '';
+        
+        // Convertir a minúsculas
+        let codigo = nombre.toLowerCase();
+        
+        // Eliminar acentos
+        codigo = codigo
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+        
+        // Reemplazar espacios y caracteres especiales con guiones
+        codigo = codigo.replace(/[^a-z0-9]+/g, '-');
+        
+        // Eliminar guiones al inicio y final
+        codigo = codigo.replace(/^-+|-+$/g, '');
+        
+        // Limitar longitud
+        if (codigo.length > 50) {
+            codigo = codigo.substring(0, 50);
+        }
+        
+        // Asegurar que no esté vacío
+        if (!codigo) {
+            codigo = 'organizacion';
+        }
+        
+        // Verificar si el código ya existe y añadir número si es necesario
+        const codigoBase = codigo;
+        let codigoFinal = codigoBase;
+        let contador = 1;
+        
+        while (organizaciones.some(org => org.codigo === codigoFinal)) {
+            codigoFinal = `${codigoBase}-${contador}`;
+            contador++;
+        }
+        
+        return codigoFinal;
+    };
+
+    // Auto-generar código cuando cambia el nombre
+    const handleNombreChange = (nombre: string) => {
+        form.setData('nombre', nombre);
+        
+        // Solo auto-generar si el código no fue editado manualmente
+        if (!codigoEditadoManualmente) {
+            const codigoGenerado = generarCodigo(nombre);
+            form.setData('codigo', codigoGenerado);
+        }
+    };
+
+    // Manejar cambio manual del código
+    const handleCodigoChange = (codigo: string) => {
+        form.setData('codigo', codigo);
+        setCodigoEditadoManualmente(true);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/organizaciones');
+        form.post('/organizaciones');
     };
 
     return (
@@ -41,81 +119,88 @@ export default function OrganizacionesCreate() {
                         </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                        <form onSubmit={handleSubmit} className="p-6">
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <Card className="border-none shadow-none">
+                        <div className="p-6">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="nombre">
                                         Nombre <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
+                                    </Label>
+                                    <Input
+                                        id="nombre"
                                         type="text"
-                                        value={data.nombre}
-                                        onChange={(e) => setData('nombre', e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                        value={form.data.nombre}
+                                        onChange={(e) => handleNombreChange(e.target.value)}
                                         placeholder="Mi Empresa"
                                         required
+                                        aria-invalid={form.errors.nombre ? 'true' : 'false'}
                                     />
-                                    {errors.nombre && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>
+                                    {form.errors.nombre && (
+                                        <p className="text-sm text-red-600" role="alert">
+                                            {form.errors.nombre}
+                                        </p>
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <div className="space-y-2">
+                                    <Label htmlFor="codigo">
                                         Código <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
+                                    </Label>
+                                    <Input
+                                        id="codigo"
                                         type="text"
-                                        value={data.codigo}
-                                        onChange={(e) => setData('codigo', e.target.value)}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                        placeholder="mi-empresa-001"
+                                        value={form.data.codigo}
+                                        onChange={(e) => handleCodigoChange(e.target.value)}
+                                        placeholder="Se generará automáticamente"
                                         required
+                                        aria-invalid={form.errors.codigo ? 'true' : 'false'}
                                     />
-                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        Código único para identificar la organización
+                                    <p className="text-xs text-muted-foreground">
+                                        Código único para identificar la organización (se genera automáticamente, puedes editarlo)
                                     </p>
-                                    {errors.codigo && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.codigo}</p>
+                                    {form.errors.codigo && (
+                                        <p className="text-sm text-red-600" role="alert">
+                                            {form.errors.codigo}
+                                        </p>
                                     )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        value={data.descripcion}
-                                        onChange={(e) => setData('descripcion', e.target.value)}
-                                        rows={4}
-                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                <div className="space-y-2">
+                                    <Label htmlFor="descripcion">Descripción</Label>
+                                    <Textarea
+                                        id="descripcion"
+                                        value={form.data.descripcion}
+                                        onChange={(e) => form.setData('descripcion', e.target.value)}
+                                        rows={3}
                                         placeholder="Descripción de la organización..."
+                                        aria-invalid={form.errors.descripcion ? 'true' : 'false'}
                                     />
-                                    {errors.descripcion && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.descripcion}</p>
+                                    {form.errors.descripcion && (
+                                        <p className="text-sm text-red-600" role="alert">
+                                            {form.errors.descripcion}
+                                        </p>
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="mt-6 flex gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                                >
-                                    {processing ? 'Creando...' : 'Crear Organización'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => router.visit('/organizaciones')}
-                                    className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                                <div className="flex gap-3">
+                                    <Button
+                                        type="submit"
+                                        disabled={form.processing}
+                                        className="flex-1"
+                                    >
+                                        {form.processing ? 'Creando...' : 'Crear Organización'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => router.visit('/organizaciones')}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </Card>
                 </div>
             </div>
         </AppLayout>

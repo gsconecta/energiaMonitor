@@ -32,8 +32,12 @@ class OrganizacionesController extends Controller
                 ];
             });
 
+        // Obtener todas las organizaciones para validar códigos únicos en el formulario
+        $todasOrganizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
+
         return Inertia::render('Organizaciones/Index', [
             'organizaciones' => $organizaciones,
+            'todas_organizaciones' => $todasOrganizaciones,
         ]);
     }
 
@@ -42,7 +46,12 @@ class OrganizacionesController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Organizaciones/Create');
+        // Obtener todas las organizaciones para validar códigos únicos
+        $organizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
+        
+        return Inertia::render('Organizaciones/Create', [
+            'organizaciones' => $organizaciones,
+        ]);
     }
 
     /**
@@ -63,6 +72,13 @@ class OrganizacionesController extends Controller
             'rol' => 'owner'
         ]);
 
+        // Si viene de la página de selección de contexto, volver ahí
+        if (request()->header('Referer') && str_contains(request()->header('Referer'), 'seleccionar-contexto')) {
+            return redirect()
+                ->route('seleccionar-contexto')
+                ->with('success', 'Organización creada correctamente');
+        }
+
         return redirect()
             ->route('organizaciones.show', $organizacion)
             ->with('success', 'Organización creada correctamente');
@@ -76,6 +92,9 @@ class OrganizacionesController extends Controller
         $this->authorize('view', $organizacion);
 
         $organizacion->load(['sitios', 'users']);
+
+        // Obtener todos los sitios de la organización para validar códigos únicos
+        $todosSitios = $organizacion->sitios()->select('id', 'nombre', 'codigo')->get();
 
         return Inertia::render('Organizaciones/Show', [
             'organizacion' => [
@@ -98,6 +117,7 @@ class OrganizacionesController extends Controller
                     'rol' => $u->pivot->rol,
                 ]),
             ],
+            'todos_sitios' => $todosSitios,
         ]);
     }
 

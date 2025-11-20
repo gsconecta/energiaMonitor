@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Cpu, Building2, MapPin } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Cpu, Building2 } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -26,11 +26,6 @@ const mainNavItems: NavItem[] = [
         title: 'Organizaciones',
         href: '/organizaciones',
         icon: Building2,
-    },
-    {
-        title: 'Sitios',
-        href: '/sitios',
-        icon: MapPin,
     },
     {
         title: 'Dispositivos',

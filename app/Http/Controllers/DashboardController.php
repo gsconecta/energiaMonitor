@@ -119,23 +119,23 @@ class DashboardController extends Controller
             ]);
         } else {
             // Usar períodos predefinidos
-            switch ($periodo) {
-                case 'hoy':
-                    $query->whereDate('fecha_lectura', today());
-                    break;
-                case 'ayer':
-                    $query->whereDate('fecha_lectura', today()->subDay());
-                    break;
-                case 'semana':
-                    $query->whereBetween('fecha_lectura', [
-                        now()->startOfWeek(),
-                        now()->endOfWeek()
-                    ]);
-                    break;
-                case 'mes':
-                    $query->whereMonth('fecha_lectura', now()->month)
-                          ->whereYear('fecha_lectura', now()->year);
-                    break;
+        switch ($periodo) {
+            case 'hoy':
+                $query->whereDate('fecha_lectura', today());
+                break;
+            case 'ayer':
+                $query->whereDate('fecha_lectura', today()->subDay());
+                break;
+            case 'semana':
+                $query->whereBetween('fecha_lectura', [
+                    now()->startOfWeek(),
+                    now()->endOfWeek()
+                ]);
+                break;
+            case 'mes':
+                $query->whereMonth('fecha_lectura', now()->month)
+                      ->whereYear('fecha_lectura', now()->year);
+                break;
             }
         }
 

@@ -18,7 +18,7 @@ class SeleccionarContextoController extends Controller
 
         $organizaciones = $user->organizacionesActivas()
             ->with(['sitios' => function ($query) {
-                $query->activos();
+                $query->activos()->withCount('dispositivos');
             }])
             ->get()
             ->map(function ($org) {
@@ -31,6 +31,7 @@ class SeleccionarContextoController extends Controller
                         'nombre' => $s->nombre,
                         'codigo' => $s->codigo,
                         'activa' => $s->activa,
+                        'dispositivos_count' => $s->dispositivos_count,
                     ]),
                 ];
             });

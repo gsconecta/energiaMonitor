@@ -21,7 +21,10 @@ class OrganizacionPolicy
      */
     public function view(User $user, Organizacion $organizacion): bool
     {
-        return $organizacion->tieneUsuario($user);
+        // Verificar que el usuario pertenece a la organización usando la relación
+        return $organizacion->users()
+            ->where('users.id', $user->id)
+            ->exists();
     }
 
     /**
