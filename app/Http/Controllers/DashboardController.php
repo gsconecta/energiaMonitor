@@ -45,17 +45,42 @@ class DashboardController extends Controller
         $fechaDesde = $request->get('fecha_desde');
         $fechaHasta = $request->get('fecha_hasta');
 
-        // Obtener dispositivos del sitio seleccionado
-        $queryDispositivos = Dispositivo::with('sitio')
-            ->whereHas('sitio', function ($q) use ($sitioActualId) {
-                $q->where('id', $sitioActualId);
-            })
-            ->activos();
+        // Función helper para crear la query base de dispositivos
+        $crearQueryDispositivos = function() use ($sitioActualId) {
+            return Dispositivo::with('sitio')
+                ->whereHas('sitio', function ($q) use ($sitioActualId) {
+                    $q->where('id', $sitioActualId);
+                })
+                ->activos();
+        };
+
+        // Obtener todos los dispositivos del sitio seleccionado para el selector
+        $dispositivos = $crearQueryDispositivos()
+            ->get()
+            ->map(fn($d) => [
+                'id' => $d->id,
+                'nombre' => $d->nombre,
+                'tipo' => $d->tipo,
+                'sitio' => [
+                    'id' => $d->sitio->id,
+                    'nombre' => $d->sitio->nombre,
+                ],
+            ]);
 
         // Obtener dispositivo (usar el primero del sitio si no se especifica)
-        $dispositivo = $dispositivoId 
-            ? Dispositivo::with('sitio')->find($dispositivoId)
-            : $queryDispositivos->first();
+        if ($dispositivoId) {
+            // Verificar que el dispositivo pertenezca al sitio actual
+            $dispositivo = $crearQueryDispositivos()
+                ->where('id', $dispositivoId)
+                ->first();
+            
+            // Si el dispositivo no pertenece al sitio, usar el primero disponible
+            if (!$dispositivo) {
+                $dispositivo = $crearQueryDispositivos()->first();
+            }
+        } else {
+            $dispositivo = $crearQueryDispositivos()->first();
+        }
 
         if (!$dispositivo) {
             return Inertia::render('Dashboard/Index', [
@@ -63,16 +88,6 @@ class DashboardController extends Controller
                 'dispositivos' => [],
             ]);
         }
-
-        // Obtener todos los dispositivos del sitio seleccionado para el selector
-        $dispositivos = $queryDispositivos
-            ->get()
-            ->map(fn($d) => [
-                'id' => $d->id,
-                'nombre' => $d->nombre,
-                'tipo' => $d->tipo,
-                'sitio' => $d->sitio->nombre,
-            ]);
 
         // Obtener lecturas según período
         $lecturas = $this->obtenerLecturas($dispositivo, $periodo, $fechaDesde, $fechaHasta);

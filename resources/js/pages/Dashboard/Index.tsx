@@ -152,7 +152,21 @@ export default function Dashboard({
     const [fechaHasta, setFechaHasta] = useState('');
 
     const handleDispositivoChange = (dispositivoId: string) => {
-        router.get(dashboard().url, { dispositivo_id: dispositivoId, periodo });
+        const params: any = { dispositivo_id: dispositivoId };
+        
+        // Mantener el período actual si existe
+        if (periodo) {
+            params.periodo = periodo;
+        }
+        
+        // Si hay rango personalizado, mantener las fechas
+        if (mostrarRangoPersonalizado && fechaDesde && fechaHasta) {
+            params.periodo = 'personalizado';
+            params.fecha_desde = fechaDesde;
+            params.fecha_hasta = fechaHasta;
+        }
+        
+        router.get(dashboard().url, params);
     };
 
     const handlePeriodoChange = (nuevoPeriodo: string) => {
@@ -682,15 +696,23 @@ export default function Dashboard({
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                         <select
-                            value={dispositivo?.id}
-                            onChange={(e) => handleDispositivoChange(e.target.value)}
+                            value={dispositivo?.id || ''}
+                            onChange={(e) => {
+                                if (e.target.value) {
+                                    handleDispositivoChange(e.target.value);
+                                }
+                            }}
                             className="w-full rounded-md border-gray-300 p-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                         >
-                            {dispositivos.map((disp) => (
-                                <option key={disp.id} value={disp.id}>
-                                    {disp.nombre}
-                                </option>
-                            ))}
+                            {dispositivos.length === 0 ? (
+                                <option value="">No hay dispositivos</option>
+                            ) : (
+                                dispositivos.map((disp) => (
+                                    <option key={disp.id} value={disp.id}>
+                                        {disp.nombre}
+                                    </option>
+                                ))
+                            )}
                         </select>
 
                         <div className="grid grid-cols-4 gap-1 rounded-md shadow-sm sm:inline-flex" role="group">

@@ -88,6 +88,9 @@ interface Dispositivo {
     nombre_canal_1: string | null;
     nombre_canal_2: string | null;
     nombre_canal_3: string | null;
+    color_canal_1: string;
+    color_canal_2: string;
+    color_canal_3: string;
     modelo: string | null;
     ip_local: string | null;
     firmware: string | null;
@@ -111,6 +114,11 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
         nombre_canal_1: dispositivo.nombre_canal_1 ?? 'Canal 1',
         nombre_canal_2: dispositivo.nombre_canal_2 ?? 'Canal 2',
         nombre_canal_3: dispositivo.nombre_canal_3 ?? 'Canal 3',
+    });
+    const [coloresCanales, setColoresCanales] = useState({
+        color_canal_1: dispositivo.color_canal_1 ?? '#ef4444',
+        color_canal_2: dispositivo.color_canal_2 ?? '#22c55e',
+        color_canal_3: dispositivo.color_canal_3 ?? '#eab308',
     });
 
     const tiposDispositivo = [
@@ -166,6 +174,9 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             nombre_canal_1: nombresCanales.nombre_canal_1 || null,
             nombre_canal_2: nombresCanales.nombre_canal_2 || null,
             nombre_canal_3: nombresCanales.nombre_canal_3 || null,
+            color_canal_1: coloresCanales.color_canal_1,
+            color_canal_2: coloresCanales.color_canal_2,
+            color_canal_3: coloresCanales.color_canal_3,
             modelo: dispositivo.modelo,
             ip_local: dispositivo.ip_local,
             firmware: dispositivo.firmware,
@@ -190,6 +201,14 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
         }
     };
 
+    // Función para convertir hex a rgba
+    const hexToRgba = (hex: string, alpha: number = 0.1): string => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
     // Preparar datos para las gráficas
     const dataCanal1 = {
         labels: graficas?.labels || [],
@@ -197,8 +216,8 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             {
                 label: `${obtenerNombreCanal(1)} (kW)`,
                 data: graficas?.canal1 || [],
-                borderColor: 'rgb(239, 68, 68)',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: coloresCanales.color_canal_1,
+                backgroundColor: hexToRgba(coloresCanales.color_canal_1, 0.1),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 0,
@@ -213,8 +232,8 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             {
                 label: `${obtenerNombreCanal(2)} (kW)`,
                 data: graficas?.canal2 || [],
-                borderColor: 'rgb(34, 197, 94)',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderColor: coloresCanales.color_canal_2,
+                backgroundColor: hexToRgba(coloresCanales.color_canal_2, 0.1),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 0,
@@ -229,8 +248,8 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             {
                 label: `${obtenerNombreCanal(3)} (kW)`,
                 data: graficas?.canal3 || [],
-                borderColor: 'rgb(234, 179, 8)',
-                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: coloresCanales.color_canal_3,
+                backgroundColor: hexToRgba(coloresCanales.color_canal_3, 0.1),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 0,
@@ -541,7 +560,7 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                     <div className="p-6">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Nombres de Canales
+                                Nombres y Colores de Canales
                             </h2>
                             {!editandoNombres ? (
                                 <button
@@ -549,7 +568,7 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                     className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
                                 >
                                     <Pencil className="h-4 w-4" />
-                                    Editar Nombres
+                                    Editar Nombres y Colores
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -567,6 +586,11 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                 nombre_canal_2: dispositivo.nombre_canal_2 || 'Canal 2',
                                                 nombre_canal_3: dispositivo.nombre_canal_3 || 'Canal 3',
                                             });
+                                            setColoresCanales({
+                                                color_canal_1: dispositivo.color_canal_1 ?? '#ef4444',
+                                                color_canal_2: dispositivo.color_canal_2 ?? '#22c55e',
+                                                color_canal_3: dispositivo.color_canal_3 ?? '#eab308',
+                                            });
                                         }}
                                         className="inline-flex items-center gap-2 rounded-md bg-gray-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
                                     >
@@ -582,22 +606,51 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                         Canal 1
                                     </label>
                                     {editandoNombres ? (
-                                        <input
-                                            type="text"
-                                            value={nombresCanales.nombre_canal_1}
-                                            onChange={(e) =>
-                                                setNombresCanales({
-                                                    ...nombresCanales,
-                                                    nombre_canal_1: e.target.value,
-                                                })
-                                            }
-                                            className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                            placeholder="Ej: Producción Solar"
-                                        />
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={nombresCanales.nombre_canal_1}
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_1: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder="Ej: Producción Solar"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
+                                                <input
+                                                    type="color"
+                                                    value={coloresCanales.color_canal_1}
+                                                    onChange={(e) =>
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_1: e.target.value,
+                                                        })
+                                                    }
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                />
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {obtenerNombreCanal(1)}
-                                        </p>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(1)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{ backgroundColor: coloresCanales.color_canal_1 }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {coloresCanales.color_canal_1}
+                                                </span>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -607,22 +660,51 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                         Canal 2
                                     </label>
                                     {editandoNombres ? (
-                                        <input
-                                            type="text"
-                                            value={nombresCanales.nombre_canal_2}
-                                            onChange={(e) =>
-                                                setNombresCanales({
-                                                    ...nombresCanales,
-                                                    nombre_canal_2: e.target.value,
-                                                })
-                                            }
-                                            className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                            placeholder="Ej: Consumo General"
-                                        />
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={nombresCanales.nombre_canal_2}
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_2: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder="Ej: Consumo General"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
+                                                <input
+                                                    type="color"
+                                                    value={coloresCanales.color_canal_2}
+                                                    onChange={(e) =>
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_2: e.target.value,
+                                                        })
+                                                    }
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                />
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {obtenerNombreCanal(2)}
-                                        </p>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(2)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{ backgroundColor: coloresCanales.color_canal_2 }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {coloresCanales.color_canal_2}
+                                                </span>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -632,22 +714,51 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                         Canal 3
                                     </label>
                                     {editandoNombres ? (
-                                        <input
-                                            type="text"
-                                            value={nombresCanales.nombre_canal_3}
-                                            onChange={(e) =>
-                                                setNombresCanales({
-                                                    ...nombresCanales,
-                                                    nombre_canal_3: e.target.value,
-                                                })
-                                            }
-                                            className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                            placeholder="Ej: Red Eléctrica"
-                                        />
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={nombresCanales.nombre_canal_3}
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_3: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder="Ej: Red Eléctrica"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
+                                                <input
+                                                    type="color"
+                                                    value={coloresCanales.color_canal_3}
+                                                    onChange={(e) =>
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_3: e.target.value,
+                                                        })
+                                                    }
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                />
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {obtenerNombreCanal(3)}
-                                        </p>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(3)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{ backgroundColor: coloresCanales.color_canal_3 }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {coloresCanales.color_canal_3}
+                                                </span>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}

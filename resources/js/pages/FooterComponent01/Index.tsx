@@ -5,3 +5,7 @@ const FooterPage = () => {
 }
 
 export default FooterPage
+
+
+
+

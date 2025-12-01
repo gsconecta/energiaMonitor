@@ -187,3 +187,7 @@ Obtiene los dispositivos activos agrupados por organización desde la API de Lar
 - [Documentación de Shelly Cloud API](https://shelly-api-docs.shelly.cloud/)
 - [Shelly Cloud Dashboard](https://my.shelly.cloud/)
 
+
+
+
+
