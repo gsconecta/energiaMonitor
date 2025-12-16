@@ -17,7 +17,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Dispositivo {
     id: number;
     nombre: string;
-    tipo: string;
     activo: boolean;
 }
 
@@ -59,13 +58,6 @@ export default function SitiosShow({ sitio }: Props) {
         });
     };
 
-    const tiposDispositivo = [
-        { value: 'produccion', label: 'Producción Solar', color: 'text-yellow-600' },
-        { value: 'consumo', label: 'Consumo', color: 'text-blue-600' },
-        { value: 'red', label: 'Red Eléctrica', color: 'text-green-600' },
-        { value: 'bateria', label: 'Batería', color: 'text-purple-600' },
-        { value: 'otro', label: 'Otro', color: 'text-gray-600' },
-    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -188,9 +180,6 @@ export default function SitiosShow({ sitio }: Props) {
                                                 Dispositivo
                                             </th>
                                             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                                Tipo
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                 Estado
                                             </th>
                                         </tr>
@@ -204,21 +193,6 @@ export default function SitiosShow({ sitio }: Props) {
                                             >
                                                 <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                                                     {dispositivo.nombre}
-                                                </td>
-                                                <td className="whitespace-nowrap px-4 py-3">
-                                                    <span
-                                                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                                                            tiposDispositivo.find(
-                                                                (t) => t.value === dispositivo.tipo
-                                                            )?.color
-                                                        }`}
-                                                    >
-                                                        {
-                                                            tiposDispositivo.find(
-                                                                (t) => t.value === dispositivo.tipo
-                                                            )?.label
-                                                        }
-                                                    </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-4 py-3">
                                                     {dispositivo.activo ? (

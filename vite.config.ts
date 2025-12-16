@@ -22,9 +22,9 @@ export default defineConfig({
     },
     server: {
         hmr: {
-            host: 'energiamonitor.test',
+            host: 'localhost',
         },
-        host: 'energiamonitor.test',
+        host: 'localhost',
         port: 5173,
         strictPort: true,
     },

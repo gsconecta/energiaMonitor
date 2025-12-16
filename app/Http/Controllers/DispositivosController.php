@@ -49,11 +49,20 @@ class DispositivosController extends Controller
                     'id' => $dispositivo->id,
                     'device_id' => $dispositivo->device_id,
                     'nombre' => $dispositivo->nombre,
-                    'tipo' => $dispositivo->tipo,
                     'modelo' => $dispositivo->modelo,
                     'ip_local' => $dispositivo->ip_local,
                     'firmware' => $dispositivo->firmware,
                     'activo' => $dispositivo->activo,
+                    'num_fases' => $dispositivo->num_fases,
+                    'nombre_canal_1' => $dispositivo->nombre_canal_1,
+                    'nombre_canal_2' => $dispositivo->nombre_canal_2,
+                    'nombre_canal_3' => $dispositivo->nombre_canal_3,
+                    'color_canal_1' => $dispositivo->color_canal_1,
+                    'color_canal_2' => $dispositivo->color_canal_2,
+                    'color_canal_3' => $dispositivo->color_canal_3,
+                    'tipo_canal_1' => $dispositivo->tipo_canal_1,
+                    'tipo_canal_2' => $dispositivo->tipo_canal_2,
+                    'tipo_canal_3' => $dispositivo->tipo_canal_3,
                     'sitio' => [
                         'id' => $dispositivo->sitio->id,
                         'nombre' => $dispositivo->sitio->nombre,
@@ -121,12 +130,17 @@ class DispositivosController extends Controller
         // Preparar datos para gráficas de potencia por canal
         $graficas = $this->prepararDatosGraficaCanales($lecturas);
         
+        // Calcular métricas de energía si hay lecturas
+        $metricasEnergia = null;
+        if ($ultimaLectura) {
+            $metricasEnergia = $dispositivo->calcularMetricasEnergia(collect([$ultimaLectura]));
+        }
+        
         return Inertia::render('Dispositivos/Show', [
             'dispositivo' => [
                 'id' => $dispositivo->id,
                 'device_id' => $dispositivo->device_id,
                 'nombre' => $dispositivo->nombre,
-                'tipo' => $dispositivo->tipo,
                 'num_fases' => $dispositivo->num_fases,
                 'fases_label' => $dispositivo->fases_label,
                 'nombre_canal_1' => $dispositivo->nombre_canal_1,
@@ -135,6 +149,9 @@ class DispositivosController extends Controller
                 'color_canal_1' => $dispositivo->color_canal_1 ?? '#ef4444',
                 'color_canal_2' => $dispositivo->color_canal_2 ?? '#22c55e',
                 'color_canal_3' => $dispositivo->color_canal_3 ?? '#eab308',
+                'tipo_canal_1' => $dispositivo->tipo_canal_1,
+                'tipo_canal_2' => $dispositivo->tipo_canal_2,
+                'tipo_canal_3' => $dispositivo->tipo_canal_3,
                 'modelo' => $dispositivo->modelo,
                 'ip_local' => $dispositivo->ip_local,
                 'firmware' => $dispositivo->firmware,
@@ -155,10 +172,11 @@ class DispositivosController extends Controller
                     'fecha' => $ultimaLectura->fecha_lectura->toISOString(),
                     'fecha_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
                     'potencia_total_kw' => round($ultimaLectura->potencia_total_w / 1000, 2),
-                    'energia_total_kwh' => round($ultimaLectura->energia_total_wh / 1000, 2),
+                    'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
                 ] : null,
             ],
             'graficas' => $graficas,
+            'metricas_energia' => $metricasEnergia,
         ]);
     }
 
@@ -191,7 +209,6 @@ class DispositivosController extends Controller
                 Rule::unique('dispositivos', 'device_id')->whereNull('deleted_at'),
             ],
             'nombre' => 'required|string|max:255',
-            'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
             'num_fases' => 'nullable|integer|in:1,2,3',
             'nombre_canal_1' => 'nullable|string|max:255',
             'nombre_canal_2' => 'nullable|string|max:255',
@@ -199,6 +216,9 @@ class DispositivosController extends Controller
             'color_canal_1' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'color_canal_2' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'color_canal_3' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'tipo_canal_1' => 'nullable|string|in:fotovoltaica,red_electrica',
+            'tipo_canal_2' => 'nullable|string|in:fotovoltaica,red_electrica',
+            'tipo_canal_3' => 'nullable|string|in:fotovoltaica,red_electrica',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',
@@ -262,7 +282,6 @@ class DispositivosController extends Controller
                     ->whereNull('deleted_at'),
             ],
             'nombre' => 'required|string|max:255',
-            'tipo' => 'required|in:produccion,consumo,red,bateria,otro',
             'num_fases' => 'nullable|integer|in:1,2,3',
             'nombre_canal_1' => 'nullable|string|max:255',
             'nombre_canal_2' => 'nullable|string|max:255',
@@ -270,6 +289,9 @@ class DispositivosController extends Controller
             'color_canal_1' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'color_canal_2' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'color_canal_3' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
+            'tipo_canal_1' => 'nullable|string|in:fotovoltaica,red_electrica',
+            'tipo_canal_2' => 'nullable|string|in:fotovoltaica,red_electrica',
+            'tipo_canal_3' => 'nullable|string|in:fotovoltaica,red_electrica',
             'modelo' => 'nullable|string|max:255',
             'ip_local' => 'nullable|ip',
             'firmware' => 'nullable|string|max:255',

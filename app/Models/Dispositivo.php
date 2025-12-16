@@ -16,7 +16,6 @@ class Dispositivo extends Model
         'sitio_id',
         'device_id',
         'nombre',
-        'tipo',
         'num_fases',
         'nombre_canal_1',
         'nombre_canal_2',
@@ -24,6 +23,9 @@ class Dispositivo extends Model
         'color_canal_1',
         'color_canal_2',
         'color_canal_3',
+        'tipo_canal_1',
+        'tipo_canal_2',
+        'tipo_canal_3',
         'modelo',
         'ip_local',
         'firmware',
@@ -64,25 +66,6 @@ class Dispositivo extends Model
         return $query->where('activo', true);
     }
 
-    public function scopeTipo($query, $tipo)
-    {
-        return $query->where('tipo', $tipo);
-    }
-
-    public function scopeProduccion($query)
-    {
-        return $query->where('tipo', 'produccion');
-    }
-
-    public function scopeConsumo($query)
-    {
-        return $query->where('tipo', 'consumo');
-    }
-
-    public function scopeRed($query)
-    {
-        return $query->where('tipo', 'red');
-    }
 
     // Métodos útiles
     public function ultimaLectura()
@@ -292,5 +275,211 @@ class Dispositivo extends Model
             3 => $this->nombre_canal_3 ?? 'Canal 3',
             default => "Canal {$numero}",
         };
+    }
+
+    /**
+     * Obtener el tipo de un canal por número (fotovoltaica o red_electrica)
+     */
+    public function getTipoCanal(int $numero): ?string
+    {
+        return match($numero) {
+            1 => $this->tipo_canal_1,
+            2 => $this->tipo_canal_2,
+            3 => $this->tipo_canal_3,
+            default => null,
+        };
+    }
+
+    /**
+     * Verificar si un canal es fotovoltaico
+     */
+    public function esCanalFotovoltaica(int $numero): bool
+    {
+        return $this->getTipoCanal($numero) === 'fotovoltaica';
+    }
+
+    /**
+     * Verificar si un canal es de red eléctrica
+     */
+    public function esCanalRedElectrica(int $numero): bool
+    {
+        return $this->getTipoCanal($numero) === 'red_electrica';
+    }
+
+    /**
+     * @deprecated Usar esCanalFotovoltaica() en su lugar
+     */
+    public function esCanalGeneracion(int $numero): bool
+    {
+        return $this->esCanalFotovoltaica($numero);
+    }
+
+    /**
+     * @deprecated Usar esCanalRedElectrica() en su lugar
+     */
+    public function esCanalConsumo(int $numero): bool
+    {
+        return $this->esCanalRedElectrica($numero);
+    }
+
+    /**
+     * Obtener el número de canal según su tipo
+     * 
+     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     * @return int|null Número de canal (1, 2, o 3) o null si no se encuentra
+     */
+    public function obtenerCanalPorTipo(string $tipo): ?int
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            if ($this->getTipoCanal($i) === $tipo) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtener potencia de un canal según su tipo desde una lectura
+     * 
+     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     * @param \App\Models\Lectura|null $lectura Lectura de la que obtener el valor
+     * @return float|null Potencia en W o null
+     */
+    public function obtenerPotenciaCanal(string $tipo, ?Lectura $lectura = null): ?float
+    {
+        if (!$lectura) {
+            $lectura = $this->ultimaLectura();
+        }
+
+        if (!$lectura) {
+            return null;
+        }
+
+        return $lectura->obtenerPotenciaPorTipoCanal($tipo);
+    }
+
+    /**
+     * Calcular métricas de energía agregadas desde una colección de lecturas
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $lecturas
+     * @return array Métricas calculadas
+     */
+    public function calcularMetricasEnergia($lecturas): array
+    {
+        if ($lecturas->isEmpty()) {
+            return [
+                'consumo_casa_kw' => 0,
+                'exportacion_neta_kw' => 0,
+                'generacion_fotovoltaica_kw' => 0,
+                'carga_baterias_kw' => 0,
+                'importacion_red_kw' => 0,
+                'exportacion_red_kw' => 0,
+            ];
+        }
+
+        $ultimaLectura = $lecturas->last();
+
+        // Calcular valores de la última lectura
+        $consumoCasa = $ultimaLectura->calcularConsumoCasa() ?? 0;
+        $exportacionNeta = $ultimaLectura->calcularExportacionNeta() ?? 0;
+        $generacionFV = $ultimaLectura->obtenerGeneracionFotovoltaica();
+        $cargaBaterias = $ultimaLectura->obtenerCargaBaterias();
+        $importacionRed = $ultimaLectura->obtenerImportacionRed();
+        $exportacionRed = $ultimaLectura->obtenerExportacionRed();
+
+        // Calcular promedios del período
+        $consumos = $lecturas->map(fn($l) => $l->calcularConsumoCasa())->filter(fn($v) => $v !== null);
+        $consumoPromedio = $consumos->isNotEmpty() ? $consumos->avg() : 0;
+
+        $exportacionesNetas = $lecturas->map(fn($l) => $l->calcularExportacionNeta())->filter(fn($v) => $v !== null);
+        $exportacionNetaPromedio = $exportacionesNetas->isNotEmpty() ? $exportacionesNetas->avg() : 0;
+
+        return [
+            'consumo_casa_kw' => round($consumoCasa / 1000, 2),
+            'consumo_casa_promedio_kw' => round($consumoPromedio / 1000, 2),
+            'exportacion_neta_kw' => round($exportacionNeta / 1000, 2),
+            'exportacion_neta_promedio_kw' => round($exportacionNetaPromedio / 1000, 2),
+            'generacion_fotovoltaica_kw' => round($generacionFV / 1000, 2),
+            'carga_baterias_kw' => round($cargaBaterias / 1000, 2),
+            'importacion_red_kw' => round($importacionRed / 1000, 2),
+            'exportacion_red_kw' => round($exportacionRed / 1000, 2),
+        ];
+    }
+
+    /**
+     * Calcular energía acumulada (kWh) en un período usando integración trapezoidal
+     * 
+     * @param \Illuminate\Database\Eloquent\Collection $lecturas
+     * @return array Métricas de energía en kWh
+     */
+    public function calcularEnergiaAcumulada($lecturas): array
+    {
+        if ($lecturas->isEmpty() || $lecturas->count() < 2) {
+            return [
+                'consumo_casa_kwh' => 0,
+                'exportacion_neta_kwh' => 0,
+                'generacion_fotovoltaica_kwh' => 0,
+                'carga_baterias_kwh' => 0,
+                'importacion_red_kwh' => 0,
+                'exportacion_red_kwh' => 0,
+            ];
+        }
+
+        $consumoCasa = 0;
+        $exportacionNeta = 0;
+        $generacionFV = 0;
+        $cargaBaterias = 0;
+        $importacionRed = 0;
+        $exportacionRed = 0;
+
+        // Ordenar por fecha
+        $lecturasOrdenadas = $lecturas->sortBy('fecha_lectura')->values();
+        
+        // Calcular energía usando método del trapecio
+        for ($i = 0; $i < $lecturasOrdenadas->count() - 1; $i++) {
+            $lectura1 = $lecturasOrdenadas[$i];
+            $lectura2 = $lecturasOrdenadas[$i + 1];
+            
+            // Calcular tiempo transcurrido en horas
+            $tiempoHoras = $lectura1->fecha_lectura->diffInSeconds($lectura2->fecha_lectura) / 3600;
+            
+            // Obtener potencias de ambas lecturas
+            $consumo1 = $lectura1->calcularConsumoCasa() ?? 0;
+            $consumo2 = $lectura2->calcularConsumoCasa() ?? 0;
+            
+            $exportacion1 = $lectura1->calcularExportacionNeta() ?? 0;
+            $exportacion2 = $lectura2->calcularExportacionNeta() ?? 0;
+            
+            $genFV1 = $lectura1->obtenerGeneracionFotovoltaica();
+            $genFV2 = $lectura2->obtenerGeneracionFotovoltaica();
+            
+            $carga1 = $lectura1->obtenerCargaBaterias();
+            $carga2 = $lectura2->obtenerCargaBaterias();
+            
+            $importacion1 = $lectura1->obtenerImportacionRed();
+            $importacion2 = $lectura2->obtenerImportacionRed();
+            
+            $exportacionRed1 = $lectura1->obtenerExportacionRed();
+            $exportacionRed2 = $lectura2->obtenerExportacionRed();
+            
+            // Calcular energía usando método del trapecio: (P1 + P2) / 2 * Δt
+            // Convertir de W a kW y multiplicar por horas para obtener kWh
+            $consumoCasa += (($consumo1 + $consumo2) / 2 / 1000) * $tiempoHoras;
+            $exportacionNeta += (($exportacion1 + $exportacion2) / 2 / 1000) * $tiempoHoras;
+            $generacionFV += (($genFV1 + $genFV2) / 2 / 1000) * $tiempoHoras;
+            $cargaBaterias += (($carga1 + $carga2) / 2 / 1000) * $tiempoHoras;
+            $importacionRed += (($importacion1 + $importacion2) / 2 / 1000) * $tiempoHoras;
+            $exportacionRed += (($exportacionRed1 + $exportacionRed2) / 2 / 1000) * $tiempoHoras;
+        }
+
+        return [
+            'consumo_casa_kwh' => round($consumoCasa, 2),
+            'exportacion_neta_kwh' => round($exportacionNeta, 2),
+            'generacion_fotovoltaica_kwh' => round($generacionFV, 2),
+            'carga_baterias_kwh' => round($cargaBaterias, 2),
+            'importacion_red_kwh' => round($importacionRed, 2),
+            'exportacion_red_kwh' => round($exportacionRed, 2),
+        ];
     }
 }

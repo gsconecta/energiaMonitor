@@ -82,7 +82,6 @@ interface Dispositivo {
     id: number;
     device_id: string;
     nombre: string;
-    tipo: string;
     num_fases: number | null;
     fases_label: string;
     nombre_canal_1: string | null;
@@ -91,6 +90,9 @@ interface Dispositivo {
     color_canal_1: string;
     color_canal_2: string;
     color_canal_3: string;
+    tipo_canal_1: string | null;
+    tipo_canal_2: string | null;
+    tipo_canal_3: string | null;
     modelo: string | null;
     ip_local: string | null;
     firmware: string | null;
@@ -102,12 +104,22 @@ interface Dispositivo {
     ultima_lectura: UltimaLectura | null;
 }
 
+interface MetricasEnergia {
+    consumo_casa_kw: number;
+    exportacion_neta_kw: number;
+    generacion_fotovoltaica_kw: number;
+    carga_baterias_kw: number;
+    importacion_red_kw: number;
+    exportacion_red_kw: number;
+}
+
 interface Props {
     dispositivo: Dispositivo;
     graficas?: Graficas;
+    metricas_energia?: MetricasEnergia | null;
 }
 
-export default function DispositivosShow({ dispositivo, graficas }: Props) {
+export default function DispositivosShow({ dispositivo, graficas, metricas_energia }: Props) {
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
     const [nombresCanales, setNombresCanales] = useState({
@@ -120,16 +132,12 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
         color_canal_2: dispositivo.color_canal_2 ?? '#22c55e',
         color_canal_3: dispositivo.color_canal_3 ?? '#eab308',
     });
+    const [tiposCanales, setTiposCanales] = useState({
+        tipo_canal_1: dispositivo.tipo_canal_1 ?? null,
+        tipo_canal_2: dispositivo.tipo_canal_2 ?? null,
+        tipo_canal_3: dispositivo.tipo_canal_3 ?? null,
+    });
 
-    const tiposDispositivo = [
-        { value: 'produccion', label: 'Producción Solar', color: 'text-yellow-600', bgColor: 'bg-yellow-100 dark:bg-yellow-900' },
-        { value: 'consumo', label: 'Consumo', color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900' },
-        { value: 'red', label: 'Red Eléctrica', color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900' },
-        { value: 'bateria', label: 'Batería', color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900' },
-        { value: 'otro', label: 'Otro', color: 'text-gray-600', bgColor: 'bg-gray-100 dark:bg-gray-900' },
-    ];
-
-    const tipoDispositivo = tiposDispositivo.find((t) => t.value === dispositivo.tipo) || tiposDispositivo[4];
 
     const handleEliminar = () => {
         if (confirm('¿Estás seguro de eliminar este dispositivo?')) {
@@ -169,7 +177,6 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             sitio_id: dispositivo.sitio.id,
             device_id: dispositivo.device_id,
             nombre: dispositivo.nombre,
-            tipo: dispositivo.tipo,
             num_fases: dispositivo.num_fases,
             nombre_canal_1: nombresCanales.nombre_canal_1 || null,
             nombre_canal_2: nombresCanales.nombre_canal_2 || null,
@@ -177,6 +184,9 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
             color_canal_1: coloresCanales.color_canal_1,
             color_canal_2: coloresCanales.color_canal_2,
             color_canal_3: coloresCanales.color_canal_3,
+            tipo_canal_1: tiposCanales.tipo_canal_1 || null,
+            tipo_canal_2: tiposCanales.tipo_canal_2 || null,
+            tipo_canal_3: tiposCanales.tipo_canal_3 || null,
             modelo: dispositivo.modelo,
             ip_local: dispositivo.ip_local,
             firmware: dispositivo.firmware,
@@ -383,10 +393,8 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                     <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
                         <div className="p-4">
                             <div className="flex items-center gap-3">
-                                <div className={`rounded-lg p-2 ${tipoDispositivo.bgColor}`}>
-                                    <Activity
-                                        className={`h-5 w-5 ${tipoDispositivo.color}`}
-                                    />
+                                <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
+                                    <Activity className="h-5 w-5 text-blue-600" />
                                 </div>
                                 <div>
                                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -483,15 +491,6 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                 Información del Dispositivo
                             </h2>
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                    <Zap className="h-4 w-4" />
-                                    <span className="font-medium">Tipo:</span>
-                                    <span
-                                        className={`font-semibold ${tipoDispositivo.color}`}
-                                    >
-                                        {tipoDispositivo.label}
-                                    </span>
-                                </div>
                                 {dispositivo.modelo && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Server className="h-4 w-4" />
@@ -591,6 +590,11 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                 color_canal_2: dispositivo.color_canal_2 ?? '#22c55e',
                                                 color_canal_3: dispositivo.color_canal_3 ?? '#eab308',
                                             });
+                                            setTiposCanales({
+                                                tipo_canal_1: dispositivo.tipo_canal_1 ?? null,
+                                                tipo_canal_2: dispositivo.tipo_canal_2 ?? null,
+                                                tipo_canal_3: dispositivo.tipo_canal_3 ?? null,
+                                            });
                                         }}
                                         className="inline-flex items-center gap-2 rounded-md bg-gray-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
                                     >
@@ -635,6 +639,25 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
                                             </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={tiposCanales.tipo_canal_1 || ''}
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_1: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div>
@@ -650,6 +673,17 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     {coloresCanales.color_canal_1}
                                                 </span>
                                             </div>
+                                            {tiposCanales.tipo_canal_1 && (
+                                                <div className="mt-1">
+                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                        tiposCanales.tipo_canal_1 === 'fotovoltaica'
+                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                    }`}>
+                                                        {tiposCanales.tipo_canal_1 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -689,6 +723,25 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
                                             </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={tiposCanales.tipo_canal_2 || ''}
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_2: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div>
@@ -704,6 +757,17 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     {coloresCanales.color_canal_2}
                                                 </span>
                                             </div>
+                                            {tiposCanales.tipo_canal_2 && (
+                                                <div className="mt-1">
+                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                        tiposCanales.tipo_canal_2 === 'fotovoltaica'
+                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                    }`}>
+                                                        {tiposCanales.tipo_canal_2 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -743,6 +807,25 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
                                             </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={tiposCanales.tipo_canal_3 || ''}
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_3: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div>
@@ -758,6 +841,17 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                                     {coloresCanales.color_canal_3}
                                                 </span>
                                             </div>
+                                            {tiposCanales.tipo_canal_3 && (
+                                                <div className="mt-1">
+                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                        tiposCanales.tipo_canal_3 === 'fotovoltaica'
+                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                    }`}>
+                                                        {tiposCanales.tipo_canal_3 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -832,6 +926,97 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                     </div>
                 )}
 
+                {/* Interpretación de Valores y Consumo de la Casa */}
+                {metricas_energia && (
+                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
+                        <div className="p-6">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Balance Energético
+                            </h2>
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        Consumo de la Casa
+                                    </p>
+                                    <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">
+                                        {metricas_energia.consumo_casa_kw} kW
+                                    </p>
+                                </div>
+                                <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        Generación Fotovoltaica
+                                    </p>
+                                    <p className="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                                        {metricas_energia.generacion_fotovoltaica_kw} kW
+                                    </p>
+                                </div>
+                                <div className={`rounded-lg p-4 ${
+                                    metricas_energia.exportacion_neta_kw >= 0
+                                        ? 'bg-green-50 dark:bg-green-900/20'
+                                        : 'bg-red-50 dark:bg-red-900/20'
+                                }`}>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        {metricas_energia.exportacion_neta_kw >= 0 ? 'Exportación Neta' : 'Importación Neta'}
+                                    </p>
+                                    <p className={`mt-1 text-2xl font-bold ${
+                                        metricas_energia.exportacion_neta_kw >= 0
+                                            ? 'text-green-600 dark:text-green-400'
+                                            : 'text-red-600 dark:text-red-400'
+                                    }`}>
+                                        {Math.abs(metricas_energia.exportacion_neta_kw)} kW
+                                    </p>
+                                </div>
+                                {metricas_energia.carga_baterias_kw > 0 && (
+                                    <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            Carga de Baterías
+                                        </p>
+                                        <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                            {metricas_energia.carga_baterias_kw} kW
+                                        </p>
+                                    </div>
+                                )}
+                                {metricas_energia.importacion_red_kw > 0 && (
+                                    <div className="rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            Importación de Red
+                                        </p>
+                                        <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">
+                                            {metricas_energia.importacion_red_kw} kW
+                                        </p>
+                                    </div>
+                                )}
+                                {metricas_energia.exportacion_red_kw > 0 && (
+                                    <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            Exportación a Red
+                                        </p>
+                                        <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
+                                            {metricas_energia.exportacion_red_kw} kW
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    Interpretación de Valores
+                                </h3>
+                                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                                    <li>
+                                        <strong>Canal Fotovoltaica:</strong> Positivo (+) = Generando energía solar | Negativo (-) = Cargando baterías
+                                    </li>
+                                    <li>
+                                        <strong>Canal Red Eléctrica:</strong> Positivo (+) = Exportando a la red | Negativo (-) = Consumiendo de la red
+                                    </li>
+                                    <li>
+                                        <strong>Consumo de la Casa:</strong> FV + RED (suma algebraica)
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Gráficas de Potencia por Canal */}
                 {graficas && graficas.labels.length > 0 && (
                     <div>
@@ -847,7 +1032,19 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                             Potencia {obtenerNombreCanal(1)}
                                         </h3>
                                         <div className="h-64 w-full">
-                                            <Line data={dataCanal1} options={chartOptions} />
+                                            <Line
+                                                data={dataCanal1}
+                                                options={{
+                                                    ...chartOptions,
+                                                    scales: {
+                                                        ...chartOptions.scales,
+                                                        y: {
+                                                            ...chartOptions.scales?.y,
+                                                            beginAtZero: false,
+                                                        },
+                                                    },
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -860,7 +1057,19 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                             Potencia {obtenerNombreCanal(2)}
                                         </h3>
                                         <div className="h-64 w-full">
-                                            <Line data={dataCanal2} options={chartOptions} />
+                                            <Line
+                                                data={dataCanal2}
+                                                options={{
+                                                    ...chartOptions,
+                                                    scales: {
+                                                        ...chartOptions.scales,
+                                                        y: {
+                                                            ...chartOptions.scales?.y,
+                                                            beginAtZero: false,
+                                                        },
+                                                    },
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -873,7 +1082,19 @@ export default function DispositivosShow({ dispositivo, graficas }: Props) {
                                             Potencia {obtenerNombreCanal(3)}
                                         </h3>
                                         <div className="h-64 w-full">
-                                            <Line data={dataCanal3} options={chartOptions} />
+                                            <Line
+                                                data={dataCanal3}
+                                                options={{
+                                                    ...chartOptions,
+                                                    scales: {
+                                                        ...chartOptions.scales,
+                                                        y: {
+                                                            ...chartOptions.scales?.y,
+                                                            beginAtZero: false,
+                                                        },
+                                                    },
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                 </div>

@@ -29,7 +29,7 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
      * 
      * Retorna un array de objetos, cada uno contiene:
      * - organizacion: { id, nombre, codigo, shelly_api_key, shelly_server }
-     * - dispositivos: [ { id, device_id, nombre, tipo, modelo } ]
+     * - dispositivos: [ { id, device_id, nombre, modelo } ]
      */
     Route::get('/dispositivos-activos-por-organizacion', function (Request $request) {
         // Obtener dispositivos activos con información de organización
@@ -38,7 +38,6 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 'dispositivos.id',
                 'dispositivos.device_id',
                 'dispositivos.nombre',
-                'dispositivos.tipo',
                 'dispositivos.modelo',
                 'sitios.organizacion_id',
             ])
@@ -85,7 +84,6 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                         'id' => $dispositivo->id,
                         'device_id' => $dispositivo->device_id,
                         'nombre' => $dispositivo->nombre,
-                        'tipo' => $dispositivo->tipo,
                         'modelo' => $dispositivo->modelo,
                     ];
                 })->values()->toArray(),
@@ -146,7 +144,6 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 d.id,
                 d.device_id,
                 d.nombre,
-                d.tipo,
                 d.modelo,
                 o.id as organizacion_id,
                 o.nombre as organizacion_nombre,

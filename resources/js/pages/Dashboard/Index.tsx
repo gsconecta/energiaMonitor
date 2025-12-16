@@ -50,6 +50,12 @@ interface Metricas {
     corriente_promedio_3: number;
     corriente_neutro_promedio: number;
     factor_potencia_promedio: number;
+    consumo_casa_kwh: number;
+    exportacion_neta_kwh: number;
+    generacion_fotovoltaica_kwh: number;
+    carga_baterias_kwh: number;
+    importacion_red_kwh: number;
+    exportacion_red_kwh: number;
     estado_conexion: 'online' | 'offline';
     wifi_conectado: boolean;
     wifi_rssi: number | null;
@@ -110,6 +116,13 @@ interface Graficas {
         canal1: number[];
         canal2: number[];
         canal3: number[];
+    };
+    balance?: {
+        labels: string[];
+        consumo_casa: number[];
+        generacion_fv: number[];
+        importacion_red: number[];
+        exportacion_red: number[];
     };
 }
 
@@ -858,13 +871,84 @@ export default function Dashboard({
                     />
                 </div>
 
+                {/* Métricas de Consumo y Balance Energético */}
+                {(metricas?.consumo_casa_kwh !== undefined || metricas?.generacion_fotovoltaica_kwh !== undefined) && (
+                    <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                        <MetricCard
+                            icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6" />}
+                            title="Consumo Casa"
+                            value={`${metricas?.consumo_casa_kwh || 0} kWh`}
+                            color="orange"
+                        />
+                        <MetricCard
+                            icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
+                            title="Generación FV"
+                            value={`${metricas?.generacion_fotovoltaica_kwh || 0} kWh`}
+                            color="yellow"
+                        />
+                        <MetricCard
+                            icon={
+                                (metricas?.exportacion_neta_kwh || 0) >= 0 ? (
+                                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                                ) : (
+                                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />
+                                )
+                            }
+                            title={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'Exportación Neta' : 'Importación Neta'}
+                            value={`${Math.abs(metricas?.exportacion_neta_kwh || 0)} kWh`}
+                            color={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'blue' : 'red'}
+                        />
+                        {metricas?.carga_baterias_kwh && metricas.carga_baterias_kwh > 0 && (
+                            <MetricCard
+                                icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
+                                title="Carga Baterías"
+                                value={`${metricas.carga_baterias_kwh} kWh`}
+                                color="purple"
+                            />
+                        )}
+                    </div>
+                )}
+
+                {(metricas?.importacion_red_kwh !== undefined || metricas?.exportacion_red_kwh !== undefined) && (
+                    <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-2">
+                        {metricas?.importacion_red_kwh && metricas.importacion_red_kwh > 0 && (
+                            <MetricCard
+                                icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />}
+                                title="Importación Red"
+                                value={`${metricas.importacion_red_kwh} kWh`}
+                                color="red"
+                            />
+                        )}
+                        {metricas?.exportacion_red_kwh && metricas.exportacion_red_kwh > 0 && (
+                            <MetricCard
+                                icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
+                                title="Exportación Red"
+                                value={`${metricas.exportacion_red_kwh} kWh`}
+                                color="green"
+                            />
+                        )}
+                    </div>
+                )}
+
                 <div className="grid w-full gap-4 lg:grid-cols-2">
                     <ChartCard title="Potencia Total">
                         <Line data={dataPotencia} options={chartOptions} />
                     </ChartCard>
 
                     <ChartCard title="Potencia por Canales">
-                        <Line data={dataCanales} options={chartOptions} />
+                        <Line
+                            data={dataCanales}
+                            options={{
+                                ...chartOptions,
+                                scales: {
+                                    ...chartOptions.scales,
+                                    y: {
+                                        ...chartOptions.scales?.y,
+                                        beginAtZero: false,
+                                    },
+                                },
+                            }}
+                        />
                     </ChartCard>
 
                     <ChartCard title="Voltaje por Canales">
@@ -882,6 +966,68 @@ export default function Dashboard({
                     <ChartCard title="Energía Acumulada">
                         <Line data={dataEnergia} options={chartOptions} />
                     </ChartCard>
+
+                    {graficas?.balance && (
+                        <ChartCard title="Balance Energético">
+                            <Line
+                                data={{
+                                    labels: graficas.balance.labels || [],
+                                    datasets: [
+                                        {
+                                            label: 'Consumo Casa (kW)',
+                                            data: graficas.balance.consumo_casa || [],
+                                            borderColor: 'rgb(251, 146, 60)',
+                                            backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                                            fill: true,
+                                            tension: 0.4,
+                                            pointRadius: 0,
+                                            pointHoverRadius: 4,
+                                        },
+                                        {
+                                            label: 'Generación FV (kW)',
+                                            data: graficas.balance.generacion_fv || [],
+                                            borderColor: 'rgb(234, 179, 8)',
+                                            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                                            fill: true,
+                                            tension: 0.4,
+                                            pointRadius: 0,
+                                            pointHoverRadius: 4,
+                                        },
+                                        {
+                                            label: 'Importación Red (kW)',
+                                            data: graficas.balance.importacion_red || [],
+                                            borderColor: 'rgb(239, 68, 68)',
+                                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                            fill: true,
+                                            tension: 0.4,
+                                            pointRadius: 0,
+                                            pointHoverRadius: 4,
+                                        },
+                                        {
+                                            label: 'Exportación Red (kW)',
+                                            data: graficas.balance.exportacion_red || [],
+                                            borderColor: 'rgb(34, 197, 94)',
+                                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                            fill: true,
+                                            tension: 0.4,
+                                            pointRadius: 0,
+                                            pointHoverRadius: 4,
+                                        },
+                                    ],
+                                }}
+                                options={{
+                                    ...chartOptions,
+                                    scales: {
+                                        ...chartOptions.scales,
+                                        y: {
+                                            ...chartOptions.scales?.y,
+                                            beginAtZero: false,
+                                        },
+                                    },
+                                }}
+                            />
+                        </ChartCard>
+                    )}
 
                     <ChartCard title="Estadísticas Generales">
                         <div className="grid h-full grid-cols-1 gap-3 p-4 lg:grid-cols-3">

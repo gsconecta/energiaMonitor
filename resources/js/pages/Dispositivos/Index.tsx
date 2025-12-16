@@ -31,11 +31,20 @@ interface Dispositivo {
     id: number;
     device_id: string;
     nombre: string;
-    tipo: string;
     modelo: string;
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
+    num_fases: number | null;
+    nombre_canal_1: string | null;
+    nombre_canal_2: string | null;
+    nombre_canal_3: string | null;
+    color_canal_1: string | null;
+    color_canal_2: string | null;
+    color_canal_3: string | null;
+    tipo_canal_1: string | null;
+    tipo_canal_2: string | null;
+    tipo_canal_3: string | null;
     sitio: Sitio;
     lecturas_count: number;
     esta_online: boolean;
@@ -58,45 +67,22 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
         sitio_id: '',
         device_id: '',
         nombre: '',
-        tipo: 'produccion',
         modelo: 'Shelly EM3',
         ip_local: '',
         firmware: '',
         activo: true,
+        num_fases: null as number | null,
+        nombre_canal_1: '',
+        nombre_canal_2: '',
+        nombre_canal_3: '',
+        color_canal_1: '#ef4444',
+        color_canal_2: '#22c55e',
+        color_canal_3: '#eab308',
+        tipo_canal_1: null as string | null,
+        tipo_canal_2: null as string | null,
+        tipo_canal_3: null as string | null,
     });
 
-    const tiposDispositivo = [
-        { 
-            value: 'produccion', 
-            label: 'Producción Solar', 
-            color: 'text-yellow-600',
-            descripcion: 'Mide la energía generada por paneles solares o sistemas de generación renovable.'
-        },
-        { 
-            value: 'consumo', 
-            label: 'Consumo', 
-            color: 'text-blue-600',
-            descripcion: 'Mide el consumo de energía eléctrica de la instalación o equipos.'
-        },
-        { 
-            value: 'red', 
-            label: 'Red Eléctrica', 
-            color: 'text-green-600',
-            descripcion: 'Mide la energía que entra o sale de la red eléctrica (importación/exportación).'
-        },
-        { 
-            value: 'bateria', 
-            label: 'Batería', 
-            color: 'text-purple-600',
-            descripcion: 'Mide la energía almacenada o descargada de sistemas de baterías.'
-        },
-        { 
-            value: 'otro', 
-            label: 'Otro', 
-            color: 'text-gray-600',
-            descripcion: 'Otro tipo de dispositivo de medición de energía.'
-        },
-    ];
 
     const abrirModalNuevo = () => {
         setDispositivoEditando(null);
@@ -104,11 +90,20 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
             sitio_id: sitios[0]?.id.toString() || '',
             device_id: '',
             nombre: '',
-            tipo: 'produccion',
             modelo: 'Shelly EM3',
             ip_local: '',
             firmware: '',
             activo: true,
+            num_fases: null,
+            nombre_canal_1: '',
+            nombre_canal_2: '',
+            nombre_canal_3: '',
+            color_canal_1: '#ef4444',
+            color_canal_2: '#22c55e',
+            color_canal_3: '#eab308',
+            tipo_canal_1: null,
+            tipo_canal_2: null,
+            tipo_canal_3: null,
         });
         setMostrarModal(true);
     };
@@ -119,11 +114,20 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
             sitio_id: dispositivo.sitio.id.toString(),
             device_id: dispositivo.device_id,
             nombre: dispositivo.nombre,
-            tipo: dispositivo.tipo,
             modelo: dispositivo.modelo,
             ip_local: dispositivo.ip_local || '',
             firmware: dispositivo.firmware || '',
             activo: dispositivo.activo,
+            num_fases: dispositivo.num_fases ?? null,
+            nombre_canal_1: dispositivo.nombre_canal_1 || '',
+            nombre_canal_2: dispositivo.nombre_canal_2 || '',
+            nombre_canal_3: dispositivo.nombre_canal_3 || '',
+            color_canal_1: dispositivo.color_canal_1 || '#ef4444',
+            color_canal_2: dispositivo.color_canal_2 || '#22c55e',
+            color_canal_3: dispositivo.color_canal_3 || '#eab308',
+            tipo_canal_1: dispositivo.tipo_canal_1 || null,
+            tipo_canal_2: dispositivo.tipo_canal_2 || null,
+            tipo_canal_3: dispositivo.tipo_canal_3 || null,
         });
         setMostrarModal(true);
     };
@@ -131,8 +135,20 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Preparar datos para envío, convirtiendo strings vacíos a null
+        const datosEnvio = {
+            ...formData,
+            num_fases: formData.num_fases || null,
+            nombre_canal_1: formData.nombre_canal_1 || null,
+            nombre_canal_2: formData.nombre_canal_2 || null,
+            nombre_canal_3: formData.nombre_canal_3 || null,
+            tipo_canal_1: formData.tipo_canal_1 || null,
+            tipo_canal_2: formData.tipo_canal_2 || null,
+            tipo_canal_3: formData.tipo_canal_3 || null,
+        };
+
         if (dispositivoEditando) {
-            router.put(`/dispositivos/${dispositivoEditando.id}`, formData, {
+            router.put(`/dispositivos/${dispositivoEditando.id}`, datosEnvio, {
                 onError: () => {
                     // Mantener el modal abierto si hay errores
                 },
@@ -141,7 +157,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                 },
             });
         } else {
-            router.post('/dispositivos', formData, {
+            router.post('/dispositivos', datosEnvio, {
                 onError: () => {
                     // Mantener el modal abierto si hay errores
                 },
@@ -229,32 +245,6 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                     </button>
                 </div>
 
-                {/* Información de tipos de dispositivos */}
-                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                    <div className="p-4">
-                        <h2 className="mb-3 text-xl font-bold text-gray-900 dark:text-gray-100">
-                            Tipos de Dispositivos
-                        </h2>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {tiposDispositivo.map((tipo) => (
-                                <div
-                                    key={tipo.value}
-                                    className="rounded-lg border border-sidebar-border/70 bg-gray-50 p-3 dark:border-sidebar-border dark:bg-gray-900"
-                                >
-                                    <div className="mb-1.5">
-                                        <span className={`text-base font-bold ${tipo.color}`}>
-                                            {tipo.label}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-                                        {tipo.descripcion}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
                 {/* Tabla de dispositivos */}
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
                     <div className="overflow-x-auto">
@@ -269,9 +259,6 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         Sitio
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                        Tipo
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                         Última Lectura
@@ -321,21 +308,6 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                                             {dispositivo.sitio.nombre}
-                                        </td>
-                                        <td className="whitespace-nowrap px-6 py-4">
-                                            <span
-                                                className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                                                    tiposDispositivo.find(
-                                                        (t) => t.value === dispositivo.tipo
-                                                    )?.color
-                                                }`}
-                                            >
-                                                {
-                                                    tiposDispositivo.find(
-                                                        (t) => t.value === dispositivo.tipo
-                                                    )?.label
-                                                }
-                                            </span>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4">
                                             <div className="text-sm text-gray-900 dark:text-gray-100">
@@ -417,7 +389,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
             {/* Modal de crear/editar */}
             <Dialog open={mostrarModal} onOpenChange={setMostrarModal}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>
                             {dispositivoEditando ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
@@ -490,27 +462,6 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="tipo">
-                                Tipo <span className="text-red-500">*</span>
-                            </Label>
-                            <select
-                                id="tipo"
-                                value={formData.tipo}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, tipo: e.target.value })
-                                }
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-                                required
-                            >
-                                {tiposDispositivo.map((tipo) => (
-                                    <option key={tipo.value} value={tipo.value}>
-                                        {tipo.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="space-y-2">
                             <Label htmlFor="modelo">Modelo</Label>
                             <Input
                                 id="modelo"
@@ -521,6 +472,257 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                 }
                                 placeholder="Shelly EM3"
                             />
+                        </div>
+
+                        {/* Configuración de Canales */}
+                        <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+                            <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                    Configuración de Canales
+                                </h3>
+                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                    Configura los nombres, colores y tipos de cada canal del dispositivo
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="num_fases">Número de Fases</Label>
+                                <select
+                                    id="num_fases"
+                                    value={formData.num_fases || ''}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            num_fases: e.target.value ? parseInt(e.target.value) : null,
+                                        })
+                                    }
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="">No especificado</option>
+                                    <option value="1">1 - Monofásico</option>
+                                    <option value="2">2 - Bifásico</option>
+                                    <option value="3">3 - Trifásico</option>
+                                </select>
+                            </div>
+
+                            {/* Canal 1 */}
+                            {(!formData.num_fases || formData.num_fases >= 1) && (
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Canal 1
+                                    </Label>
+                                    <div className="space-y-2">
+                                        <div>
+                                            <Label htmlFor="nombre_canal_1" className="text-xs">
+                                                Nombre
+                                            </Label>
+                                            <Input
+                                                id="nombre_canal_1"
+                                                type="text"
+                                                value={formData.nombre_canal_1}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        nombre_canal_1: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="Ej: Consumo General"
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <Label htmlFor="color_canal_1" className="text-xs">
+                                                    Color
+                                                </Label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        id="color_canal_1"
+                                                        type="color"
+                                                        value={formData.color_canal_1}
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                color_canal_1: e.target.value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {formData.color_canal_1}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <Label htmlFor="tipo_canal_1" className="text-xs">
+                                                    Tipo
+                                                </Label>
+                                                <select
+                                                    id="tipo_canal_1"
+                                                    value={formData.tipo_canal_1 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            tipo_canal_1: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Canal 2 */}
+                            {formData.num_fases && formData.num_fases >= 2 && (
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Canal 2
+                                    </Label>
+                                    <div className="space-y-2">
+                                        <div>
+                                            <Label htmlFor="nombre_canal_2" className="text-xs">
+                                                Nombre
+                                            </Label>
+                                            <Input
+                                                id="nombre_canal_2"
+                                                type="text"
+                                                value={formData.nombre_canal_2}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        nombre_canal_2: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="Ej: Consumo General"
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <Label htmlFor="color_canal_2" className="text-xs">
+                                                    Color
+                                                </Label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        id="color_canal_2"
+                                                        type="color"
+                                                        value={formData.color_canal_2}
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                color_canal_2: e.target.value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {formData.color_canal_2}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <Label htmlFor="tipo_canal_2" className="text-xs">
+                                                    Tipo
+                                                </Label>
+                                                <select
+                                                    id="tipo_canal_2"
+                                                    value={formData.tipo_canal_2 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            tipo_canal_2: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Canal 3 */}
+                            {formData.num_fases && formData.num_fases >= 3 && (
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Canal 3
+                                    </Label>
+                                    <div className="space-y-2">
+                                        <div>
+                                            <Label htmlFor="nombre_canal_3" className="text-xs">
+                                                Nombre
+                                            </Label>
+                                            <Input
+                                                id="nombre_canal_3"
+                                                type="text"
+                                                value={formData.nombre_canal_3}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        nombre_canal_3: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="Ej: Red Eléctrica"
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <Label htmlFor="color_canal_3" className="text-xs">
+                                                    Color
+                                                </Label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        id="color_canal_3"
+                                                        type="color"
+                                                        value={formData.color_canal_3}
+                                                        onChange={(e) =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                color_canal_3: e.target.value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {formData.color_canal_3}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <Label htmlFor="tipo_canal_3" className="text-xs">
+                                                    Tipo
+                                                </Label>
+                                                <select
+                                                    id="tipo_canal_3"
+                                                    value={formData.tipo_canal_3 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            tipo_canal_3: e.target.value || null,
+                                                        })
+                                                    }
+                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <option value="">Seleccionar tipo</option>
+                                                    <option value="fotovoltaica">Fotovoltaica</option>
+                                                    <option value="red_electrica">Red Eléctrica</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center space-x-2">

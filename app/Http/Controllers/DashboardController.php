@@ -103,13 +103,13 @@ class DashboardController extends Controller
             'corrientes' => $this->prepararDatosGraficaCorrientes($lecturas),
             'factor_potencia' => $this->prepararDatosGraficaFactorPotencia($lecturas),
             'energia' => $this->prepararDatosGraficaEnergia($lecturas),
+            'balance' => $this->prepararDatosGraficaBalance($lecturas, $dispositivo),
         ];
 
         return Inertia::render('Dashboard/Index', [
             'dispositivo' => [
                 'id' => $dispositivo->id,
                 'nombre' => $dispositivo->nombre,
-                'tipo' => $dispositivo->tipo,
                 'device_id' => $dispositivo->device_id,
                 'num_fases' => $dispositivo->num_fases,
                 'nombre_canal_1' => $dispositivo->nombre_canal_1,
@@ -181,6 +181,12 @@ class DashboardController extends Controller
                 'corriente_promedio_3' => 0,
                 'corriente_neutro_promedio' => 0,
                 'factor_potencia_promedio' => 0,
+                'consumo_casa_kwh' => 0,
+                'exportacion_neta_kwh' => 0,
+                'generacion_fotovoltaica_kwh' => 0,
+                'carga_baterias_kwh' => 0,
+                'importacion_red_kwh' => 0,
+                'exportacion_red_kwh' => 0,
                 'estado_conexion' => 'offline',
                 'wifi_conectado' => false,
                 'wifi_rssi' => null,
@@ -231,6 +237,9 @@ class DashboardController extends Controller
         $wifiRssi = $ultimaLectura->wifi_rssi ?? null;
         $uptimeSegundos = $ultimaLectura->uptime_segundos ?? null;
 
+        // Calcular métricas de energía acumulada (kWh) en el período
+        $metricasEnergia = $dispositivo->calcularEnergiaAcumulada($lecturas);
+
         return [
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
             'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
@@ -246,6 +255,12 @@ class DashboardController extends Controller
             'corriente_promedio_3' => round($corrientePromedio3, 2),
             'corriente_neutro_promedio' => round($corrienteNeutroPromedio, 2),
             'factor_potencia_promedio' => round($factorPotenciaPromedio, 2),
+            'consumo_casa_kwh' => $metricasEnergia['consumo_casa_kwh'],
+            'exportacion_neta_kwh' => $metricasEnergia['exportacion_neta_kwh'],
+            'generacion_fotovoltaica_kwh' => $metricasEnergia['generacion_fotovoltaica_kwh'],
+            'carga_baterias_kwh' => $metricasEnergia['carga_baterias_kwh'],
+            'importacion_red_kwh' => $metricasEnergia['importacion_red_kwh'],
+            'exportacion_red_kwh' => $metricasEnergia['exportacion_red_kwh'],
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
             'wifi_conectado' => $wifiConectado,
             'wifi_rssi' => $wifiRssi,
@@ -299,6 +314,36 @@ class DashboardController extends Controller
             'canal1' => $lecturas->map(fn($l) => round($l->potencia_canal_1_w / 1000, 2))->toArray(),
             'canal2' => $lecturas->map(fn($l) => round($l->potencia_canal_2_w / 1000, 2))->toArray(),
             'canal3' => $lecturas->map(fn($l) => round($l->potencia_canal_3_w / 1000, 2))->toArray(),
+        ];
+    }
+
+    /**
+     * Preparar datos para gráfica de balance energético
+     * Muestra consumo, generación FV, importación/exportación de red
+     */
+    private function prepararDatosGraficaBalance($lecturas, $dispositivo)
+    {
+        if ($lecturas->isEmpty()) {
+            return [
+                'labels' => [],
+                'consumo_casa' => [],
+                'generacion_fv' => [],
+                'importacion_red' => [],
+                'exportacion_red' => [],
+            ];
+        }
+
+        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
+
+        return [
+            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
+            'consumo_casa' => $lecturas->map(function($l) {
+                $consumo = $l->calcularConsumoCasa();
+                return $consumo !== null ? round($consumo / 1000, 2) : 0;
+            })->toArray(),
+            'generacion_fv' => $lecturas->map(fn($l) => round($l->obtenerGeneracionFotovoltaica() / 1000, 2))->toArray(),
+            'importacion_red' => $lecturas->map(fn($l) => round($l->obtenerImportacionRed() / 1000, 2))->toArray(),
+            'exportacion_red' => $lecturas->map(fn($l) => round($l->obtenerExportacionRed() / 1000, 2))->toArray(),
         ];
     }
 
