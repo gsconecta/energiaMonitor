@@ -117,6 +117,9 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,
+                pointRadius: 0, // Ocultar puntos normalmente
+                pointHoverRadius: 5, // Mostrar punto al hacer hover
+                pointHoverBorderWidth: 2,
             },
             {
                 label: 'Red Eléctrica',
@@ -126,6 +129,9 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,
+                pointRadius: 0, // Ocultar puntos normalmente
+                pointHoverRadius: 5, // Mostrar punto al hacer hover
+                pointHoverBorderWidth: 2,
                 segment: {
                     borderColor: (ctx: any) => {
                         // Cambiar color según si el valor es positivo (azul) o negativo (rojo)
@@ -145,6 +151,9 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,
+                pointRadius: 0, // Ocultar puntos normalmente
+                pointHoverRadius: 5, // Mostrar punto al hacer hover
+                pointHoverBorderWidth: 2,
             },
         ],
     };
