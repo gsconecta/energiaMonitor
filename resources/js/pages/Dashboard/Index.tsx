@@ -876,14 +876,14 @@ export default function Dashboard({
                     <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                         <MetricCard
                             icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6" />}
-                            title="Consumo Casa"
-                            value={`${metricas?.consumo_casa_kwh || 0} kWh`}
+                            title="Consumo Casa (promedio)"
+                            value={`${metricas?.consumo_casa_kwh || 0} kW`}
                             color="orange"
                         />
                         <MetricCard
                             icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
-                            title="Generación FV"
-                            value={`${metricas?.generacion_fotovoltaica_kwh || 0} kWh`}
+                            title="Generación FV (promedio)"
+                            value={`${metricas?.generacion_fotovoltaica_kwh || 0} kW`}
                             color="yellow"
                         />
                         <MetricCard
@@ -894,15 +894,15 @@ export default function Dashboard({
                                     <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />
                                 )
                             }
-                            title={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'Exportación Neta' : 'Importación Neta'}
-                            value={`${Math.abs(metricas?.exportacion_neta_kwh || 0)} kWh`}
+                            title={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'Exportación Neta (promedio)' : 'Importación Neta (promedio)'}
+                            value={`${Math.abs(metricas?.exportacion_neta_kwh || 0)} kW`}
                             color={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'blue' : 'red'}
                         />
                         {metricas?.carga_baterias_kwh && metricas.carga_baterias_kwh > 0 && (
                             <MetricCard
                                 icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
-                                title="Carga Baterías"
-                                value={`${metricas.carga_baterias_kwh} kWh`}
+                                title="Carga Baterías (promedio)"
+                                value={`${metricas.carga_baterias_kwh} kW`}
                                 color="purple"
                             />
                         )}
@@ -914,16 +914,16 @@ export default function Dashboard({
                         {metricas?.importacion_red_kwh && metricas.importacion_red_kwh > 0 && (
                             <MetricCard
                                 icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />}
-                                title="Importación Red"
-                                value={`${metricas.importacion_red_kwh} kWh`}
+                                title="Importación Red (promedio)"
+                                value={`${metricas.importacion_red_kwh} kW`}
                                 color="red"
                             />
                         )}
                         {metricas?.exportacion_red_kwh && metricas.exportacion_red_kwh > 0 && (
                             <MetricCard
                                 icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
-                                title="Exportación Red"
-                                value={`${metricas.exportacion_red_kwh} kWh`}
+                                title="Exportación Red (promedio)"
+                                value={`${metricas.exportacion_red_kwh} kW`}
                                 color="green"
                             />
                         )}

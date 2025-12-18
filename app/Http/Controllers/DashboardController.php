@@ -97,7 +97,7 @@ class DashboardController extends Controller
 
         // Preparar datos para gráficas
         $graficas = [
-            'potencia' => $this->prepararDatosGraficaPotencia($lecturas),
+            'potencia' => $this->prepararDatosGraficaPotencia($lecturas, $dispositivo),
             'voltaje' => $this->prepararDatosGraficaVoltaje($lecturas),
             'canales' => $this->prepararDatosGraficaCanales($lecturas),
             'corrientes' => $this->prepararDatosGraficaCorrientes($lecturas),
@@ -226,25 +226,79 @@ class DashboardController extends Controller
             ? $pfPromedios->avg() 
             : 0;
 
-        // Calcular energía retornada y por canal
-        $energiaRetornada = $ultimaLectura->energia_retornada_kwh ?? 0;
-        $energiaCanal1 = $ultimaLectura->energia_canal_1_kwh ?? 0;
-        $energiaCanal2 = $ultimaLectura->energia_canal_2_kwh ?? 0;
-        $energiaCanal3 = $ultimaLectura->energia_canal_3_kwh ?? 0;
+        // Calcular energía retornada y por canal del período (diferencia entre primera y última lectura)
+        // NOTA: Los valores en la BD pueden estar en Wh, no en kWh, por lo que dividimos por 1000
+        $primeraLectura = $lecturas->first();
+        $energiaRetornadaWh = ($ultimaLectura->energia_retornada_kwh ?? 0) - ($primeraLectura->energia_retornada_kwh ?? 0);
+        $energiaCanal1Wh = ($ultimaLectura->energia_canal_1_kwh ?? 0) - ($primeraLectura->energia_canal_1_kwh ?? 0);
+        $energiaCanal2Wh = ($ultimaLectura->energia_canal_2_kwh ?? 0) - ($primeraLectura->energia_canal_2_kwh ?? 0);
+        $energiaCanal3Wh = ($ultimaLectura->energia_canal_3_kwh ?? 0) - ($primeraLectura->energia_canal_3_kwh ?? 0);
+        
+        // Convertir de Wh a kWh (dividir por 1000) si el valor es muy grande (probablemente está en Wh)
+        // Si el valor es razonable (< 1000), asumimos que ya está en kWh
+        $energiaRetornada = $energiaRetornadaWh > 1000 ? $energiaRetornadaWh / 1000 : $energiaRetornadaWh;
+        $energiaCanal1 = $energiaCanal1Wh > 1000 ? $energiaCanal1Wh / 1000 : $energiaCanal1Wh;
+        $energiaCanal2 = $energiaCanal2Wh > 1000 ? $energiaCanal2Wh / 1000 : $energiaCanal2Wh;
+        $energiaCanal3 = $energiaCanal3Wh > 1000 ? $energiaCanal3Wh / 1000 : $energiaCanal3Wh;
+        
+        // Asegurar que no sean negativos (por si hay algún problema con los datos)
+        $energiaRetornada = max(0, $energiaRetornada);
+        $energiaCanal1 = max(0, $energiaCanal1);
+        $energiaCanal2 = max(0, $energiaCanal2);
+        $energiaCanal3 = max(0, $energiaCanal3);
 
         // Estado WiFi y conexión
         $wifiConectado = $ultimaLectura->wifi_conectado ?? false;
         $wifiRssi = $ultimaLectura->wifi_rssi ?? null;
         $uptimeSegundos = $ultimaLectura->uptime_segundos ?? null;
 
-        // Calcular métricas de energía acumulada (kWh) en el período
-        $metricasEnergia = $dispositivo->calcularEnergiaAcumulada($lecturas);
+        // Calcular promedios de potencia (kW) para las métricas de balance energético
+        // En lugar de energía acumulada, calculamos el promedio de potencia en el período
+        $consumoCasaPromedio = 0;
+        $exportacionNetaPromedio = 0;
+        $generacionFVPromedio = 0;
+        $cargaBateriasPromedio = 0;
+        $importacionRedPromedio = 0;
+        $exportacionRedPromedio = 0;
+
+        $lecturasConDatos = 0;
+        foreach ($lecturas as $lectura) {
+            $consumo = $lectura->calcularConsumoCasa();
+            $exportacion = $lectura->calcularExportacionNeta();
+            $genFV = $lectura->obtenerGeneracionFotovoltaica();
+            $carga = $lectura->obtenerCargaBaterias();
+            $importacion = $lectura->obtenerImportacionRed();
+            $exportacionRed = $lectura->obtenerExportacionRed();
+
+            if ($consumo !== null || $genFV > 0 || $importacion > 0 || $exportacionRed > 0) {
+                $consumoCasaPromedio += $consumo ?? 0;
+                $exportacionNetaPromedio += $exportacion ?? 0;
+                $generacionFVPromedio += $genFV;
+                $cargaBateriasPromedio += $carga;
+                $importacionRedPromedio += $importacion;
+                $exportacionRedPromedio += $exportacionRed;
+                $lecturasConDatos++;
+            }
+        }
+
+        if ($lecturasConDatos > 0) {
+            $consumoCasaPromedio = $consumoCasaPromedio / $lecturasConDatos;
+            $exportacionNetaPromedio = $exportacionNetaPromedio / $lecturasConDatos;
+            $generacionFVPromedio = $generacionFVPromedio / $lecturasConDatos;
+            $cargaBateriasPromedio = $cargaBateriasPromedio / $lecturasConDatos;
+            $importacionRedPromedio = $importacionRedPromedio / $lecturasConDatos;
+            $exportacionRedPromedio = $exportacionRedPromedio / $lecturasConDatos;
+        }
 
         return [
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
             'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
             'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
-            'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
+            'energia_total_kwh' => round(max(0, (function() use ($ultimaLectura, $primeraLectura) {
+                $diferencia = ($ultimaLectura->energia_total_kwh ?? 0) - ($primeraLectura->energia_total_kwh ?? 0);
+                // Convertir de Wh a kWh si el valor es muy grande
+                return $diferencia > 1000 ? $diferencia / 1000 : $diferencia;
+            })()), 2),
             'energia_retornada_kwh' => round($energiaRetornada, 2),
             'energia_canal_1_kwh' => round($energiaCanal1, 2),
             'energia_canal_2_kwh' => round($energiaCanal2, 2),
@@ -255,12 +309,12 @@ class DashboardController extends Controller
             'corriente_promedio_3' => round($corrientePromedio3, 2),
             'corriente_neutro_promedio' => round($corrienteNeutroPromedio, 2),
             'factor_potencia_promedio' => round($factorPotenciaPromedio, 2),
-            'consumo_casa_kwh' => $metricasEnergia['consumo_casa_kwh'],
-            'exportacion_neta_kwh' => $metricasEnergia['exportacion_neta_kwh'],
-            'generacion_fotovoltaica_kwh' => $metricasEnergia['generacion_fotovoltaica_kwh'],
-            'carga_baterias_kwh' => $metricasEnergia['carga_baterias_kwh'],
-            'importacion_red_kwh' => $metricasEnergia['importacion_red_kwh'],
-            'exportacion_red_kwh' => $metricasEnergia['exportacion_red_kwh'],
+            'consumo_casa_kwh' => round($consumoCasaPromedio / 1000, 2),
+            'exportacion_neta_kwh' => round($exportacionNetaPromedio / 1000, 2),
+            'generacion_fotovoltaica_kwh' => round($generacionFVPromedio / 1000, 2),
+            'carga_baterias_kwh' => round($cargaBateriasPromedio / 1000, 2),
+            'importacion_red_kwh' => round($importacionRedPromedio / 1000, 2),
+            'exportacion_red_kwh' => round($exportacionRedPromedio / 1000, 2),
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
             'wifi_conectado' => $wifiConectado,
             'wifi_rssi' => $wifiRssi,
@@ -271,7 +325,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function prepararDatosGraficaPotencia($lecturas)
+    private function prepararDatosGraficaPotencia($lecturas, $dispositivo)
     {
         if ($lecturas->isEmpty()) {
             return ['labels' => [], 'data' => []];
@@ -281,7 +335,28 @@ class DashboardController extends Controller
 
         return [
             'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
-            'data' => $lecturas->map(fn($l) => round($l->potencia_total_w / 1000, 2))->toArray(),
+            'data' => $lecturas->map(function($l) use ($dispositivo) {
+                // Calcular la suma de todas las potencias de generación FV
+                $potenciaTotal = 0;
+                
+                // Sumar potencias de todos los canales de tipo fotovoltaica (solo valores positivos)
+                for ($i = 1; $i <= 3; $i++) {
+                    if ($dispositivo->esCanalFotovoltaica($i)) {
+                        $potenciaCanal = match($i) {
+                            1 => $l->potencia_canal_1_w ?? 0,
+                            2 => $l->potencia_canal_2_w ?? 0,
+                            3 => $l->potencia_canal_3_w ?? 0,
+                            default => 0,
+                        };
+                        // Solo sumar valores positivos (generación)
+                        if ($potenciaCanal > 0) {
+                            $potenciaTotal += $potenciaCanal;
+                        }
+                    }
+                }
+                
+                return round($potenciaTotal / 1000, 2);
+            })->toArray(),
         ];
     }
 

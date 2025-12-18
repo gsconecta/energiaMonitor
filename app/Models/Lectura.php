@@ -35,11 +35,7 @@ class Lectura extends Model
         'online',
         'wifi_conectado',
         'wifi_rssi',
-        'cloud_conectado',
         'uptime_segundos',
-        'canal_1_valido',
-        'canal_2_valido',
-        'canal_3_valido',
         'datos_raw',
     ];
 
@@ -67,10 +63,6 @@ class Lectura extends Model
         'pf_canal_3' => 'float',
         'online' => 'boolean',
         'wifi_conectado' => 'boolean',
-        'cloud_conectado' => 'boolean',
-        'canal_1_valido' => 'boolean',
-        'canal_2_valido' => 'boolean',
-        'canal_3_valido' => 'boolean',
         'datos_raw' => 'array',
     ];
 

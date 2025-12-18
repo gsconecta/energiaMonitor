@@ -338,9 +338,6 @@ class ObtenerLecturasShelly extends Command
             $wifiRssi = isset($deviceStatus['wifi']['rssi']) ? (int) $deviceStatus['wifi']['rssi'] : null;
         }
 
-        // Cloud
-        $cloudConectado = $deviceStatus['cloud']['connected'] ?? false;
-
         // Uptime
         $uptimeSegundos = null;
         if (isset($deviceStatus['sys']['uptime'])) {
@@ -348,11 +345,6 @@ class ObtenerLecturasShelly extends Command
         } elseif (isset($deviceStatus['uptime'])) {
             $uptimeSegundos = (int) $deviceStatus['uptime'];
         }
-
-        // Validez de canales
-        $canal1Valido = ($canal1 && ($potenciaCanal1 > 0 || $voltajeCanal1 > 0 || $corrienteCanal1 > 0)) ? 1 : 0;
-        $canal2Valido = ($canal2 && ($potenciaCanal2 > 0 || $voltajeCanal2 > 0 || $corrienteCanal2 > 0)) ? 1 : 0;
-        $canal3Valido = ($canal3 && ($potenciaCanal3 > 0 || $voltajeCanal3 > 0 || $corrienteCanal3 > 0)) ? 1 : 0;
 
         // Fecha de lectura
         // Usar la zona horaria de la aplicación (Europe/Madrid)
@@ -394,12 +386,85 @@ class ObtenerLecturasShelly extends Command
             'online' => $online ? 1 : 0,
             'wifi_conectado' => $wifiConectado ? 1 : 0,
             'wifi_rssi' => $wifiRssi,
-            'cloud_conectado' => $cloudConectado ? 1 : 0,
             'uptime_segundos' => $uptimeSegundos,
-            'canal_1_valido' => $canal1Valido,
-            'canal_2_valido' => $canal2Valido,
-            'canal_3_valido' => $canal3Valido,
-            'datos_raw' => $responseData['data'],
+            'datos_raw' => $this->prepararDatosRawOptimizados($deviceStatus),
         ];
+    }
+
+    /**
+     * Prepara datos_raw optimizados con solo la información relevante
+     * Guarda solo los datos de energía necesarios y estructura mínima para detección de fases
+     */
+    private function prepararDatosRawOptimizados(array $deviceStatus): array
+    {
+        $datosOptimizados = [
+            'serial' => $deviceStatus['serial'] ?? null,
+            '_updated' => $deviceStatus['_updated'] ?? null,
+        ];
+
+        // Extraer datos relevantes de em1:0
+        if (isset($deviceStatus['em1:0'])) {
+            $em10 = $deviceStatus['em1:0'];
+            $datosOptimizados['em1:0'] = [
+                'act_power' => $em10['act_power'] ?? null,
+                'aprt_power' => $em10['aprt_power'] ?? null,
+                'current' => $em10['current'] ?? null,
+                'freq' => $em10['freq'] ?? null,
+                'pf' => $em10['pf'] ?? null,
+                'voltage' => $em10['voltage'] ?? null,
+                'id' => $em10['id'] ?? null,
+                'calibration' => $em10['calibration'] ?? null,
+            ];
+        }
+
+        // Extraer datos relevantes de em1:1
+        if (isset($deviceStatus['em1:1'])) {
+            $em11 = $deviceStatus['em1:1'];
+            $datosOptimizados['em1:1'] = [
+                'act_power' => $em11['act_power'] ?? null,
+                'aprt_power' => $em11['aprt_power'] ?? null,
+                'current' => $em11['current'] ?? null,
+                'freq' => $em11['freq'] ?? null,
+                'pf' => $em11['pf'] ?? null,
+                'voltage' => $em11['voltage'] ?? null,
+                'id' => $em11['id'] ?? null,
+                'calibration' => $em11['calibration'] ?? null,
+            ];
+        }
+
+        // Mantener estructura mínima para detección de fases
+        $datosOptimizados['device_status'] = [];
+        
+        // Para formato EM1/EM1+ (em1:0, em1:1)
+        if (isset($deviceStatus['em1:0']) || isset($deviceStatus['em1:1'])) {
+            if (isset($deviceStatus['em1:0'])) {
+                $datosOptimizados['device_status']['em1:0'] = [
+                    'act_power' => $deviceStatus['em1:0']['act_power'] ?? 0
+                ];
+            }
+            if (isset($deviceStatus['em1:1'])) {
+                $datosOptimizados['device_status']['em1:1'] = [
+                    'act_power' => $deviceStatus['em1:1']['act_power'] ?? 0
+                ];
+            }
+        }
+        
+        // Para formato EM3 trifásico (em:0 con prefijos a_, b_, c_)
+        if (isset($deviceStatus['em:0']) && isset($deviceStatus['em:0']['a_act_power'])) {
+            $datosOptimizados['device_status']['em:0'] = [
+                'a_act_power' => $deviceStatus['em:0']['a_act_power'] ?? 0
+            ];
+        }
+        
+        // Para formato EM3 antiguo (emeters array)
+        if (isset($deviceStatus['emeters']) && is_array($deviceStatus['emeters'])) {
+            $datosOptimizados['device_status']['emeters'] = array_map(function($emeter) {
+                return [
+                    'power' => $emeter['power'] ?? 0
+                ];
+            }, $deviceStatus['emeters']);
+        }
+
+        return $datosOptimizados;
     }
 }
