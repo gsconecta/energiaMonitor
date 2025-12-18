@@ -121,15 +121,6 @@ class DispositivosController extends Controller
         $ultimaLectura = $dispositivo->ultimaLectura();
         $lecturasCount = $dispositivo->lecturas()->count();
         
-        // Obtener lecturas de las últimas 24 horas para las gráficas
-        $lecturas = $dispositivo->lecturas()
-            ->where('fecha_lectura', '>=', now()->subDay())
-            ->orderBy('fecha_lectura', 'asc')
-            ->get();
-        
-        // Preparar datos para gráficas de potencia por canal
-        $graficas = $this->prepararDatosGraficaCanales($lecturas);
-        
         // Calcular métricas de energía si hay lecturas
         $metricasEnergia = null;
         if ($ultimaLectura) {
@@ -175,7 +166,6 @@ class DispositivosController extends Controller
                     'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
                 ] : null,
             ],
-            'graficas' => $graficas,
             'metricas_energia' => $metricasEnergia,
         ]);
     }
@@ -354,48 +344,4 @@ class DispositivosController extends Controller
         }
     }
 
-    /**
-     * Preparar datos para gráfica de potencia por canales
-     */
-    private function prepararDatosGraficaCanales($lecturas)
-    {
-        if ($lecturas->isEmpty()) {
-            return ['labels' => [], 'canal1' => [], 'canal2' => [], 'canal3' => []];
-        }
-
-        $formatoFecha = $this->obtenerFormatoFecha($lecturas);
-
-        return [
-            'labels' => $lecturas->map(fn($l) => $l->fecha_lectura->format($formatoFecha))->toArray(),
-            'canal1' => $lecturas->map(fn($l) => round($l->potencia_canal_1_w / 1000, 2))->toArray(),
-            'canal2' => $lecturas->map(fn($l) => round($l->potencia_canal_2_w / 1000, 2))->toArray(),
-            'canal3' => $lecturas->map(fn($l) => round($l->potencia_canal_3_w / 1000, 2))->toArray(),
-        ];
-    }
-
-    /**
-     * Obtener formato de fecha según el rango de lecturas
-     */
-    private function obtenerFormatoFecha($lecturas)
-    {
-        if ($lecturas->isEmpty()) {
-            return 'H:i';
-        }
-
-        $primera = $lecturas->first();
-        $ultima = $lecturas->last();
-        
-        // Si las lecturas abarcan más de un día, mostrar fecha y hora
-        if ($primera->fecha_lectura->format('Y-m-d') !== $ultima->fecha_lectura->format('Y-m-d')) {
-            return 'd/m H:i';
-        }
-        
-        // Si hay muchas lecturas (más de 24 horas de datos), mostrar fecha
-        $diferenciaHoras = $primera->fecha_lectura->diffInHours($ultima->fecha_lectura);
-        if ($diferenciaHoras > 24) {
-            return 'd/m H:i';
-        }
-        
-        return 'H:i';
-    }
 }

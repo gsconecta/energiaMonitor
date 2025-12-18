@@ -17,29 +17,6 @@ import {
     BarChart3,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler,
-} from 'chart.js';
-
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -71,12 +48,6 @@ interface UltimaLectura {
     energia_total_kwh: number;
 }
 
-interface Graficas {
-    labels: string[];
-    canal1: number[];
-    canal2: number[];
-    canal3: number[];
-}
 
 interface Dispositivo {
     id: number;
@@ -115,11 +86,10 @@ interface MetricasEnergia {
 
 interface Props {
     dispositivo: Dispositivo;
-    graficas?: Graficas;
     metricas_energia?: MetricasEnergia | null;
 }
 
-export default function DispositivosShow({ dispositivo, graficas, metricas_energia }: Props) {
+export default function DispositivosShow({ dispositivo, metricas_energia }: Props) {
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
     const [nombresCanales, setNombresCanales] = useState({
@@ -211,128 +181,6 @@ export default function DispositivosShow({ dispositivo, graficas, metricas_energ
         }
     };
 
-    // Función para convertir hex a rgba
-    const hexToRgba = (hex: string, alpha: number = 0.1): string => {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    };
-
-    // Preparar datos para las gráficas
-    const dataCanal1 = {
-        labels: graficas?.labels || [],
-        datasets: [
-            {
-                label: `${obtenerNombreCanal(1)} (kW)`,
-                data: graficas?.canal1 || [],
-                borderColor: coloresCanales.color_canal_1,
-                backgroundColor: hexToRgba(coloresCanales.color_canal_1, 0.1),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-        ],
-    };
-
-    const dataCanal2 = {
-        labels: graficas?.labels || [],
-        datasets: [
-            {
-                label: `${obtenerNombreCanal(2)} (kW)`,
-                data: graficas?.canal2 || [],
-                borderColor: coloresCanales.color_canal_2,
-                backgroundColor: hexToRgba(coloresCanales.color_canal_2, 0.1),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-        ],
-    };
-
-    const dataCanal3 = {
-        labels: graficas?.labels || [],
-        datasets: [
-            {
-                label: `${obtenerNombreCanal(3)} (kW)`,
-                data: graficas?.canal3 || [],
-                borderColor: coloresCanales.color_canal_3,
-                backgroundColor: hexToRgba(coloresCanales.color_canal_3, 0.1),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-        ],
-    };
-
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            intersect: false,
-            mode: 'index' as const,
-        },
-        plugins: {
-            legend: {
-                position: 'top' as const,
-                labels: {
-                    usePointStyle: true,
-                    padding: 15,
-                    font: {
-                        size: 12,
-                    },
-                },
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                titleFont: {
-                    size: 14,
-                },
-                bodyFont: {
-                    size: 12,
-                },
-                displayColors: true,
-                callbacks: {
-                    label: function(context: any) {
-                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kW`;
-                    },
-                },
-            },
-        },
-        scales: {
-            x: {
-                grid: {
-                    display: false,
-                },
-                ticks: {
-                    maxRotation: 45,
-                    minRotation: 0,
-                    font: {
-                        size: 10,
-                    },
-                },
-            },
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
-                },
-                ticks: {
-                    font: {
-                        size: 10,
-                    },
-                },
-            },
-        },
-        animation: {
-            duration: 1000,
-            easing: 'easeInOutQuart' as const,
-        },
-    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -1017,91 +865,6 @@ export default function DispositivosShow({ dispositivo, graficas, metricas_energ
                     </div>
                 )}
 
-                {/* Gráficas de Potencia por Canal */}
-                {graficas && graficas.labels.length > 0 && (
-                    <div>
-                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Potencia por Canal (Últimas 24 horas)
-                        </h2>
-                        <div className="grid gap-4 lg:grid-cols-3">
-                            {/* Canal 1 - Mostrar si hay datos o si num_fases >= 1 */}
-                            {(graficas.canal1.some(v => v > 0) || (dispositivo.num_fases && dispositivo.num_fases >= 1) || !dispositivo.num_fases) && (
-                                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                                    <div className="p-6">
-                                        <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-                                            Potencia {obtenerNombreCanal(1)}
-                                        </h3>
-                                        <div className="h-64 w-full">
-                                            <Line
-                                                data={dataCanal1}
-                                                options={{
-                                                    ...chartOptions,
-                                                    scales: {
-                                                        ...chartOptions.scales,
-                                                        y: {
-                                                            ...chartOptions.scales?.y,
-                                                            beginAtZero: false,
-                                                        },
-                                                    },
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {/* Canal 2 - Mostrar si hay datos o si num_fases >= 2 */}
-                            {(graficas.canal2.some(v => v > 0) || (dispositivo.num_fases && dispositivo.num_fases >= 2)) && (
-                                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                                    <div className="p-6">
-                                        <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-                                            Potencia {obtenerNombreCanal(2)}
-                                        </h3>
-                                        <div className="h-64 w-full">
-                                            <Line
-                                                data={dataCanal2}
-                                                options={{
-                                                    ...chartOptions,
-                                                    scales: {
-                                                        ...chartOptions.scales,
-                                                        y: {
-                                                            ...chartOptions.scales?.y,
-                                                            beginAtZero: false,
-                                                        },
-                                                    },
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {/* Canal 3 - Mostrar si hay datos o si num_fases >= 3 */}
-                            {(graficas.canal3.some(v => v > 0) || (dispositivo.num_fases && dispositivo.num_fases >= 3)) && (
-                                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                                    <div className="p-6">
-                                        <h3 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-                                            Potencia {obtenerNombreCanal(3)}
-                                        </h3>
-                                        <div className="h-64 w-full">
-                                            <Line
-                                                data={dataCanal3}
-                                                options={{
-                                                    ...chartOptions,
-                                                    scales: {
-                                                        ...chartOptions.scales,
-                                                        y: {
-                                                            ...chartOptions.scales?.y,
-                                                            beginAtZero: false,
-                                                        },
-                                                    },
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
 
                 {/* Configuración */}
                 {dispositivo.configuracion && Object.keys(dispositivo.configuracion).length > 0 && (
