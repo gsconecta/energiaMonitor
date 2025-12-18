@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Activity, Zap, TrendingUp, Battery, Calendar, Building2, MapPin, RefreshCw, Wifi, Clock, Gauge } from 'lucide-react';
 import { useState } from 'react';
+import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -70,10 +71,18 @@ interface SharedProps {
     };
 }
 
+interface DatosGrafica {
+    fecha: string;
+    produccion_fotovoltaica_kw: number;
+    red_electrica_kw: number;
+    consumo_casa_kw: number;
+}
+
 interface Props {
     dispositivo?: Dispositivo;
     dispositivos: Dispositivo[];
     metricas?: Metricas;
+    datos_grafica?: DatosGrafica[];
     periodo: string;
     sinDispositivos: boolean;
 }
@@ -82,6 +91,7 @@ export default function Dashboard({
     dispositivo,
     dispositivos,
     metricas,
+    datos_grafica,
     periodo,
     sinDispositivos,
 }: Props) {
@@ -456,6 +466,16 @@ export default function Dashboard({
                                 color="green"
                             />
                         )}
+                    </div>
+                )}
+
+                {/* Gráfica de Balance Energético */}
+                {datos_grafica && datos_grafica.length > 0 && (
+                    <div className="w-full">
+                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Balance Energético
+                        </h2>
+                        <BalanceEnergeticoChart datos={datos_grafica} />
                     </div>
                 )}
 

@@ -95,6 +95,16 @@ class DashboardController extends Controller
         // Calcular métricas
         $metricas = $this->calcularMetricas($lecturas, $dispositivo);
 
+        // Preparar datos para la gráfica de balance energético
+        $datosGrafica = $lecturas->map(function($lectura) {
+            return [
+                'fecha' => $lectura->fecha_lectura->toISOString(),
+                'produccion_fotovoltaica_kw' => round(($lectura->obtenerPotenciaFotovoltaica() ?? 0) / 1000, 2),
+                'red_electrica_kw' => round(($lectura->obtenerPotenciaRedElectrica() ?? 0) / 1000, 2),
+                'consumo_casa_kw' => round(($lectura->calcularConsumoCasa() ?? 0) / 1000, 2),
+            ];
+        })->values();
+
         return Inertia::render('Dashboard/Index', [
             'dispositivo' => [
                 'id' => $dispositivo->id,
@@ -111,6 +121,7 @@ class DashboardController extends Controller
             ],
             'dispositivos' => $dispositivos,
             'metricas' => $metricas,
+            'datos_grafica' => $datosGrafica,
             'periodo' => $periodo,
             'sinDispositivos' => false,
         ]);

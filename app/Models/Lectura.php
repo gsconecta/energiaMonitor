@@ -183,8 +183,19 @@ class Lectura extends Model
     }
 
     /**
-     * Calcular consumo de la casa basándose en los tipos de canal
-     * Fórmula: Consumo = FV + RED (suma algebraica)
+     * Calcular consumo de la casa basándose en la ecuación de balance energético
+     * Ecuación: FV - C + RED - Exp = 0
+     * 
+     * Donde:
+     * - FV = Fase monitorizada de Fotovoltaica (SIEMPRE se invierte el signo)
+     *   * Si el valor original es negativo → está inyectando a la casa → FV positivo
+     *   * Si el valor original es positivo → está consumiendo de la casa → FV negativo
+     * - C = Consumo casa (lo que calculamos)
+     * - RED = Fase monitorizada Red Eléctrica
+     *   * Si es positivo = consumo de red (RED)
+     *   * Si es negativo = exportación (Exp)
+     * 
+     * Fórmula resultante: C = FV_corregido + RED
      * 
      * @return float|null Consumo en W, o null si no se pueden identificar los canales
      */
@@ -198,40 +209,58 @@ class Lectura extends Model
             return null;
         }
 
-        // Consumo = FV + RED (suma algebraica)
-        return ($potenciaFV ?? 0) + ($potenciaRED ?? 0);
+        // FV: SIEMPRE invertir el signo del canal fotovoltaica
+        // Si es negativo → inyecta a casa → FV positivo en la ecuación
+        // Si es positivo → consume de casa → FV negativo en la ecuación
+        $fvCorregido = -$potenciaFV;
+
+        // RED: usar el valor tal cual (positivo = consumo, negativo = exportación)
+        // Ecuación: FV - C + RED - Exp = 0
+        // Despejando: C = FV_corregido + RED
+        return $fvCorregido + $potenciaRED;
     }
 
     /**
-     * Calcular exportación neta (negativo = importación)
+     * Calcular exportación neta basada en la ecuación de balance energético
+     * Si RED es negativo, hay exportación. Si RED es positivo, no hay exportación.
      * 
      * @return float|null Exportación neta en W, o null si no se pueden calcular
      */
     public function calcularExportacionNeta(): ?float
     {
-        $consumo = $this->calcularConsumoCasa();
+        $potenciaRED = $this->obtenerPotenciaPorTipoCanal('red_electrica');
         
-        if ($consumo === null) {
+        if ($potenciaRED === null) {
             return null;
         }
 
-        // Si consumo es negativo, hay exportación neta
-        // Si consumo es positivo, el valor negativo representa importación
-        return -$consumo;
+        // Si RED es negativo, hay exportación (Exp = -RED)
+        // Si RED es positivo, no hay exportación (Exp = 0)
+        return $potenciaRED < 0 ? abs($potenciaRED) : 0;
     }
 
     /**
-     * Obtener potencia fotovoltaica (puede ser negativa si está cargando baterías)
+     * Obtener potencia fotovoltaica corregida (SIEMPRE invierte el signo)
+     * Según la ecuación de balance: el canal fotovoltaica siempre se invierte
      * 
-     * @return float|null Potencia en W
+     * @return float|null Potencia en W (signo invertido respecto al valor original)
      */
     public function obtenerPotenciaFotovoltaica(): ?float
     {
-        return $this->obtenerPotenciaPorTipoCanal('fotovoltaica');
+        $potencia = $this->obtenerPotenciaPorTipoCanal('fotovoltaica');
+        
+        if ($potencia === null) {
+            return null;
+        }
+        
+        // SIEMPRE invertir el signo del canal fotovoltaica
+        // Si es negativo → inyecta a casa → retornar positivo
+        // Si es positivo → consume de casa → retornar negativo
+        return -$potencia;
     }
 
     /**
-     * Obtener potencia de red eléctrica (puede ser negativa si está importando)
+     * Obtener potencia de red eléctrica (puede ser positivo = consumo, negativo = exportación)
      * 
      * @return float|null Potencia en W
      */
@@ -241,9 +270,21 @@ class Lectura extends Model
     }
 
     /**
-     * Obtener generación fotovoltaica (solo valores positivos)
+     * Obtener consumo de red eléctrica (solo valores positivos de RED)
      * 
-     * @return float Generación en W (0 si es negativo o null)
+     * @return float Consumo de red en W (0 si es negativo o null)
+     */
+    public function obtenerConsumoRed(): float
+    {
+        $potencia = $this->obtenerPotenciaRedElectrica();
+        return $potencia !== null && $potencia > 0 ? $potencia : 0;
+    }
+
+    /**
+     * Obtener generación fotovoltaica (solo valores positivos después de corrección)
+     * Esto representa cuando FV está inyectando energía a la casa
+     * 
+     * @return float Generación en W (0 si no está generando)
      */
     public function obtenerGeneracionFotovoltaica(): float
     {
@@ -252,35 +293,50 @@ class Lectura extends Model
     }
 
     /**
-     * Obtener carga de baterías (solo valores negativos de FV)
+     * Obtener consumo fotovoltaico (solo valores negativos después de corrección)
+     * Esto representa cuando el inversor está consumiendo energía de la casa/red
      * 
-     * @return float Carga en W (0 si es positivo o null)
+     * @return float Consumo en W (0 si no está consumiendo)
      */
-    public function obtenerCargaBaterias(): float
+    public function obtenerConsumoFotovoltaico(): float
     {
         $potencia = $this->obtenerPotenciaFotovoltaica();
         return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
     }
 
     /**
-     * Obtener exportación a red (solo valores positivos de RED)
+     * Obtener carga de baterías (cuando FV original es negativo y muy grande)
+     * Esto ocurre cuando el inversor está cargando baterías en lugar de generar
      * 
-     * @return float Exportación en W (0 si es negativo o null)
+     * @return float Carga en W (0 si no está cargando)
+     */
+    public function obtenerCargaBaterias(): float
+    {
+        // La carga de baterías se detectaría por otros medios (si hay datos del inversor)
+        // Por ahora, si FV corregido es negativo, podría indicar consumo del inversor
+        $potencia = $this->obtenerPotenciaFotovoltaica();
+        return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
+    }
+
+    /**
+     * Obtener exportación a red (solo cuando RED es negativo)
+     * 
+     * @return float Exportación en W (0 si es positivo o null)
      */
     public function obtenerExportacionRed(): float
     {
         $potencia = $this->obtenerPotenciaRedElectrica();
-        return $potencia !== null && $potencia > 0 ? $potencia : 0;
+        return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
     }
 
     /**
-     * Obtener importación de red (solo valores negativos de RED)
+     * Obtener importación de red (solo cuando RED es positivo)
      * 
-     * @return float Importación en W (0 si es positivo o null)
+     * @return float Importación en W (0 si es negativo o null)
      */
     public function obtenerImportacionRed(): float
     {
         $potencia = $this->obtenerPotenciaRedElectrica();
-        return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
+        return $potencia !== null && $potencia > 0 ? $potencia : 0;
     }
 }
