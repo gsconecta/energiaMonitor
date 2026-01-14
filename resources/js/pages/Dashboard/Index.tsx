@@ -6,6 +6,7 @@ import { Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
+import FlujoEnergetico from '@/components/FlujoEnergetico';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -41,6 +42,10 @@ interface Metricas {
     uptime_segundos: number | null;
     ultima_actualizacion_human: string;
     numero_lecturas: number;
+    produccion_fotovoltaica_actual_kw: number;
+    red_electrica_actual_kw: number;
+    exportacion_actual_kw: number;
+    consumo_total_actual_kw: number;
 }
 
 interface Dispositivo {
@@ -346,6 +351,16 @@ export default function Dashboard({
                         </div>
                     )}
                 </div>
+
+                {/* Componente Flujo Energético */}
+                {metricas && (
+                    <FlujoEnergetico
+                        produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
+                        redElectrica={metricas.red_electrica_actual_kw || 0}
+                        exportacion={metricas.exportacion_actual_kw || 0}
+                        consumoTotal={metricas.consumo_total_actual_kw || 0}
+                    />
+                )}
 
                 {/* Gráfica de Balance Energético */}
                 {datos_grafica && datos_grafica.length > 0 && (

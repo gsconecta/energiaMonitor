@@ -92,8 +92,13 @@ class DashboardController extends Controller
         // Obtener lecturas según período
         $lecturas = $this->obtenerLecturas($dispositivo, $periodo, $fechaDesde, $fechaHasta);
 
+        // Obtener la última lectura real del dispositivo (sin filtrar por período) para el componente de flujo energético
+        $ultimaLecturaReal = $dispositivo->lecturas()
+            ->orderBy('fecha_lectura', 'desc')
+            ->first();
+
         // Calcular métricas
-        $metricas = $this->calcularMetricas($lecturas, $dispositivo);
+        $metricas = $this->calcularMetricas($lecturas, $dispositivo, $ultimaLecturaReal);
 
         // Preparar datos para la gráfica de balance energético
         $datosGrafica = $lecturas->map(function($lectura) {
@@ -162,7 +167,7 @@ class DashboardController extends Controller
         return $query->orderBy('fecha_lectura', 'asc')->get();
     }
 
-    private function calcularMetricas($lecturas, $dispositivo)
+    private function calcularMetricas($lecturas, $dispositivo, $ultimaLecturaReal = null)
     {
         if ($lecturas->isEmpty()) {
             return [
@@ -251,6 +256,14 @@ class DashboardController extends Controller
         $wifiRssi = $ultimaLectura->wifi_rssi ?? null;
         $uptimeSegundos = $ultimaLectura->uptime_segundos ?? null;
 
+        // Calcular valores instantáneos de la última lectura REAL (sin filtrar por período)
+        // para el componente de flujo energético, que siempre debe mostrar tiempo real
+        $lecturaParaFlujo = $ultimaLecturaReal ?? $ultimaLectura;
+        $produccionFotovoltaicaActual = $lecturaParaFlujo ? ($lecturaParaFlujo->obtenerGeneracionFotovoltaica() ?? 0) : 0;
+        $redElectricaActual = $lecturaParaFlujo ? ($lecturaParaFlujo->obtenerPotenciaRedElectrica() ?? 0) : 0;
+        $exportacionActual = $lecturaParaFlujo ? ($lecturaParaFlujo->obtenerExportacionRed() ?? 0) : 0;
+        $consumoTotalActual = $lecturaParaFlujo ? ($lecturaParaFlujo->calcularConsumoCasa() ?? 0) : 0;
+
         // Calcular promedios de potencia (kW) para las métricas de balance energético
         // En lugar de energía acumulada, calculamos el promedio de potencia en el período
         $consumoCasaPromedio = 0;
@@ -321,6 +334,10 @@ class DashboardController extends Controller
             'ultima_actualizacion' => $ultimaLectura->fecha_lectura?->toISOString(),
             'ultima_actualizacion_human' => $ultimaLectura->fecha_lectura?->diffForHumans(),
             'numero_lecturas' => $lecturas->count(),
+            'produccion_fotovoltaica_actual_kw' => round($produccionFotovoltaicaActual / 1000, 2),
+            'red_electrica_actual_kw' => round($redElectricaActual / 1000, 2),
+            'exportacion_actual_kw' => round($exportacionActual / 1000, 2),
+            'consumo_total_actual_kw' => round($consumoTotalActual / 1000, 2),
         ];
     }
 
