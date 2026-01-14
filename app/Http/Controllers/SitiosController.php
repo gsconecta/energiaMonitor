@@ -46,6 +46,8 @@ class SitiosController extends Controller
                     'nombre' => $sitio->nombre,
                     'codigo' => $sitio->codigo,
                     'ubicacion' => $sitio->ubicacion,
+                    'latitud' => $sitio->latitud,
+                    'longitud' => $sitio->longitud,
                     'descripcion' => $sitio->descripcion,
                     'activa' => $sitio->activa,
                     'organizacion' => [
@@ -91,6 +93,8 @@ class SitiosController extends Controller
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:255|unique:sitios,codigo',
             'ubicacion' => 'nullable|string|max:255',
+            'latitud' => 'nullable|numeric|between:-90,90',
+            'longitud' => 'nullable|numeric|between:-180,180',
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
         ]);
@@ -132,6 +136,8 @@ class SitiosController extends Controller
                 'nombre' => $sitio->nombre,
                 'codigo' => $sitio->codigo,
                 'ubicacion' => $sitio->ubicacion,
+                'latitud' => $sitio->latitud,
+                'longitud' => $sitio->longitud,
                 'descripcion' => $sitio->descripcion,
                 'activa' => $sitio->activa,
                 'organizacion' => [
@@ -170,6 +176,8 @@ class SitiosController extends Controller
                 'nombre' => $sitio->nombre,
                 'codigo' => $sitio->codigo,
                 'ubicacion' => $sitio->ubicacion,
+                'latitud' => $sitio->latitud,
+                'longitud' => $sitio->longitud,
                 'descripcion' => $sitio->descripcion,
                 'activa' => $sitio->activa,
             ],
@@ -189,6 +197,8 @@ class SitiosController extends Controller
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:255|unique:sitios,codigo,' . $sitio->id,
             'ubicacion' => 'nullable|string|max:255',
+            'latitud' => 'nullable|numeric|between:-90,90',
+            'longitud' => 'nullable|numeric|between:-180,180',
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
         ]);

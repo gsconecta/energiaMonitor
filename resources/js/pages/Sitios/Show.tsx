@@ -30,6 +30,8 @@ interface Sitio {
     nombre: string;
     codigo: string;
     ubicacion: string | null;
+    latitud: number | null;
+    longitud: number | null;
     descripcion: string | null;
     activa: boolean;
     organizacion: Organizacion;

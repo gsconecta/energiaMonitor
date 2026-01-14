@@ -24,6 +24,8 @@ interface Sitio {
     nombre: string;
     codigo: string;
     ubicacion: string | null;
+    latitud: number | null;
+    longitud: number | null;
     descripcion: string | null;
     activa: boolean;
 }
@@ -39,6 +41,8 @@ export default function SitiosEdit({ sitio, organizaciones }: Props) {
         nombre: sitio.nombre,
         codigo: sitio.codigo,
         ubicacion: sitio.ubicacion || '',
+        latitud: sitio.latitud?.toString() || '',
+        longitud: sitio.longitud?.toString() || '',
         descripcion: sitio.descripcion || '',
         activa: sitio.activa,
     });
@@ -132,6 +136,45 @@ export default function SitiosEdit({ sitio, organizaciones }: Props) {
                                     {errors.ubicacion && (
                                         <p className="mt-1 text-sm text-red-600">{errors.ubicacion}</p>
                                     )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Latitud
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={data.latitud}
+                                            onChange={(e) => setData('latitud', e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                            placeholder="40.4168"
+                                            step="0.00000001"
+                                            min="-90"
+                                            max="90"
+                                        />
+                                        {errors.latitud && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.latitud}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Longitud
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={data.longitud}
+                                            onChange={(e) => setData('longitud', e.target.value)}
+                                            className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                            placeholder="-3.7038"
+                                            step="0.00000001"
+                                            min="-180"
+                                            max="180"
+                                        />
+                                        {errors.longitud && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.longitud}</p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div>

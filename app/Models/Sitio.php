@@ -17,12 +17,16 @@ class Sitio extends Model
         'nombre',
         'codigo',
         'ubicacion',
+        'latitud',
+        'longitud',
         'descripcion',
         'activa',
     ];
 
     protected $casts = [
         'activa' => 'boolean',
+        'latitud' => 'float',
+        'longitud' => 'float',
     ];
 
     // Relaciones
