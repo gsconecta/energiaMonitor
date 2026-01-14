@@ -2,9 +2,10 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Activity, Zap, TrendingUp, Battery, Calendar, Building2, MapPin, RefreshCw, Wifi, Clock, Gauge } from 'lucide-react';
+import { Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
+import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -346,129 +347,6 @@ export default function Dashboard({
                     )}
                 </div>
 
-                <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                    <MetricCard
-                        icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Potencia Actual"
-                        value={`${metricas?.potencia_actual_kw || 0} kW`}
-                        color="blue"
-                    />
-                    <MetricCard
-                        icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Potencia Máxima"
-                        value={`${metricas?.potencia_maxima_kw || 0} kW`}
-                        color="green"
-                    />
-                    <MetricCard
-                        icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Energía Total"
-                        value={`${metricas?.energia_total_kwh || 0} kWh`}
-                        color="yellow"
-                    />
-                    <MetricCard
-                        icon={<Activity className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Voltaje Promedio"
-                        value={`${metricas?.voltaje_promedio || 0} V`}
-                        color="purple"
-                    />
-                </div>
-
-                <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                    <MetricCard
-                        icon={<Gauge className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Factor de Potencia"
-                        value={(metricas?.factor_potencia_promedio || 0).toFixed(2)}
-                        color="indigo"
-                    />
-                    <MetricCard
-                        icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Energía Retornada"
-                        value={`${metricas?.energia_retornada_kwh || 0} kWh`}
-                        color="emerald"
-                    />
-                    <MetricCard
-                        icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="WiFi"
-                        value={
-                            metricas?.wifi_conectado
-                                ? metricas.wifi_rssi
-                                    ? `${metricas.wifi_rssi} dBm`
-                                    : 'Conectado'
-                                : 'Desconectado'
-                        }
-                        color={metricas?.wifi_conectado ? 'green' : 'red'}
-                    />
-                    <MetricCard
-                        icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        title="Uptime"
-                        value={
-                            metricas?.uptime_segundos
-                                ? `${Math.floor((metricas.uptime_segundos || 0) / 3600)}h ${Math.floor(((metricas.uptime_segundos || 0) % 3600) / 60)}m`
-                                : 'N/A'
-                        }
-                        color="slate"
-                    />
-                </div>
-
-                {/* Métricas de Consumo y Balance Energético */}
-                {(metricas?.consumo_casa_kwh !== undefined || metricas?.generacion_fotovoltaica_kwh !== undefined) && (
-                    <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                        <MetricCard
-                            icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6" />}
-                            title="Consumo Casa (promedio)"
-                            value={`${metricas?.consumo_casa_kwh || 0} kW`}
-                            color="orange"
-                        />
-                        <MetricCard
-                            icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
-                            title="Generación FV (promedio)"
-                            value={`${metricas?.generacion_fotovoltaica_kwh || 0} kW`}
-                            color="yellow"
-                        />
-                        <MetricCard
-                            icon={
-                                (metricas?.exportacion_neta_kwh || 0) >= 0 ? (
-                                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
-                                ) : (
-                                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />
-                                )
-                            }
-                            title={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'Exportación Neta (promedio)' : 'Importación Neta (promedio)'}
-                            value={`${Math.abs(metricas?.exportacion_neta_kwh || 0)} kW`}
-                            color={metricas?.exportacion_neta_kwh && metricas.exportacion_neta_kwh >= 0 ? 'blue' : 'red'}
-                        />
-                        {metricas?.carga_baterias_kwh && metricas.carga_baterias_kwh > 0 && (
-                            <MetricCard
-                                icon={<Battery className="h-5 w-5 sm:h-6 sm:w-6" />}
-                                title="Carga Baterías (promedio)"
-                                value={`${metricas.carga_baterias_kwh} kW`}
-                                color="purple"
-                            />
-                        )}
-                    </div>
-                )}
-
-                {(metricas?.importacion_red_kwh !== undefined || metricas?.exportacion_red_kwh !== undefined) && (
-                    <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-2">
-                        {metricas?.importacion_red_kwh && metricas.importacion_red_kwh > 0 && (
-                            <MetricCard
-                                icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 rotate-180" />}
-                                title="Importación Red (promedio)"
-                                value={`${metricas.importacion_red_kwh} kW`}
-                                color="red"
-                            />
-                        )}
-                        {metricas?.exportacion_red_kwh && metricas.exportacion_red_kwh > 0 && (
-                            <MetricCard
-                                icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />}
-                                title="Exportación Red (promedio)"
-                                value={`${metricas.exportacion_red_kwh} kW`}
-                                color="green"
-                            />
-                        )}
-                    </div>
-                )}
-
                 {/* Gráfica de Balance Energético */}
                 {datos_grafica && datos_grafica.length > 0 && (
                     <div className="w-full">
@@ -479,41 +357,17 @@ export default function Dashboard({
                     </div>
                 )}
 
+                {/* Gráfica de Producción Fotovoltaica */}
+                {datos_grafica && datos_grafica.length > 0 && (
+                    <div className="w-full">
+                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Producción Fotovoltaica
+                        </h2>
+                        <ProduccionFotovoltaicaChart datos={datos_grafica} />
+                    </div>
+                )}
+
             </div>
         </AppLayout>
-    );
-}
-
-interface MetricCardProps {
-    icon: React.ReactNode;
-    title: string;
-    value: string;
-    color: 'blue' | 'green' | 'yellow' | 'purple' | 'indigo' | 'emerald' | 'red' | 'slate';
-}
-
-function MetricCard({ icon, title, value, color }: MetricCardProps) {
-    const colorClasses = {
-        blue: 'bg-blue-500',
-        green: 'bg-green-500',
-        yellow: 'bg-yellow-500',
-        purple: 'bg-purple-500',
-        indigo: 'bg-indigo-500',
-        emerald: 'bg-emerald-500',
-        red: 'bg-red-500',
-        slate: 'bg-slate-500',
-    };
-
-    return (
-        <div className="flex min-w-0 items-center rounded-xl border border-sidebar-border/70 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4 lg:p-6 dark:border-sidebar-border dark:bg-gray-800">
-            <div className={`flex-shrink-0 rounded-lg p-2 sm:p-3 ${colorClasses[color]} shadow-sm`}>
-                <div className="text-white">{icon}</div>
-            </div>
-            <div className="ml-3 min-w-0 flex-1 sm:ml-5">
-                <p className="truncate text-xs font-medium text-gray-500 sm:text-sm dark:text-gray-400">{title}</p>
-                <p className="mt-1 truncate text-lg font-semibold text-gray-900 sm:text-xl lg:text-2xl dark:text-gray-100">
-                    {value}
-                </p>
-            </div>
-        </div>
     );
 }
