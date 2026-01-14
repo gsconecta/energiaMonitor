@@ -39,4 +39,8 @@ return [
         'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
+    'aemet' => [
+        'api_key' => env('AEMET_API_KEY'),
+    ],
+
 ];

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
 import FlujoEnergetico from '@/components/FlujoEnergetico';
+import DatosMeteorologicos from '@/components/DatosMeteorologicos';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -84,11 +85,26 @@ interface DatosGrafica {
     consumo_casa_kw: number;
 }
 
+interface DatosMeteorologicos {
+    temperatura_actual: number | null;
+    temperatura_maxima: number | null;
+    temperatura_minima: number | null;
+    viento_velocidad: number | null;
+    viento_direccion: string | null;
+    radiacion_solar: number | null;
+    salida_sol: string | null;
+    puesta_sol: string | null;
+    estado_cielo: string | null;
+    estado_cielo_codigo: string | null;
+    fecha_actualizacion: string | null;
+}
+
 interface Props {
     dispositivo?: Dispositivo;
     dispositivos: Dispositivo[];
     metricas?: Metricas;
     datos_grafica?: DatosGrafica[];
+    datos_meteorologicos?: DatosMeteorologicos | null;
     periodo: string;
     sinDispositivos: boolean;
 }
@@ -98,6 +114,7 @@ export default function Dashboard({
     dispositivos,
     metricas,
     datos_grafica,
+    datos_meteorologicos,
     periodo,
     sinDispositivos,
 }: Props) {
@@ -108,6 +125,7 @@ export default function Dashboard({
     const [mostrarRangoPersonalizado, setMostrarRangoPersonalizado] = useState(false);
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
+
 
     const handleDispositivoChange = (dispositivoId: string) => {
         const params: any = { dispositivo_id: dispositivoId };
@@ -251,15 +269,20 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                {/* Componente Flujo Energético */}
-                {metricas && (
-                    <FlujoEnergetico
-                        produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
-                        redElectrica={metricas.red_electrica_actual_kw || 0}
-                        exportacion={metricas.exportacion_actual_kw || 0}
-                        consumoTotal={metricas.consumo_total_actual_kw || 0}
-                    />
-                )}
+                {/* Componentes Flujo Energético y Datos Meteorológicos */}
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                    {metricas && (
+                        <FlujoEnergetico
+                            produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
+                            redElectrica={metricas.red_electrica_actual_kw || 0}
+                            exportacion={metricas.exportacion_actual_kw || 0}
+                            consumoTotal={metricas.consumo_total_actual_kw || 0}
+                        />
+                    )}
+                    {datos_meteorologicos && (
+                        <DatosMeteorologicos datos={datos_meteorologicos} />
+                    )}
+                </div>
 
                 {/* Filtros de período */}
                 <div className="flex flex-col gap-3 sm:gap-4">

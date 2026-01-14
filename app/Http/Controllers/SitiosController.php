@@ -95,6 +95,7 @@ class SitiosController extends Controller
             'ubicacion' => 'nullable|string|max:255',
             'latitud' => 'nullable|numeric|between:-90,90',
             'longitud' => 'nullable|numeric|between:-180,180',
+            'codigo_municipio_aemet' => 'nullable|string|max:10',
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
         ]);
@@ -178,6 +179,7 @@ class SitiosController extends Controller
                 'ubicacion' => $sitio->ubicacion,
                 'latitud' => $sitio->latitud,
                 'longitud' => $sitio->longitud,
+                'codigo_municipio_aemet' => $sitio->codigo_municipio_aemet,
                 'descripcion' => $sitio->descripcion,
                 'activa' => $sitio->activa,
             ],
@@ -199,6 +201,7 @@ class SitiosController extends Controller
             'ubicacion' => 'nullable|string|max:255',
             'latitud' => 'nullable|numeric|between:-90,90',
             'longitud' => 'nullable|numeric|between:-180,180',
+            'codigo_municipio_aemet' => 'nullable|string|max:10',
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
         ]);

@@ -19,6 +19,7 @@ class Sitio extends Model
         'ubicacion',
         'latitud',
         'longitud',
+        'codigo_municipio_aemet',
         'descripcion',
         'activa',
     ];

@@ -6,6 +6,7 @@ use App\Models\Dispositivo;
 use App\Models\Lectura;
 use App\Models\Sitio;
 use App\Models\Organizacion;
+use App\Services\AemetService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -110,6 +111,116 @@ class DashboardController extends Controller
             ];
         })->values();
 
+        // Obtener datos meteorológicos si el sitio tiene coordenadas o código AEMET manual
+        $datosMeteorologicos = null;
+        if ($sitioActual && (($sitioActual->latitud && $sitioActual->longitud) || $sitioActual->codigo_municipio_aemet)) {
+            try {
+                // Usar PVGIS solo para radiación solar (más preciso)
+                // AEMET para el resto de datos del día actual (temperatura, viento, estado del cielo, salida/puesta del sol)
+                $pvgisService = new \App\Services\PvgisService();
+                $aemetService = new AemetService();
+                
+                $datosMeteorologicos = [];
+                
+                // Obtener radiación solar desde PVGIS (solo este dato)
+                if ($sitioActual->latitud && $sitioActual->longitud) {
+                    $datosPvgis = $pvgisService->obtenerDatosRadiacion(
+                        $sitioActual->latitud,
+                        $sitioActual->longitud
+                    );
+                    
+                    if ($datosPvgis && isset($datosPvgis['radiacion_solar'])) {
+                        $datosMeteorologicos['radiacion_solar'] = $datosPvgis['radiacion_solar'];
+                    }
+                }
+                
+                // Obtener todos los demás datos desde AEMET (temperatura, viento, estado del cielo, salida/puesta del sol)
+                $codigoMunicipio = $sitioActual->codigo_municipio_aemet;
+                $codigoFuente = 'manual';
+                
+                if (!$codigoMunicipio && $sitioActual->latitud && $sitioActual->longitud) {
+                    $codigoMunicipio = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
+                        $sitioActual->latitud,
+                        $sitioActual->longitud
+                    );
+                    $codigoFuente = 'calculado';
+                }
+
+                if ($codigoMunicipio) {
+                    $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoMunicipio);
+                    
+                    // Si el código manual no funciona y hay coordenadas, intentar con el código calculado
+                    if (!$datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->latitud && $sitioActual->longitud) {
+                        $codigoCalculado = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
+                            $sitioActual->latitud,
+                            $sitioActual->longitud
+                        );
+                        
+                        if ($codigoCalculado && $codigoCalculado !== $codigoMunicipio) {
+                            $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoCalculado);
+                        }
+                    }
+                    
+                    // Usar datos de AEMET para todo excepto radiación solar
+                    if ($datosAemet) {
+                        $datosMeteorologicos['temperatura_actual'] = $datosAemet['temperatura_actual'] ?? null;
+                        $datosMeteorologicos['temperatura_maxima'] = $datosAemet['temperatura_maxima'] ?? null;
+                        $datosMeteorologicos['temperatura_minima'] = $datosAemet['temperatura_minima'] ?? null;
+                        $datosMeteorologicos['viento_velocidad'] = $datosAemet['viento_velocidad'] ?? null;
+                        $datosMeteorologicos['viento_direccion'] = $datosAemet['viento_direccion'] ?? null;
+                        $datosMeteorologicos['estado_cielo'] = $datosAemet['estado_cielo'] ?? null;
+                        $datosMeteorologicos['estado_cielo_codigo'] = $datosAemet['estado_cielo_codigo'] ?? null;
+                        $datosMeteorologicos['salida_sol'] = $datosAemet['salida_sol'] ?? null;
+                        $datosMeteorologicos['puesta_sol'] = $datosAemet['puesta_sol'] ?? null;
+                    }
+                    
+                    // Si AEMET no tiene salida/puesta del sol, calcular desde coordenadas
+                    if ((!isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null) 
+                        && $sitioActual->latitud && $sitioActual->longitud) {
+                        $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
+                        $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
+                        $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
+                    }
+                } elseif ($sitioActual->latitud && $sitioActual->longitud) {
+                    // Si no hay código de municipio, al menos calcular salida/puesta del sol desde coordenadas
+                    $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
+                    $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
+                    $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
+                }
+                
+                // Si no hay datos de ninguna fuente, crear estructura vacía
+                if (!$datosMeteorologicos) {
+                    $datosMeteorologicos = [
+                        'temperatura_actual' => null,
+                        'temperatura_maxima' => null,
+                        'temperatura_minima' => null,
+                        'viento_velocidad' => null,
+                        'viento_direccion' => null,
+                        'radiacion_solar' => null,
+                        'salida_sol' => null,
+                        'puesta_sol' => null,
+                        'estado_cielo' => null,
+                        'estado_cielo_codigo' => null,
+                        'fecha_actualizacion' => now()->toISOString(),
+                    ];
+                } else {
+                    // Asegurar que todos los campos estén presentes
+                    $datosMeteorologicos['temperatura_maxima'] = $datosMeteorologicos['temperatura_maxima'] ?? null;
+                    $datosMeteorologicos['temperatura_minima'] = $datosMeteorologicos['temperatura_minima'] ?? null;
+                    $datosMeteorologicos['viento_direccion'] = $datosMeteorologicos['viento_direccion'] ?? null;
+                    $datosMeteorologicos['estado_cielo'] = $datosMeteorologicos['estado_cielo'] ?? null;
+                    $datosMeteorologicos['estado_cielo_codigo'] = $datosMeteorologicos['estado_cielo_codigo'] ?? null;
+                    $datosMeteorologicos['fecha_actualizacion'] = $datosMeteorologicos['fecha_actualizacion'] ?? now()->toISOString();
+                }
+            } catch (\Exception $e) {
+                // Silenciar errores de AEMET para no afectar el dashboard
+                \Log::warning('Error al obtener datos meteorológicos', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
+        }
+
         return Inertia::render('Dashboard/Index', [
             'dispositivo' => [
                 'id' => $dispositivo->id,
@@ -127,6 +238,7 @@ class DashboardController extends Controller
             'dispositivos' => $dispositivos,
             'metricas' => $metricas,
             'datos_grafica' => $datosGrafica,
+            'datos_meteorologicos' => $datosMeteorologicos,
             'periodo' => $periodo,
             'sinDispositivos' => false,
         ]);
@@ -339,6 +451,61 @@ class DashboardController extends Controller
             'exportacion_actual_kw' => round($exportacionActual / 1000, 2),
             'consumo_total_actual_kw' => round($consumoTotalActual / 1000, 2),
         ];
+    }
+
+    /**
+     * Calcula la salida y puesta del sol para unas coordenadas dadas
+     * 
+     * @param float $lat Latitud
+     * @param float $lng Longitud
+     * @return array Con 'salida' y 'puesta' en formato HH:mm
+     */
+    private function calcularSalidaPuestaSol(float $lat, float $lng): array
+    {
+        try {
+            $timezone = config('app.timezone', 'Europe/Madrid');
+            $fecha = now($timezone);
+            $timestamp = $fecha->getTimestamp();
+
+            // Calcular salida del sol
+            $salidaSol = date_sunrise(
+                $timestamp,
+                SUNFUNCS_RET_TIMESTAMP,
+                $lat,
+                $lng,
+                90.833, // Ángulo del sol (corrección atmosférica)
+                (new \DateTimeZone($timezone))->getOffset($fecha) / 3600
+            );
+
+            // Calcular puesta del sol
+            $puestaSol = date_sunset(
+                $timestamp,
+                SUNFUNCS_RET_TIMESTAMP,
+                $lat,
+                $lng,
+                90.833, // Ángulo del sol (corrección atmosférica)
+                (new \DateTimeZone($timezone))->getOffset($fecha) / 3600
+            );
+
+            // Convertir timestamps a formato HH:mm
+            $salida = $salidaSol ? date('H:i', $salidaSol) : null;
+            $puesta = $puestaSol ? date('H:i', $puestaSol) : null;
+
+            return [
+                'salida' => $salida,
+                'puesta' => $puesta,
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Error al calcular salida/puesta del sol', [
+                'error' => $e->getMessage(),
+                'lat' => $lat,
+                'lng' => $lng,
+            ]);
+            return [
+                'salida' => null,
+                'puesta' => null,
+            ];
+        }
     }
 
 }

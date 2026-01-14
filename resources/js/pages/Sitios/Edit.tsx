@@ -27,6 +27,7 @@ interface Sitio {
     ubicacion: string | null;
     latitud: number | null;
     longitud: number | null;
+    codigo_municipio_aemet: string | null;
     descripcion: string | null;
     activa: boolean;
 }
@@ -44,6 +45,7 @@ export default function SitiosEdit({ sitio, organizaciones }: Props) {
         ubicacion: sitio.ubicacion || '',
         latitud: sitio.latitud?.toString() || '',
         longitud: sitio.longitud?.toString() || '',
+        codigo_municipio_aemet: sitio.codigo_municipio_aemet || '',
         descripcion: sitio.descripcion || '',
         activa: sitio.activa,
     });
@@ -155,6 +157,25 @@ export default function SitiosEdit({ sitio, organizaciones }: Props) {
                                         <p className="mt-2 text-sm text-red-600">
                                             {errors.latitud || errors.longitud}
                                         </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Código Municipio AEMET
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={data.codigo_municipio_aemet}
+                                        onChange={(e) => setData('codigo_municipio_aemet', e.target.value)}
+                                        placeholder="Ej: 07300"
+                                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Código de municipio de AEMET OpenData (5 dígitos). Si no se especifica, se calculará automáticamente desde las coordenadas.
+                                    </p>
+                                    {errors.codigo_municipio_aemet && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.codigo_municipio_aemet}</p>
                                     )}
                                 </div>
 
