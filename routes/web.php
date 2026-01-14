@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispositivosController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OrganizacionesController;
 use App\Http\Controllers\SeleccionarContextoController;
 use App\Http\Controllers\SitiosController;
@@ -43,6 +44,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('dispositivos.toggle-activo');
     Route::post('/dispositivos/{dispositivo}/sincronizar', [DispositivosController::class, 'sincronizar'])
         ->name('dispositivos.sincronizar');
+    
+    // Búsqueda de lugares para selector de localización
+    Route::get('/api/location/search', [LocationController::class, 'search'])
+        ->name('location.search');
 });
 
 require __DIR__ . '/settings.php';

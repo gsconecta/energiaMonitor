@@ -2,6 +2,16 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Pencil, Trash2, Building2, MapPin, Zap, Plus, RefreshCw } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+
+// Fix para iconos de Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -153,6 +163,39 @@ export default function SitiosShow({ sitio }: Props) {
                         </div>
                     </div>
                 </div>
+
+                {/* Mapa de localización */}
+                {sitio.latitud && sitio.longitud && (
+                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
+                        <div className="p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                Ubicación
+                            </h2>
+                            <div className="h-[300px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                                <MapContainer
+                                    center={[sitio.latitud, sitio.longitud]}
+                                    zoom={13}
+                                    style={{ height: '100%', width: '100%' }}
+                                    scrollWheelZoom={false}
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <Marker position={[sitio.latitud, sitio.longitud]} />
+                                </MapContainer>
+                            </div>
+                            {sitio.ubicacion && (
+                                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                                    {sitio.ubicacion}
+                                </p>
+                            )}
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                                Lat: {sitio.latitud.toFixed(6)}, Lng: {sitio.longitud.toFixed(6)}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Dispositivos */}
                 <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
