@@ -61,9 +61,15 @@ export default function FlujoEnergetico({
         const x2 = centroX + radio * Math.cos(anguloFin);
         const y2 = centroY + radio * Math.sin(anguloFin);
 
-        const largeArcFlag = porcentaje > 50 ? 1 : 0;
+        // Calcular largeArcFlag basándose en el ángulo total del arco
+        // El arco va desde anguloInicio hasta anguloFin
+        // Si la diferencia es mayor a 180° (π radianes), usar large arc
+        // Para un semicírculo (0 a 180°), siempre usamos el arco pequeño (largeArcFlag = 0)
+        const diferenciaAngular = (Math.PI * porcentaje) / 100;
+        const largeArcFlag = diferenciaAngular > Math.PI ? 1 : 0;
 
         // Cambiar sweep-flag a 1 para dirección horaria (curva hacia abajo)
+        // Usar el mismo radio para ambos ejes para asegurar un círculo perfecto
         return `M ${x1} ${y1} A ${radio} ${radio} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
     };
 
@@ -93,7 +99,8 @@ export default function FlujoEnergetico({
                                 stroke="rgb(251, 191, 36)"
                                 strokeWidth={grosor}
                                 fill="none"
-                                strokeLinecap="round"
+                                strokeLinecap={porcentajeRed > 0 ? "butt" : "round"}
+                                strokeLinejoin="round"
                             />
                         )}
                         {/* Arco azul (red eléctrica) - solo si está consumiendo, continúa desde donde termina el amarillo */}
@@ -107,6 +114,7 @@ export default function FlujoEnergetico({
                                 strokeWidth={grosor}
                                 fill="none"
                                 strokeLinecap="round"
+                                strokeLinejoin="round"
                             />
                         )}
                     </svg>
