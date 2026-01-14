@@ -215,63 +215,72 @@ export default function Dashboard({
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 sm:gap-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="flex-1">
-                            <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
-                                {dispositivo?.sitio.nombre} - {dispositivo?.nombre}
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex h-3 w-3">
-                                <span
-                                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
-                                        metricas?.estado_conexion === 'online'
-                                            ? 'bg-green-400'
-                                            : 'bg-red-400'
-                                    }`}
-                                />
-                                <span
-                                    className={`relative inline-flex h-3 w-3 rounded-full ${
-                                        metricas?.estado_conexion === 'online'
-                                            ? 'bg-green-500'
-                                            : 'bg-red-500'
-                                    }`}
-                                />
-                            </div>
-                            <span
-                                className={`text-xs font-medium sm:text-sm ${
-                                    metricas?.estado_conexion === 'online'
-                                        ? 'text-green-600 dark:text-green-400'
-                                        : 'text-red-600 dark:text-red-400'
-                                }`}
-                            >
-                                {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
-                            </span>
-                        </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1">
+                        <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
+                            {dispositivo?.sitio.nombre} - {dispositivo?.nombre}
+                        </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        <select
-                            value={dispositivo?.id || ''}
-                            onChange={(e) => {
-                                if (e.target.value) {
-                                    handleDispositivoChange(e.target.value);
-                                }
-                            }}
-                            className="w-full rounded-md border-gray-300 p-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex h-3 w-3">
+                            <span
+                                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
+                                    metricas?.estado_conexion === 'online'
+                                        ? 'bg-green-400'
+                                        : 'bg-red-400'
+                                }`}
+                            />
+                            <span
+                                className={`relative inline-flex h-3 w-3 rounded-full ${
+                                    metricas?.estado_conexion === 'online'
+                                        ? 'bg-green-500'
+                                        : 'bg-red-500'
+                                }`}
+                            />
+                        </div>
+                        <span
+                            className={`text-xs font-medium sm:text-sm ${
+                                metricas?.estado_conexion === 'online'
+                                    ? 'text-green-600 dark:text-green-400'
+                                    : 'text-red-600 dark:text-red-400'
+                            }`}
                         >
-                            {dispositivos.length === 0 ? (
-                                <option value="">No hay dispositivos</option>
-                            ) : (
-                                dispositivos.map((disp) => (
+                            {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Componente Flujo Energético */}
+                {metricas && (
+                    <FlujoEnergetico
+                        produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
+                        redElectrica={metricas.red_electrica_actual_kw || 0}
+                        exportacion={metricas.exportacion_actual_kw || 0}
+                        consumoTotal={metricas.consumo_total_actual_kw || 0}
+                    />
+                )}
+
+                {/* Filtros de período */}
+                <div className="flex flex-col gap-3 sm:gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        {dispositivos.length > 1 && (
+                            <select
+                                value={dispositivo?.id || ''}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        handleDispositivoChange(e.target.value);
+                                    }
+                                }}
+                                className="w-full rounded-md border-gray-300 p-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                            >
+                                {dispositivos.map((disp) => (
                                     <option key={disp.id} value={disp.id}>
                                         {disp.nombre}
                                     </option>
-                                ))
-                            )}
-                        </select>
+                                ))}
+                            </select>
+                        )}
 
                         <div className="grid grid-cols-4 gap-1 rounded-md shadow-sm sm:inline-flex" role="group">
                             {['hoy', 'ayer', 'semana', 'mes'].map((p) => (
@@ -351,16 +360,6 @@ export default function Dashboard({
                         </div>
                     )}
                 </div>
-
-                {/* Componente Flujo Energético */}
-                {metricas && (
-                    <FlujoEnergetico
-                        produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
-                        redElectrica={metricas.red_electrica_actual_kw || 0}
-                        exportacion={metricas.exportacion_actual_kw || 0}
-                        consumoTotal={metricas.consumo_total_actual_kw || 0}
-                    />
-                )}
 
                 {/* Gráfica de Balance Energético */}
                 {datos_grafica && datos_grafica.length > 0 && (
