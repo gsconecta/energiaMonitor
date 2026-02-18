@@ -66,6 +66,7 @@ export default function SeleccionarContexto() {
     );
     const [sitioSeleccionado, setSitioSeleccionado] = useState<number | null>(sitioActualId);
     const [procesando, setProcesando] = useState(false);
+    const [mostrarListaOrganizaciones, setMostrarListaOrganizaciones] = useState(true);
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [mostrarFormularioSitio, setMostrarFormularioSitio] = useState(false);
     const [codigoEditadoManualmente, setCodigoEditadoManualmente] = useState(false);
@@ -302,45 +303,70 @@ export default function SeleccionarContexto() {
                                 <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     Organización
                                 </h2>
-                                <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
-                                    {organizaciones.map((organizacion) => {
-                                        const isActive = organizacionSeleccionada === organizacion.id;
-                                        return (
-                                            <button
-                                                key={organizacion.id}
-                                                onClick={() => {
-                                                    setOrganizacionSeleccionada(organizacion.id);
-                                                    setSitioSeleccionado(null); // Reset sitio cuando cambia organización
-                                                }}
-                                                className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                                                    isActive
-                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                        : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:hover:border-gray-600'
-                                                }`}
-                                            >
-                                                <Building2
-                                                    className={`mt-0.5 h-5 w-5 ${
+                                {mostrarListaOrganizaciones ? (
+                                    <div className="grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
+                                        {organizaciones.map((organizacion) => {
+                                            const isActive = organizacionSeleccionada === organizacion.id;
+                                            return (
+                                                <button
+                                                    key={organizacion.id}
+                                                    onClick={() => {
+                                                        setOrganizacionSeleccionada(organizacion.id);
+                                                        setSitioSeleccionado(null); // Reset sitio cuando cambia organización
+                                                        setMostrarListaOrganizaciones(false);
+                                                    }}
+                                                    className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
                                                         isActive
-                                                            ? 'text-blue-600 dark:text-blue-400'
-                                                            : 'text-gray-400'
+                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                            : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:hover:border-gray-600'
                                                     }`}
-                                                />
-                                                <div className="flex-1">
-                                                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                                                        {organizacion.nombre}
+                                                >
+                                                    <Building2
+                                                        className={`mt-0.5 h-5 w-5 ${
+                                                            isActive
+                                                                ? 'text-blue-600 dark:text-blue-400'
+                                                                : 'text-gray-400'
+                                                        }`}
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                                            {organizacion.nombre}
+                                                        </div>
+                                                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                            {organizacion.sitios.length} sitio
+                                                            {organizacion.sitios.length !== 1 ? 's' : ''}
+                                                        </div>
                                                     </div>
-                                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                        {organizacion.sitios.length} sitio
-                                                        {organizacion.sitios.length !== 1 ? 's' : ''}
-                                                    </div>
+                                                    {isActive && (
+                                                        <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/30 dark:bg-blue-900/20">
+                                        <div className="flex items-center gap-3">
+                                            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                            <div>
+                                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                                    {organizacionSeleccionadaObj?.nombre}
                                                 </div>
-                                                {isActive && (
-                                                    <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                <div className="text-xs text-blue-600 dark:text-blue-400">
+                                                    Organización seleccionada
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setMostrarListaOrganizaciones(true)}
+                                            className="h-8 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                                        >
+                                            Cambiar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </Card>
 
