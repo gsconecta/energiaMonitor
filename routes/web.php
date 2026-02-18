@@ -21,30 +21,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/seleccionar-contexto', [SeleccionarContextoController::class, 'destroy'])
         ->name('limpiar-contexto');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+    Route::get('/informes', [\App\Http\Controllers\InformesController::class, 'index'])->name('informes');
+
     // Organizaciones
     Route::resource('organizaciones', OrganizacionesController::class)
         ->parameters(['organizaciones' => 'organizacion']);
-    Route::post('/organizaciones/{organizacion}/usuarios', 
-        [OrganizacionesController::class, 'agregarUsuario'])
+    Route::post(
+        '/organizaciones/{organizacion}/usuarios',
+        [OrganizacionesController::class, 'agregarUsuario']
+    )
         ->name('organizaciones.usuarios.store');
-    Route::put('/organizaciones/{organizacion}/usuarios/{user}', 
-        [OrganizacionesController::class, 'actualizarRolUsuario'])
+    Route::put(
+        '/organizaciones/{organizacion}/usuarios/{user}',
+        [OrganizacionesController::class, 'actualizarRolUsuario']
+    )
         ->name('organizaciones.usuarios.update');
-    Route::delete('/organizaciones/{organizacion}/usuarios/{user}', 
-        [OrganizacionesController::class, 'eliminarUsuario'])
+    Route::delete(
+        '/organizaciones/{organizacion}/usuarios/{user}',
+        [OrganizacionesController::class, 'eliminarUsuario']
+    )
         ->name('organizaciones.usuarios.destroy');
-    
+
     // Sitios
     Route::resource('sitios', SitiosController::class);
-    
+
     // Dispositivos
     Route::resource('dispositivos', DispositivosController::class);
     Route::post('/dispositivos/{dispositivo}/toggle-activo', [DispositivosController::class, 'toggleActivo'])
         ->name('dispositivos.toggle-activo');
     Route::post('/dispositivos/{dispositivo}/sincronizar', [DispositivosController::class, 'sincronizar'])
         ->name('dispositivos.sincronizar');
-    
+
     // Búsqueda de lugares para selector de localización
     Route::get('/api/location/search', [LocationController::class, 'search'])
         ->name('location.search');
