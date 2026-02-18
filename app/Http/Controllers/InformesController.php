@@ -107,15 +107,17 @@ class InformesController extends Controller
         // Obtener lecturas en el rango
         // Seleccionamos solo las columnas necesarias para optimizar
         $lecturas = $dispositivo->lecturas()
+            ->with('dispositivo')
             ->whereBetween('fecha_lectura', [$fechaDesde, $fechaHasta])
             ->orderBy('fecha_lectura', 'asc')
             ->get([
+                'id', // ID is often needed for relations
                 'fecha_lectura',
                 'potencia_total_w',
                 'potencia_canal_1_w',
                 'potencia_canal_2_w',
                 'potencia_canal_3_w',
-                'dispositivo_id' // Requerido por las relaciones/métodos del modelo
+                'dispositivo_id'
             ]);
 
         // Calcular Energía usando la fórmula integral
