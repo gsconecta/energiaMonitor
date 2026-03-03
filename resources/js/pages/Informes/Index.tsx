@@ -17,6 +17,7 @@ import {
 } from 'chart.js';
 import { ArrowDown, ArrowUp, Zap } from 'lucide-react';
 import { useState } from 'react';
+import VoltajeRedChart from '@/components/VoltajeRedChart';
 import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -50,6 +51,7 @@ interface DataPoint {
     generacion_kwh: number;
     importacion_kwh: number;
     exportacion_kwh: number;
+    voltaje_red_electrica?: number;
 }
 
 interface Props {
@@ -97,6 +99,30 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
     const independenciaEnergetica = totalConsumo > 0
         ? Math.max(0, 100 - ((totalImportacion / totalConsumo) * 100))
         : 0;
+
+    // Calcular min y max voltaje con sus fechas
+    const voltajesValidos = datos.filter((d): d is DataPoint & { voltaje_red_electrica: number } =>
+        d.voltaje_red_electrica !== undefined && d.voltaje_red_electrica > 0
+    );
+
+    let minVoltaje = 0;
+    let maxVoltaje = 0;
+    let fechaMinVoltaje = '';
+    let fechaMaxVoltaje = '';
+
+    if (voltajesValidos.length > 0) {
+        const minElement = voltajesValidos.reduce((min, curr) => curr.voltaje_red_electrica < min.voltaje_red_electrica ? curr : min, voltajesValidos[0]);
+        const maxElement = voltajesValidos.reduce((max, curr) => curr.voltaje_red_electrica > max.voltaje_red_electrica ? curr : max, voltajesValidos[0]);
+
+        minVoltaje = minElement.voltaje_red_electrica;
+        maxVoltaje = maxElement.voltaje_red_electrica;
+        fechaMinVoltaje = new Date(minElement.fecha).toLocaleString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        fechaMaxVoltaje = new Date(maxElement.fecha).toLocaleString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    }
 
     // Configuración del gráfico
     const chartData = {
@@ -251,7 +277,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                 </Card>
 
                 {/* KPIs */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Consumo Total</CardTitle>
@@ -302,19 +328,54 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                             <p className="text-xs text-muted-foreground">Vertido a la red</p>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Voltaje Mínimo</CardTitle>
+                            <Zap className="h-4 w-4 text-orange-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{minVoltaje > 0 ? minVoltaje.toFixed(1) : '-'} V</div>
+                            <p className="text-xs text-muted-foreground">{minVoltaje > 0 ? fechaMinVoltaje : 'En el periodo'}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Voltaje Máximo</CardTitle>
+                            <Zap className="h-4 w-4 text-red-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{maxVoltaje > 0 ? maxVoltaje.toFixed(1) : '-'} V</div>
+                            <p className="text-xs text-muted-foreground">{maxVoltaje > 0 ? fechaMaxVoltaje : 'En el periodo'}</p>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* Gráfico */}
-                <Card className="flex flex-1 flex-col overflow-hidden">
-                    <CardHeader>
-                        <CardTitle>Evolución Energética</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 min-h-0 relative p-4">
-                        <div className="absolute inset-4">
-                            <Bar options={chartOptions} data={chartData} />
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* Contenedor de Gráficas en 2 columnas */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mt-4">
+                    {/* Gráfico Evolución Energética */}
+                    <Card className="flex flex-col h-[500px]">
+                        <CardHeader>
+                            <CardTitle>Evolución Energética</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 relative p-4">
+                            <div className="absolute inset-4">
+                                <Bar options={chartOptions} data={chartData} />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Gráfico Voltaje de Red */}
+                    <Card className="flex flex-col h-[500px]">
+                        <CardHeader>
+                            <CardTitle>Voltaje Promedio</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-4 relative overflow-hidden">
+                            <div className="h-full w-full">
+                                <VoltajeRedChart datos={datos as any} ocultarFiltros={true} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
             </div>
         </AppLayout>

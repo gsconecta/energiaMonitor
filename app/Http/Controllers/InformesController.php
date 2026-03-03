@@ -117,6 +117,10 @@ class InformesController extends Controller
                 'potencia_canal_1_w',
                 'potencia_canal_2_w',
                 'potencia_canal_3_w',
+                'voltaje_promedio',
+                'voltaje_canal_1',
+                'voltaje_canal_2',
+                'voltaje_canal_3',
                 'dispositivo_id'
             ]);
 
@@ -152,6 +156,7 @@ class InformesController extends Controller
                 $potenciaGeneracion = $lecturaActual->obtenerGeneracionFotovoltaica();
                 $potenciaImportacion = $lecturaActual->obtenerImportacionRed();
                 $potenciaExportacion = $lecturaActual->obtenerExportacionRed();
+                $voltajeActual = $lecturaActual->obtenerVoltajeRedElectrica();
 
                 // Cálculo de energía (kWh) para este delta de tiempo
                 $factor = $diffSegundos / 3600000;
@@ -172,6 +177,9 @@ class InformesController extends Controller
                         'generacion_kwh' => 0,
                         'importacion_kwh' => 0,
                         'exportacion_kwh' => 0,
+                        'suma_voltaje' => 0,
+                        'conteo_voltaje' => 0,
+                        'voltaje_red_electrica' => null,
                         // Guardamos contadores para calcular promedios de potencia si se quisiera, 
                         // pero el usuario pidió Energía acumulada.
                     ];
@@ -181,6 +189,11 @@ class InformesController extends Controller
                 $datosAgrupados[$key]['generacion_kwh'] += $energiaGeneracion;
                 $datosAgrupados[$key]['importacion_kwh'] += $energiaImportacion;
                 $datosAgrupados[$key]['exportacion_kwh'] += $energiaExportacion;
+
+                if ($voltajeActual > 0) {
+                    $datosAgrupados[$key]['suma_voltaje'] += $voltajeActual;
+                    $datosAgrupados[$key]['conteo_voltaje'] += 1;
+                }
             }
         }
 
@@ -190,6 +203,13 @@ class InformesController extends Controller
             $dato['generacion_kwh'] = round($dato['generacion_kwh'], 3);
             $dato['importacion_kwh'] = round($dato['importacion_kwh'], 3);
             $dato['exportacion_kwh'] = round($dato['exportacion_kwh'], 3);
+
+            if ($dato['conteo_voltaje'] > 0) {
+                $dato['voltaje_red_electrica'] = round($dato['suma_voltaje'] / $dato['conteo_voltaje'], 1);
+            }
+
+            unset($dato['suma_voltaje']);
+            unset($dato['conteo_voltaje']);
         }
 
         return Inertia::render('Informes/Index', [

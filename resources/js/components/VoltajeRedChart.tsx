@@ -35,11 +35,13 @@ interface DatosGrafica {
 
 interface Props {
     datos: DatosGrafica[];
+    ocultarFiltros?: boolean;
 }
 
-export default function VoltajeRedChart({ datos }: Props) {
-    const [horaDesde, setHoraDesde] = useState<string>('06:00');
-    const [horaHasta, setHoraHasta] = useState<string>('23:00');
+export default function VoltajeRedChart({ datos, ocultarFiltros = false }: Props) {
+    // Si ocultarFiltros es true, mostramos todo el día por defecto para no perder datos agrupados por día
+    const [horaDesde, setHoraDesde] = useState<string>(ocultarFiltros ? '00:00' : '06:00');
+    const [horaHasta, setHoraHasta] = useState<string>(ocultarFiltros ? '23:59' : '23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
@@ -200,6 +202,7 @@ export default function VoltajeRedChart({ datos }: Props) {
                     color: 'rgb(107, 114, 128)',
                     maxRotation: 45,
                     minRotation: 45,
+                    display: false,
                 },
             },
             y: {
@@ -269,42 +272,47 @@ export default function VoltajeRedChart({ datos }: Props) {
                 </h2>
             )}
 
-            {/* Controles de filtro horario */}
+            {/* Controles */}
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                {!ocultarFiltros && (
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Desde:
+                            </label>
+                            <input
+                                ref={horaDesdeRef}
+                                type="time"
+                                defaultValue={horaDesde}
+                                className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
+                                onChange={(e) => setHoraDesde(e.target.value)}
+                            />
+                        </div>
+                        <span className="text-gray-500 dark:text-gray-400">-</span>
+                        <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Hasta:
+                            </label>
+                            <input
+                                ref={horaHastaRef}
+                                type="time"
+                                defaultValue={horaHasta}
+                                className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
+                                onChange={(e) => setHoraHasta(e.target.value)}
+                            />
+                        </div>
+                        <button
+                            onClick={handleLimpiarFiltro}
+                            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            title="Limpiar filtro horario (mostrar todo el día)"
+                        >
+                            Limpiar
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
-                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            Desde:
-                        </label>
-                        <input
-                            ref={horaDesdeRef}
-                            type="time"
-                            defaultValue={horaDesde}
-                            className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
-                            onChange={(e) => setHoraDesde(e.target.value)}
-                        />
-                    </div>
-                    <span className="text-gray-500 dark:text-gray-400">-</span>
-                    <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
-                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            Hasta:
-                        </label>
-                        <input
-                            ref={horaHastaRef}
-                            type="time"
-                            defaultValue={horaHasta}
-                            className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
-                            onChange={(e) => setHoraHasta(e.target.value)}
-                        />
-                    </div>
-                    <button
-                        onClick={handleLimpiarFiltro}
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title="Limpiar filtro horario (mostrar todo el día)"
-                    >
-                        Limpiar
-                    </button>
                     <button
                         onClick={toggleFullscreen}
                         className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"

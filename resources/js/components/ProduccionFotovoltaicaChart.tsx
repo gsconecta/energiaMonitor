@@ -171,6 +171,7 @@ export default function ProduccionFotovoltaicaChart({ datos }: Props) {
                     color: 'rgb(107, 114, 128)',
                     maxRotation: 45,
                     minRotation: 45,
+                    display: false,
                 },
             },
             y: {
