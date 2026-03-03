@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { useState, useEffect, useRef } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Maximize, Minimize } from 'lucide-react';
 
 ChartJS.register(
     CategoryScale,
@@ -229,7 +229,6 @@ export default function VoltajeRedChart({ datos }: Props) {
         },
     };
 
-    // Aplicar estilos para dark mode
     const isDarkMode = document.documentElement.classList.contains('dark');
     if (isDarkMode) {
         // Ajustar colores para dark mode
@@ -241,8 +240,35 @@ export default function VoltajeRedChart({ datos }: Props) {
         options.scales!.y!.grid!.color = 'rgba(156, 163, 175, 0.1)';
     }
 
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            chartContainerRef.current?.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
     return (
-        <div className="w-full">
+        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
+            {isFullscreen && (
+                <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
+                    Voltaje de Red Eléctrica
+                </h2>
+            )}
+
             {/* Controles de filtro horario */}
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <div className="flex items-center gap-2">
@@ -279,17 +305,24 @@ export default function VoltajeRedChart({ datos }: Props) {
                     >
                         Limpiar
                     </button>
+                    <button
+                        onClick={toggleFullscreen}
+                        className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        title={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                    >
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                    </button>
                 </div>
             </div>
 
             {datosFiltrados.length === 0 ? (
-                <div className="flex h-96 items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800">
+                <div className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         No hay datos en el rango horario seleccionado ({horaDesde} - {horaHasta})
                     </p>
                 </div>
             ) : (
-                <div className="h-96 w-full rounded-lg border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-gray-800">
+                <div className={`w-full rounded-lg border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
                     <Line data={chartData} options={options} />
                 </div>
             )}
