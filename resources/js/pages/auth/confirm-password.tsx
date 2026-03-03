@@ -1,5 +1,6 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { InputPassword } from '@/components/ui/input-password';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
@@ -10,21 +11,20 @@ import { LoaderCircle } from 'lucide-react';
 export default function ConfirmPassword() {
     return (
         <AuthLayout
-            title="Confirm your password"
-            description="This is a secure area of the application. Please confirm your password before continuing."
+            title="Confirmar contraseña"
+            description="Esta es un área segura de la aplicación. Por favor, confirma tu contraseña antes de continuar."
         >
-            <Head title="Confirm password" />
+            <Head title="Confirmar contraseña" />
 
             <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <div className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
+                            <Label htmlFor="password">Contraseña</Label>
+                            <InputPassword
                                 id="password"
-                                type="password"
                                 name="password"
-                                placeholder="Password"
+                                placeholder="Contraseña"
                                 autoComplete="current-password"
                                 autoFocus
                             />
@@ -41,7 +41,7 @@ export default function ConfirmPassword() {
                                 {processing && (
                                     <LoaderCircle className="h-4 w-4 animate-spin" />
                                 )}
-                                Confirm password
+                                Confirmar contraseña
                             </Button>
                         </div>
                     </div>

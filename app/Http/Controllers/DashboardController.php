@@ -15,7 +15,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         // Verificar si hay contexto seleccionado
         $organizacionActualId = $request->session()->get('organizacion_actual_id');
         $sitioActualId = $request->session()->get('sitio_actual_id');
@@ -47,7 +47,7 @@ class DashboardController extends Controller
         $fechaHasta = $request->get('fecha_hasta');
 
         // Función helper para crear la query base de dispositivos
-        $crearQueryDispositivos = function() use ($sitioActualId) {
+        $crearQueryDispositivos = function () use ($sitioActualId) {
             return Dispositivo::with('sitio')
                 ->whereHas('sitio', function ($q) use ($sitioActualId) {
                     $q->where('id', $sitioActualId);
@@ -74,7 +74,7 @@ class DashboardController extends Controller
             $dispositivo = $crearQueryDispositivos()
                 ->where('id', $dispositivoId)
                 ->first();
-            
+
             // Si el dispositivo no pertenece al sitio, usar el primero disponible
             if (!$dispositivo) {
                 $dispositivo = $crearQueryDispositivos()->first();
@@ -102,7 +102,7 @@ class DashboardController extends Controller
         $metricas = $this->calcularMetricas($lecturas, $dispositivo, $ultimaLecturaReal);
 
         // Preparar datos para la gráfica de balance energético
-        $datosGrafica = $lecturas->map(function($lectura) {
+        $datosGrafica = $lecturas->map(function ($lectura) {
             return [
                 'fecha' => $lectura->fecha_lectura->toISOString(),
                 'produccion_fotovoltaica_kw' => round(($lectura->obtenerPotenciaFotovoltaica() ?? 0) / 1000, 2),
@@ -119,25 +119,25 @@ class DashboardController extends Controller
                 // AEMET para el resto de datos del día actual (temperatura, viento, estado del cielo, salida/puesta del sol)
                 $pvgisService = new \App\Services\PvgisService();
                 $aemetService = new AemetService();
-                
+
                 $datosMeteorologicos = [];
-                
+
                 // Obtener radiación solar desde PVGIS (solo este dato)
                 if ($sitioActual->latitud && $sitioActual->longitud) {
                     $datosPvgis = $pvgisService->obtenerDatosRadiacion(
                         $sitioActual->latitud,
                         $sitioActual->longitud
                     );
-                    
+
                     if ($datosPvgis && isset($datosPvgis['radiacion_solar'])) {
                         $datosMeteorologicos['radiacion_solar'] = $datosPvgis['radiacion_solar'];
                     }
                 }
-                
+
                 // Obtener todos los demás datos desde AEMET (temperatura, viento, estado del cielo, salida/puesta del sol)
                 $codigoMunicipio = $sitioActual->codigo_municipio_aemet;
                 $codigoFuente = 'manual';
-                
+
                 if (!$codigoMunicipio && $sitioActual->latitud && $sitioActual->longitud) {
                     $codigoMunicipio = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                         $sitioActual->latitud,
@@ -148,19 +148,19 @@ class DashboardController extends Controller
 
                 if ($codigoMunicipio) {
                     $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoMunicipio);
-                    
+
                     // Si el código manual no funciona y hay coordenadas, intentar con el código calculado
                     if (!$datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->latitud && $sitioActual->longitud) {
                         $codigoCalculado = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                             $sitioActual->latitud,
                             $sitioActual->longitud
                         );
-                        
+
                         if ($codigoCalculado && $codigoCalculado !== $codigoMunicipio) {
                             $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoCalculado);
                         }
                     }
-                    
+
                     // Usar datos de AEMET para todo excepto radiación solar
                     if ($datosAemet) {
                         $datosMeteorologicos['temperatura_actual'] = $datosAemet['temperatura_actual'] ?? null;
@@ -173,10 +173,12 @@ class DashboardController extends Controller
                         $datosMeteorologicos['salida_sol'] = $datosAemet['salida_sol'] ?? null;
                         $datosMeteorologicos['puesta_sol'] = $datosAemet['puesta_sol'] ?? null;
                     }
-                    
+
                     // Si AEMET no tiene salida/puesta del sol, calcular desde coordenadas
-                    if ((!isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null) 
-                        && $sitioActual->latitud && $sitioActual->longitud) {
+                    if (
+                        (!isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null)
+                        && $sitioActual->latitud && $sitioActual->longitud
+                    ) {
                         $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
                         $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
                         $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
@@ -187,7 +189,7 @@ class DashboardController extends Controller
                     $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
                     $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
                 }
-                
+
                 // Si no hay datos de ninguna fuente, crear estructura vacía
                 if (!$datosMeteorologicos) {
                     $datosMeteorologicos = [
@@ -246,7 +248,7 @@ class DashboardController extends Controller
 
     private function obtenerLecturas($dispositivo, $periodo, $fechaDesde = null, $fechaHasta = null)
     {
-        $query = $dispositivo->lecturas();
+        $query = $dispositivo->lecturas()->with('dispositivo');
 
         // Si se proporcionan fechas personalizadas, usarlas
         if ($fechaDesde && $fechaHasta) {
@@ -256,23 +258,23 @@ class DashboardController extends Controller
             ]);
         } else {
             // Usar períodos predefinidos
-        switch ($periodo) {
-            case 'hoy':
-                $query->whereDate('fecha_lectura', today());
-                break;
-            case 'ayer':
-                $query->whereDate('fecha_lectura', today()->subDay());
-                break;
-            case 'semana':
-                $query->whereBetween('fecha_lectura', [
-                    now()->startOfWeek(),
-                    now()->endOfWeek()
-                ]);
-                break;
-            case 'mes':
-                $query->whereMonth('fecha_lectura', now()->month)
-                      ->whereYear('fecha_lectura', now()->year);
-                break;
+            switch ($periodo) {
+                case 'hoy':
+                    $query->whereDate('fecha_lectura', today());
+                    break;
+                case 'ayer':
+                    $query->whereDate('fecha_lectura', today()->subDay());
+                    break;
+                case 'semana':
+                    $query->whereBetween('fecha_lectura', [
+                        now()->startOfWeek(),
+                        now()->endOfWeek()
+                    ]);
+                    break;
+                case 'mes':
+                    $query->whereMonth('fecha_lectura', now()->month)
+                        ->whereYear('fecha_lectura', now()->year);
+                    break;
             }
         }
 
@@ -316,15 +318,15 @@ class DashboardController extends Controller
         $ultimaLectura = $lecturas->last();
 
         // Verificar si está online (última lectura hace menos de 10 minutos)
-        $estaOnline = $ultimaLectura && $ultimaLectura->fecha_lectura 
-            ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10 
+        $estaOnline = $ultimaLectura && $ultimaLectura->fecha_lectura
+            ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10
             : false;
 
         // Calcular promedios con manejo de nulls
         $potenciaMaxima = $lecturas->whereNotNull('potencia_total_w')->max('potencia_total_w') ?? 0;
         $potenciaPromedio = $lecturas->whereNotNull('potencia_total_w')->avg('potencia_total_w') ?? 0;
         $voltajePromedio = $lecturas->whereNotNull('voltaje_promedio')->avg('voltaje_promedio') ?? 0;
-        
+
         // Calcular corrientes promedio
         $corrientePromedio1 = $lecturas->whereNotNull('corriente_canal_1')->avg('corriente_canal_1') ?? 0;
         $corrientePromedio2 = $lecturas->whereNotNull('corriente_canal_2')->avg('corriente_canal_2') ?? 0;
@@ -338,8 +340,8 @@ class DashboardController extends Controller
             $lecturas->whereNotNull('pf_canal_3')->avg('pf_canal_3'),
         ])->filter(fn($val) => $val !== null);
 
-        $factorPotenciaPromedio = $pfPromedios->isNotEmpty() 
-            ? $pfPromedios->avg() 
+        $factorPotenciaPromedio = $pfPromedios->isNotEmpty()
+            ? $pfPromedios->avg()
             : 0;
 
         // Calcular energía retornada y por canal del período (diferencia entre primera y última lectura)
@@ -349,14 +351,14 @@ class DashboardController extends Controller
         $energiaCanal1Wh = ($ultimaLectura->energia_canal_1_kwh ?? 0) - ($primeraLectura->energia_canal_1_kwh ?? 0);
         $energiaCanal2Wh = ($ultimaLectura->energia_canal_2_kwh ?? 0) - ($primeraLectura->energia_canal_2_kwh ?? 0);
         $energiaCanal3Wh = ($ultimaLectura->energia_canal_3_kwh ?? 0) - ($primeraLectura->energia_canal_3_kwh ?? 0);
-        
+
         // Convertir de Wh a kWh (dividir por 1000) si el valor es muy grande (probablemente está en Wh)
         // Si el valor es razonable (< 1000), asumimos que ya está en kWh
         $energiaRetornada = $energiaRetornadaWh > 1000 ? $energiaRetornadaWh / 1000 : $energiaRetornadaWh;
         $energiaCanal1 = $energiaCanal1Wh > 1000 ? $energiaCanal1Wh / 1000 : $energiaCanal1Wh;
         $energiaCanal2 = $energiaCanal2Wh > 1000 ? $energiaCanal2Wh / 1000 : $energiaCanal2Wh;
         $energiaCanal3 = $energiaCanal3Wh > 1000 ? $energiaCanal3Wh / 1000 : $energiaCanal3Wh;
-        
+
         // Asegurar que no sean negativos (por si hay algún problema con los datos)
         $energiaRetornada = max(0, $energiaRetornada);
         $energiaCanal1 = max(0, $energiaCanal1);
@@ -418,7 +420,7 @@ class DashboardController extends Controller
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
             'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
             'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
-            'energia_total_kwh' => round(max(0, (function() use ($ultimaLectura, $primeraLectura) {
+            'energia_total_kwh' => round(max(0, (function () use ($ultimaLectura, $primeraLectura) {
                 $diferencia = ($ultimaLectura->energia_total_kwh ?? 0) - ($primeraLectura->energia_total_kwh ?? 0);
                 // Convertir de Wh a kWh si el valor es muy grande
                 return $diferencia > 1000 ? $diferencia / 1000 : $diferencia;

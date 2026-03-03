@@ -213,6 +213,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                                     <Input
                                         type="date"
                                         value={fechaDesde}
+                                        max={fechaHasta || new Date().toISOString().split('T')[0]}
                                         onChange={(e) => setFechaDesde(e.target.value)}
                                     />
                                 </div>
@@ -221,6 +222,8 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                                     <Input
                                         type="date"
                                         value={fechaHasta}
+                                        min={fechaDesde}
+                                        max={new Date().toISOString().split('T')[0]}
                                         onChange={(e) => setFechaHasta(e.target.value)}
                                     />
                                 </div>

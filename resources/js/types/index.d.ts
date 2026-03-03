@@ -5,6 +5,16 @@ export interface Auth {
     user: User;
 }
 
+export interface Kpi {
+    id: number;
+    name: string;
+    description: string | null;
+    color: string;
+    icon: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;

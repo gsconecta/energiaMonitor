@@ -3,6 +3,7 @@ import { Form, Head } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 
 import InputError from '@/components/input-error';
+import { InputPassword } from '@/components/ui/input-password';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +17,10 @@ interface ResetPasswordProps {
 export default function ResetPassword({ token, email }: ResetPasswordProps) {
     return (
         <AuthLayout
-            title="Reset password"
-            description="Please enter your new password below"
+            title="Restablecer contraseña"
+            description="Por favor, introduce tu nueva contraseña."
         >
-            <Head title="Reset password" />
+            <Head title="Restablecer contraseña" />
 
             <Form
                 {...NewPasswordController.store.form()}
@@ -29,7 +30,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">Correo electrónico</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -46,30 +47,28 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
+                            <Label htmlFor="password">Contraseña</Label>
+                            <InputPassword
                                 id="password"
-                                type="password"
                                 name="password"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
                                 autoFocus
-                                placeholder="Password"
+                                placeholder="Contraseña"
                             />
                             <InputError message={errors.password} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="password_confirmation">
-                                Confirm password
+                                Confirmar contraseña
                             </Label>
-                            <Input
+                            <InputPassword
                                 id="password_confirmation"
-                                type="password"
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
-                                placeholder="Confirm password"
+                                placeholder="Confirmar contraseña"
                             />
                             <InputError
                                 message={errors.password_confirmation}
@@ -86,7 +85,7 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                             {processing && (
                                 <LoaderCircle className="h-4 w-4 animate-spin" />
                             )}
-                            Reset password
+                            Restablecer contraseña
                         </Button>
                     </div>
                 )}

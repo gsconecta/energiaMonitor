@@ -1,56 +1,47 @@
-'use client'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { Eye, EyeOff } from 'lucide-react'; // Changed to Eye/EyeOff as EyeIcon might be an alias or deprecated depending on version, generic is safer or we check what's installed. Usage in snippet showed EyeIcon but file likely has lucide-react. I'll stick to Eye/EyeOff which are standard.
+import * as React from 'react';
 
-import { useId, useState } from 'react'
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+// Use standard input props but omit 'type' as we handle it
+type InputPasswordProps = Omit<React.ComponentProps<typeof Input>, 'type'>;
 
-interface InputPasswordProps extends Omit<React.ComponentProps<typeof Input>, 'type'> {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  placeholder?: string
-  id?: string
-}
+const InputPassword = React.forwardRef<HTMLInputElement, InputPasswordProps>(
+  ({ className, ...props }, ref) => {
+    const [showPassword, setShowPassword] = React.useState(false);
 
-const InputPassword = ({
-  value,
-  onChange,
-  placeholder,
-  id,
-  className,
-  ...props
-}: InputPasswordProps) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const generatedId = useId()
-  const inputId = id || generatedId
+    return (
+      <div className="relative">
+        <Input
+          type={showPassword ? 'text' : 'password'}
+          className={cn('pr-10', className)}
+          ref={ref}
+          {...props}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-0 h-full w-9 px-3 py-2 text-muted-foreground hover:bg-transparent"
+          onClick={() => setShowPassword((prev) => !prev)}
+          tabIndex={-1}
+        >
+          {showPassword ? (
+            <EyeOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden="true" />
+          )}
+          <span className="sr-only">
+            {showPassword
+              ? 'Ocultar contraseña'
+              : 'Mostrar contraseña'}
+          </span>
+        </Button>
+      </div>
+    );
+  },
+);
+InputPassword.displayName = 'InputPassword';
 
-  const toggleVisibility = () => setIsVisible(prevState => !prevState)
-
-  return (
-    <div className="relative">
-      <Input
-        id={inputId}
-        type={isVisible ? 'text' : 'password'}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className={cn('pr-9', className)}
-        {...props}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={toggleVisibility}
-        className="text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent"
-      >
-        {isVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-        <span className="sr-only">{isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}</span>
-      </Button>
-    </div>
-  )
-}
-
-export { InputPassword }
-
+export { InputPassword };

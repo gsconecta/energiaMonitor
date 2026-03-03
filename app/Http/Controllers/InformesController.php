@@ -95,8 +95,8 @@ class InformesController extends Controller
                 $fechaHasta = now()->subMonth()->endOfMonth();
                 break;
             case 'personalizado':
-                $fechaDesde = $request->get('fecha_desde') ? Carbon::parse($request->get('fecha_desde')) : now()->startOfDay();
-                $fechaHasta = $request->get('fecha_hasta') ? Carbon::parse($request->get('fecha_hasta')) : now()->endOfDay();
+                $fechaDesde = $request->get('fecha_desde') ? Carbon::parse($request->get('fecha_desde'))->startOfDay() : now()->startOfDay();
+                $fechaHasta = $request->get('fecha_hasta') ? Carbon::parse($request->get('fecha_hasta'))->endOfDay() : now()->endOfDay();
                 break;
             default:
                 $fechaDesde = now()->startOfWeek();
