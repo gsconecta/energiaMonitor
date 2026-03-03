@@ -94,7 +94,7 @@ class Lectura extends Model
     public function scopeMesActual($query)
     {
         return $query->whereMonth('fecha_lectura', now()->month)
-                     ->whereYear('fecha_lectura', now()->year);
+            ->whereYear('fecha_lectura', now()->year);
     }
 
     public function scopeEntreFechas($query, $desde, $hasta)
@@ -120,20 +120,14 @@ class Lectura extends Model
             $this->voltaje_canal_2,
             $this->voltaje_canal_3
         ];
-        
+
         return round(array_sum($voltajes) / count($voltajes), 2);
     }
 
-    /**
-     * Obtener potencia de un canal según su tipo
-     * 
-     * @param string $tipo 'fotovoltaica' o 'red_electrica'
-     * @return float|null Potencia en W o null si no se encuentra el canal
-     */
     public function obtenerPotenciaPorTipoCanal(string $tipo): ?float
     {
         $dispositivo = $this->dispositivo;
-        
+
         if (!$dispositivo) {
             return null;
         }
@@ -141,10 +135,39 @@ class Lectura extends Model
         // Buscar qué canal tiene el tipo especificado
         for ($i = 1; $i <= 3; $i++) {
             if ($dispositivo->getTipoCanal($i) === $tipo) {
-                return match($i) {
+                return match ($i) {
                     1 => $this->potencia_canal_1_w,
                     2 => $this->potencia_canal_2_w,
                     3 => $this->potencia_canal_3_w,
+                    default => null,
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Obtener voltaje de un canal según su tipo
+     * 
+     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     * @return float|null Voltaje o null si no se encuentra el canal
+     */
+    public function obtenerVoltajePorTipoCanal(string $tipo): ?float
+    {
+        $dispositivo = $this->dispositivo;
+
+        if (!$dispositivo) {
+            return null;
+        }
+
+        // Buscar qué canal tiene el tipo especificado
+        for ($i = 1; $i <= 3; $i++) {
+            if ($dispositivo->getTipoCanal($i) === $tipo) {
+                return match ($i) {
+                    1 => $this->voltaje_canal_1,
+                    2 => $this->voltaje_canal_2,
+                    3 => $this->voltaje_canal_3,
                     default => null,
                 };
             }
@@ -162,7 +185,7 @@ class Lectura extends Model
     public function obtenerEnergiaPorTipoCanal(string $tipo): ?float
     {
         $dispositivo = $this->dispositivo;
-        
+
         if (!$dispositivo) {
             return null;
         }
@@ -170,7 +193,7 @@ class Lectura extends Model
         // Buscar qué canal tiene el tipo especificado
         for ($i = 1; $i <= 3; $i++) {
             if ($dispositivo->getTipoCanal($i) === $tipo) {
-                return match($i) {
+                return match ($i) {
                     1 => $this->energia_canal_1_kwh,
                     2 => $this->energia_canal_2_kwh,
                     3 => $this->energia_canal_3_kwh,
@@ -229,7 +252,7 @@ class Lectura extends Model
     public function calcularExportacionNeta(): ?float
     {
         $potenciaRED = $this->obtenerPotenciaPorTipoCanal('red_electrica');
-        
+
         if ($potenciaRED === null) {
             return null;
         }
@@ -248,25 +271,30 @@ class Lectura extends Model
     public function obtenerPotenciaFotovoltaica(): ?float
     {
         $potencia = $this->obtenerPotenciaPorTipoCanal('fotovoltaica');
-        
+
         if ($potencia === null) {
             return null;
         }
-        
+
         // SIEMPRE invertir el signo del canal fotovoltaica
         // Si es negativo → inyecta a casa → retornar positivo
         // Si es positivo → consume de casa → retornar negativo
         return -$potencia;
     }
 
-    /**
-     * Obtener potencia de red eléctrica (puede ser positivo = consumo, negativo = exportación)
-     * 
-     * @return float|null Potencia en W
-     */
     public function obtenerPotenciaRedElectrica(): ?float
     {
         return $this->obtenerPotenciaPorTipoCanal('red_electrica');
+    }
+
+    /**
+     * Obtener voltaje de red eléctrica
+     * 
+     * @return float|null Voltaje
+     */
+    public function obtenerVoltajeRedElectrica(): ?float
+    {
+        return $this->obtenerVoltajePorTipoCanal('red_electrica');
     }
 
     /**

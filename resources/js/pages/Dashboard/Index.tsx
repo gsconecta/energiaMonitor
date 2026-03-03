@@ -3,9 +3,10 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
+import VoltajeRedChart from '@/components/VoltajeRedChart';
 import FlujoEnergetico from '@/components/FlujoEnergetico';
 import DatosMeteorologicos from '@/components/DatosMeteorologicos';
 
@@ -83,6 +84,7 @@ interface DatosGrafica {
     produccion_fotovoltaica_kw: number;
     red_electrica_kw: number;
     consumo_casa_kw: number;
+    voltaje_red_electrica: number;
 }
 
 interface DatosMeteorologicos {
@@ -129,19 +131,19 @@ export default function Dashboard({
 
     const handleDispositivoChange = (dispositivoId: string) => {
         const params: any = { dispositivo_id: dispositivoId };
-        
+
         // Mantener el período actual si existe
         if (periodo) {
             params.periodo = periodo;
         }
-        
+
         // Si hay rango personalizado, mantener las fechas
         if (mostrarRangoPersonalizado && fechaDesde && fechaHasta) {
             params.periodo = 'personalizado';
             params.fecha_desde = fechaDesde;
             params.fecha_hasta = fechaHasta;
         }
-        
+
         router.get(dashboard().url, params);
     };
 
@@ -150,7 +152,7 @@ export default function Dashboard({
             setMostrarRangoPersonalizado(true);
             return;
         }
-        
+
         setMostrarRangoPersonalizado(false);
         router.get(dashboard().url, {
             dispositivo_id: dispositivo?.id,
@@ -243,26 +245,23 @@ export default function Dashboard({
                     <div className="flex items-center gap-2">
                         <div className="relative flex h-3 w-3">
                             <span
-                                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
-                                    metricas?.estado_conexion === 'online'
-                                        ? 'bg-green-400'
-                                        : 'bg-red-400'
-                                }`}
+                                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${metricas?.estado_conexion === 'online'
+                                    ? 'bg-green-400'
+                                    : 'bg-red-400'
+                                    }`}
                             />
                             <span
-                                className={`relative inline-flex h-3 w-3 rounded-full ${
-                                    metricas?.estado_conexion === 'online'
-                                        ? 'bg-green-500'
-                                        : 'bg-red-500'
-                                }`}
+                                className={`relative inline-flex h-3 w-3 rounded-full ${metricas?.estado_conexion === 'online'
+                                    ? 'bg-green-500'
+                                    : 'bg-red-500'
+                                    }`}
                             />
                         </div>
                         <span
-                            className={`text-xs font-medium sm:text-sm ${
-                                metricas?.estado_conexion === 'online'
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : 'text-red-600 dark:text-red-400'
-                            }`}
+                            className={`text-xs font-medium sm:text-sm ${metricas?.estado_conexion === 'online'
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'
+                                }`}
                         >
                             {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
                         </span>
@@ -310,11 +309,10 @@ export default function Dashboard({
                                 <button
                                     key={p}
                                     onClick={() => handlePeriodoChange(p)}
-                                    className={`px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${
-                                        periodo === p
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                                    } border border-gray-200 first:rounded-l-lg last:rounded-r-lg dark:border-gray-600`}
+                                    className={`px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${periodo === p
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                                        } border border-gray-200 first:rounded-l-lg last:rounded-r-lg dark:border-gray-600`}
                                 >
                                     {p.charAt(0).toUpperCase() + p.slice(1)}
                                 </button>
@@ -323,11 +321,10 @@ export default function Dashboard({
 
                         <button
                             onClick={() => handlePeriodoChange('personalizado')}
-                            className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-medium shadow-sm sm:text-sm ${
-                                periodo === 'personalizado' || mostrarRangoPersonalizado
-                                    ? 'border-blue-600 bg-blue-600 text-white'
-                                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                            }`}
+                            className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-medium shadow-sm sm:text-sm ${periodo === 'personalizado' || mostrarRangoPersonalizado
+                                ? 'border-blue-600 bg-blue-600 text-white'
+                                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                                }`}
                         >
                             <Calendar className="h-4 w-4" />
                             Personalizado
@@ -401,6 +398,16 @@ export default function Dashboard({
                             Producción Fotovoltaica
                         </h2>
                         <ProduccionFotovoltaicaChart datos={datos_grafica} />
+                    </div>
+                )}
+
+                {/* Gráfica de Voltaje de Red */}
+                {datos_grafica && datos_grafica.length > 0 && (
+                    <div className="w-full">
+                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Voltaje de Red Eléctrica
+                        </h2>
+                        <VoltajeRedChart datos={datos_grafica} />
                     </div>
                 )}
 

@@ -108,6 +108,7 @@ class DashboardController extends Controller
                 'produccion_fotovoltaica_kw' => round(($lectura->obtenerPotenciaFotovoltaica() ?? 0) / 1000, 2),
                 'red_electrica_kw' => round(($lectura->obtenerPotenciaRedElectrica() ?? 0) / 1000, 2),
                 'consumo_casa_kw' => round(($lectura->calcularConsumoCasa() ?? 0) / 1000, 2),
+                'voltaje_red_electrica' => round($lectura->obtenerVoltajeRedElectrica() ?? 0, 1),
             ];
         })->values();
 
