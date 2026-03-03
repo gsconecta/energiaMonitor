@@ -304,114 +304,47 @@ export default function Dashboard({
                             </select>
                         )}
 
-                        <div className="grid grid-cols-4 gap-1 rounded-md shadow-sm sm:inline-flex" role="group">
-                            {['hoy', 'ayer', 'semana', 'mes'].map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => handlePeriodoChange(p)}
-                                    className={`px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${periodo === p
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                                        } border border-gray-200 first:rounded-l-lg last:rounded-r-lg dark:border-gray-600`}
-                                >
-                                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-
-                        <button
-                            onClick={() => handlePeriodoChange('personalizado')}
-                            className={`inline-flex items-center gap-2 rounded-md border px-4 py-2 text-xs font-medium shadow-sm sm:text-sm ${periodo === 'personalizado' || mostrarRangoPersonalizado
-                                ? 'border-blue-600 bg-blue-600 text-white'
-                                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                                }`}
-                        >
-                            <Calendar className="h-4 w-4" />
-                            Personalizado
-                        </button>
-
                         {metricas?.ultima_actualizacion_human && (
                             <span className="text-xs text-gray-500 sm:self-center sm:text-sm dark:text-gray-400">
                                 Última actualización: {metricas.ultima_actualizacion_human}
                             </span>
                         )}
                     </div>
+                </div>
 
-                    {mostrarRangoPersonalizado && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                                <div className="flex-1">
-                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                        Fecha desde
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={fechaDesde}
-                                        onChange={(e) => setFechaDesde(e.target.value)}
-                                        className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                        Fecha hasta
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={fechaHasta}
-                                        onChange={(e) => setFechaHasta(e.target.value)}
-                                        className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleAplicarRangoPersonalizado}
-                                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                    >
-                                        Aplicar
-                                    </button>
-                                    <button
-                                        onClick={() => setMostrarRangoPersonalizado(false)}
-                                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </div>
+                {/* Contenedor de Gráficas en 2 columnas para pantallas grandes */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+                    {/* Gráfica de Balance Energético */}
+                    {datos_grafica && datos_grafica.length > 0 && (
+                        <div className="w-full">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Balance Energético
+                            </h2>
+                            <BalanceEnergeticoChart datos={datos_grafica} />
+                        </div>
+                    )}
+
+                    {/* Gráfica de Producción Fotovoltaica */}
+                    {datos_grafica && datos_grafica.length > 0 && (
+                        <div className="w-full">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Producción Fotovoltaica
+                            </h2>
+                            <ProduccionFotovoltaicaChart datos={datos_grafica} />
+                        </div>
+                    )}
+
+                    {/* Gráfica de Voltaje de Red */}
+                    {datos_grafica && datos_grafica.length > 0 && (
+                        <div className="w-full xl:col-span-2">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Voltaje de Red Eléctrica
+                            </h2>
+                            <VoltajeRedChart datos={datos_grafica} />
                         </div>
                     )}
                 </div>
-
-                {/* Gráfica de Balance Energético */}
-                {datos_grafica && datos_grafica.length > 0 && (
-                    <div className="w-full">
-                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Balance Energético
-                        </h2>
-                        <BalanceEnergeticoChart datos={datos_grafica} />
-                    </div>
-                )}
-
-                {/* Gráfica de Producción Fotovoltaica */}
-                {datos_grafica && datos_grafica.length > 0 && (
-                    <div className="w-full">
-                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Producción Fotovoltaica
-                        </h2>
-                        <ProduccionFotovoltaicaChart datos={datos_grafica} />
-                    </div>
-                )}
-
-                {/* Gráfica de Voltaje de Red */}
-                {datos_grafica && datos_grafica.length > 0 && (
-                    <div className="w-full">
-                        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Voltaje de Red Eléctrica
-                        </h2>
-                        <VoltajeRedChart datos={datos_grafica} />
-                    </div>
-                )}
-
             </div>
-        </AppLayout>
+        </AppLayout >
     );
 }

@@ -38,8 +38,8 @@ interface Props {
 }
 
 export default function VoltajeRedChart({ datos }: Props) {
-    const [horaDesde, setHoraDesde] = useState<string>('00:00');
-    const [horaHasta, setHoraHasta] = useState<string>('23:59');
+    const [horaDesde, setHoraDesde] = useState<string>('06:00');
+    const [horaHasta, setHoraHasta] = useState<string>('23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
@@ -77,10 +77,10 @@ export default function VoltajeRedChart({ datos }: Props) {
 
     const handleLimpiarFiltro = () => {
         if (horaDesdeRef.current && horaHastaRef.current) {
-            horaDesdeRef.current.value = '00:00';
-            horaHastaRef.current.value = '23:59';
-            setHoraDesde('00:00');
-            setHoraHasta('23:59');
+            horaDesdeRef.current.value = '06:00';
+            horaHastaRef.current.value = '23:00';
+            setHoraDesde('06:00');
+            setHoraHasta('23:00');
         }
     };
 
@@ -107,6 +107,14 @@ export default function VoltajeRedChart({ datos }: Props) {
         return fecha.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     });
 
+    // Calcular max y min para pintar líneas horizontales
+    const voltajesValidos = datosFiltrados
+        .map((d) => d.voltaje_red_electrica)
+        .filter((v): v is number => v !== undefined && v > 0);
+
+    const maxVoltaje = voltajesValidos.length > 0 ? Math.max(...voltajesValidos) : 0;
+    const minVoltaje = voltajesValidos.length > 0 ? Math.min(...voltajesValidos) : 0;
+
     const chartData = {
         labels,
         datasets: [
@@ -121,6 +129,26 @@ export default function VoltajeRedChart({ datos }: Props) {
                 pointRadius: 0, // Ocultar puntos normalmente
                 pointHoverRadius: 5, // Mostrar punto al hacer hover
                 pointHoverBorderWidth: 2,
+            },
+            {
+                label: `Máximo (${maxVoltaje.toFixed(1)} V)`,
+                data: Array(datosFiltrados.length).fill(maxVoltaje),
+                borderColor: 'rgb(239, 68, 68)', // red-500
+                borderWidth: 1,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                fill: false,
+            },
+            {
+                label: `Mínimo (${minVoltaje.toFixed(1)} V)`,
+                data: Array(datosFiltrados.length).fill(minVoltaje),
+                borderColor: 'rgb(16, 185, 129)', // emerald-500
+                borderWidth: 1,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                fill: false,
             },
         ],
     };

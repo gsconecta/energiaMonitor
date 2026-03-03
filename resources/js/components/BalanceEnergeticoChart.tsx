@@ -37,8 +37,8 @@ interface Props {
 }
 
 export default function BalanceEnergeticoChart({ datos }: Props) {
-    const [horaDesde, setHoraDesde] = useState<string>('00:00');
-    const [horaHasta, setHoraHasta] = useState<string>('23:59');
+    const [horaDesde, setHoraDesde] = useState<string>('06:00');
+    const [horaHasta, setHoraHasta] = useState<string>('23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
@@ -53,14 +53,14 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
         const filtrarPorHora = () => {
             const [horaDesdeH, horaDesdeM] = horaDesde.split(':').map(Number);
             const [horaHastaH, horaHastaM] = horaHasta.split(':').map(Number);
-            
+
             const desdeMinutos = horaDesdeH * 60 + horaDesdeM;
             const hastaMinutos = horaHastaH * 60 + horaHastaM;
 
             const filtrados = datos.filter((dato) => {
                 const fecha = new Date(dato.fecha);
                 const horaMinutos = fecha.getHours() * 60 + fecha.getMinutes();
-                
+
                 // Si hasta es menor que desde, significa que cruza medianoche
                 if (hastaMinutos < desdeMinutos) {
                     return horaMinutos >= desdeMinutos || horaMinutos <= hastaMinutos;
@@ -76,10 +76,10 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
 
     const handleLimpiarFiltro = () => {
         if (horaDesdeRef.current && horaHastaRef.current) {
-            horaDesdeRef.current.value = '00:00';
-            horaHastaRef.current.value = '23:59';
-            setHoraDesde('00:00');
-            setHoraHasta('23:59');
+            horaDesdeRef.current.value = '06:00';
+            horaHastaRef.current.value = '23:00';
+            setHoraDesde('06:00');
+            setHoraHasta('23:00');
         }
     };
 
@@ -99,7 +99,7 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
         // Formato: HH:MM para hoy, DD/MM HH:MM para otros días
         const ahora = new Date();
         const esHoy = fecha.toDateString() === ahora.toDateString();
-        
+
         if (esHoy) {
             return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         }
@@ -283,7 +283,7 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                     </button>
                 </div>
             </div>
-            
+
             {datosFiltrados.length === 0 ? (
                 <div className="flex h-96 items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
