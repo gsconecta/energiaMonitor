@@ -58,6 +58,7 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    rol_global: 'cliente' | 'tecnico' | 'admin';
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;

@@ -8,6 +8,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OrganizacionesController;
 use App\Http\Controllers\SeleccionarContextoController;
 use App\Http\Controllers\SitiosController;
+use App\Http\Controllers\Admin\ControlPanelController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -55,6 +56,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Búsqueda de lugares para selector de localización
     Route::get('/api/location/search', [LocationController::class, 'search'])
         ->name('location.search');
+
+    // Panel de Control Global (Técnicos)
+    Route::get('/admin/control-panel', [ControlPanelController::class, 'index'])
+        ->name('admin.control-panel');
+    Route::post('/admin/impersonate/{organizacion}/{sitio}', [ControlPanelController::class, 'impersonate'])
+        ->name('admin.impersonate');
 });
 
 require __DIR__ . '/settings.php';

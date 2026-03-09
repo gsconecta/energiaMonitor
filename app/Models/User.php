@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'rol_global',
     ];
 
     /**
@@ -47,6 +48,22 @@ class User extends Authenticatable
         ];
     }
 
+    // Helpers de Rol Global
+    public function esTecnico(): bool
+    {
+        return $this->rol_global === 'tecnico';
+    }
+
+    public function esAdmin(): bool
+    {
+        return $this->rol_global === 'admin';
+    }
+
+    public function esAdminOTecnico(): bool
+    {
+        return in_array($this->rol_global, ['admin', 'tecnico']);
+    }
+
     // Relación con organizaciones
     public function organizaciones()
     {
@@ -63,10 +80,10 @@ class User extends Authenticatable
 
     public function esPropietarioOrganizacion($organizacion)
     {
-        $organizacionId = $organizacion instanceof Organizacion 
-            ? $organizacion->id 
+        $organizacionId = $organizacion instanceof Organizacion
+            ? $organizacion->id
             : $organizacion;
-            
+
         return $this->organizaciones()
             ->where('organizacion_id', $organizacionId)
             ->wherePivot('rol', 'owner')
@@ -75,10 +92,10 @@ class User extends Authenticatable
 
     public function puedeGestionarOrganizacion($organizacion)
     {
-        $organizacionId = $organizacion instanceof Organizacion 
-            ? $organizacion->id 
+        $organizacionId = $organizacion instanceof Organizacion
+            ? $organizacion->id
             : $organizacion;
-            
+
         return $this->organizaciones()
             ->where('organizacion_id', $organizacionId)
             ->whereIn('rol', ['owner', 'admin'])
@@ -87,14 +104,14 @@ class User extends Authenticatable
 
     public function rolEnOrganizacion($organizacion)
     {
-        $organizacionId = $organizacion instanceof Organizacion 
-            ? $organizacion->id 
+        $organizacionId = $organizacion instanceof Organizacion
+            ? $organizacion->id
             : $organizacion;
-            
+
         $pivot = $this->organizaciones()
             ->where('organizacion_id', $organizacionId)
             ->first();
-            
+
         return $pivot ? $pivot->pivot->rol : null;
     }
 }

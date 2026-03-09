@@ -1,12 +1,14 @@
 import AuthSplitLayout from '@/layouts/auth/auth-split-layout';
-import { Head, router, usePage, useForm } from '@inertiajs/react';
-import { Building2, MapPin, Check, Plus, X } from 'lucide-react';
+import { Head, router, usePage, useForm, Link } from '@inertiajs/react';
+import { Building2, MapPin, Check, Plus, X, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+
+// ... (se mantienen las interfaces iguales)
 
 interface Organizacion {
     id: number;
@@ -28,6 +30,7 @@ interface SharedProps {
         user: {
             name: string;
             email: string;
+            rol_global: 'cliente' | 'tecnico' | 'admin';
         };
     };
     organizacion_actual?: {
@@ -42,6 +45,8 @@ interface SharedProps {
     };
 }
 
+// ... 
+
 interface ControllerProps {
     organizaciones: Organizacion[];
     organizacion_actual_id?: number | null;
@@ -53,7 +58,7 @@ type Props = ControllerProps & SharedProps;
 export default function SeleccionarContexto() {
     const page = usePage();
     const pageProps = page.props as Partial<Props>;
-    
+
     const organizaciones = pageProps.organizaciones ?? [];
     const organizacionActualId = pageProps.organizacion_actual_id ?? null;
     const sitioActualId = pageProps.sitio_actual_id ?? null;
@@ -90,108 +95,82 @@ export default function SeleccionarContexto() {
     // Función para generar código único basado en el nombre
     const generarCodigo = (nombre: string): string => {
         if (!nombre) return '';
-        
-        // Convertir a minúsculas
+
         let codigo = nombre.toLowerCase();
-        
-        // Eliminar acentos
-        codigo = codigo
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-        
-        // Reemplazar espacios y caracteres especiales con guiones
+        codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         codigo = codigo.replace(/[^a-z0-9]+/g, '-');
-        
-        // Eliminar guiones al inicio y final
         codigo = codigo.replace(/^-+|-+$/g, '');
-        
-        // Limitar longitud
+
         if (codigo.length > 50) {
             codigo = codigo.substring(0, 50);
         }
-        
-        // Asegurar que no esté vacío
+
         if (!codigo) {
             codigo = 'organizacion';
         }
-        
-        // Verificar si el código ya existe y añadir número si es necesario
-        const codigoBase = codigo;
-        let codigoFinal = codigoBase;
+
+        let codigoFinal = codigo;
         let contador = 1;
-        
+
         while (organizaciones.some(org => org.codigo === codigoFinal)) {
-            codigoFinal = `${codigoBase}-${contador}`;
+            codigoFinal = `${codigo}-${contador}`;
             contador++;
         }
-        
+
         return codigoFinal;
     };
 
-    // Auto-generar código cuando cambia el nombre
     const handleNombreChange = (nombre: string) => {
         formOrganizacion.setData('nombre', nombre);
-        
-        // Solo auto-generar si el código no fue editado manualmente
         if (!codigoEditadoManualmente) {
-            const codigoGenerado = generarCodigo(nombre);
-            formOrganizacion.setData('codigo', codigoGenerado);
+            formOrganizacion.setData('codigo', generarCodigo(nombre));
         }
     };
 
-    // Manejar cambio manual del código
     const handleCodigoChange = (codigo: string) => {
         formOrganizacion.setData('codigo', codigo);
         setCodigoEditadoManualmente(true);
     };
 
-    // Función para generar código de sitio
     const generarCodigoSitio = (nombre: string): string => {
         if (!nombre) return '';
-        
+
         let codigo = nombre.toLowerCase();
         codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         codigo = codigo.replace(/[^a-z0-9]+/g, '-');
         codigo = codigo.replace(/^-+|-+$/g, '');
-        
+
         if (codigo.length > 50) {
             codigo = codigo.substring(0, 50);
         }
-        
+
         if (!codigo) {
             codigo = 'sitio';
         }
-        
-        // Verificar si el código ya existe en los sitios de la organización
-        const codigoBase = codigo;
-        let codigoFinal = codigoBase;
+
+        let codigoFinal = codigo;
         let contador = 1;
-        
+
         while (sitiosDisponibles.some(s => s.codigo === codigoFinal)) {
-            codigoFinal = `${codigoBase}-${contador}`;
+            codigoFinal = `${codigo}-${contador}`;
             contador++;
         }
-        
+
         return codigoFinal;
     };
 
-    // Auto-generar código de sitio cuando cambia el nombre
     const handleNombreSitioChange = (nombre: string) => {
         formSitio.setData('nombre', nombre);
-        
         if (!codigoSitioEditadoManualmente) {
-            const codigoGenerado = generarCodigoSitio(nombre);
-            formSitio.setData('codigo', codigoGenerado);
+            formSitio.setData('codigo', generarCodigoSitio(nombre));
         }
     };
 
-    // Manejar cambio manual del código de sitio
     const handleCodigoSitioChange = (codigo: string) => {
         formSitio.setData('codigo', codigo);
         setCodigoSitioEditadoManualmente(true);
     };
 
-    // Actualizar organizacion_id cuando cambia la organización seleccionada o se abre el formulario
     useEffect(() => {
         if (organizacionSeleccionada && mostrarFormularioSitio) {
             formSitio.setData('organizacion_id', organizacionSeleccionada.toString());
@@ -248,15 +227,13 @@ export default function SeleccionarContexto() {
     const crearSitio = (e: React.FormEvent) => {
         e.preventDefault();
         if (!organizacionSeleccionada) return;
-        
+
         formSitio.post('/sitios', {
             preserveScroll: true,
             onSuccess: () => {
-                // Limpiar el formulario y cerrarlo
                 formSitio.reset();
                 setMostrarFormularioSitio(false);
                 setCodigoSitioEditadoManualmente(false);
-                // Recargar organizaciones para obtener los nuevos sitios
                 router.reload({ only: ['organizaciones'] });
             },
             onError: (errors) => {
@@ -267,14 +244,41 @@ export default function SeleccionarContexto() {
 
     const puedeContinuar = organizacionSeleccionada !== null && sitioSeleccionado !== null;
 
+    const esTecnico = auth?.user?.rol_global === 'tecnico' || auth?.user?.rol_global === 'admin';
+
     return (
         <AuthSplitLayout
-            title={`Hola, ${auth.user.name}`}
+            title={`Hola, ${auth?.user?.name || 'Usuario'}`}
             description="Selecciona una organización y sitio para comenzar"
         >
             <Head title="Seleccionar Contexto" />
 
             <div className="flex flex-col gap-4">
+
+                {esTecnico && (
+                    <Card className="w-full border-2 border-blue-500 bg-blue-50 shadow-sm dark:border-blue-800 dark:bg-blue-900/20">
+                        <div className="flex items-center justify-between p-6">
+                            <div className="flex items-center gap-4">
+                                <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/40">
+                                    <ShieldAlert className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                                        Centro de Mando Global
+                                    </h2>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                                        Acceso directo para soporte técnico y supervisión.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
+                                <Link href="/admin/control-panel">
+                                    Entrar al Panel <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                    </Card>
+                )}
 
                 {organizaciones.length === 0 ? (
                     <Card className="w-full border-none shadow-none">
@@ -315,18 +319,16 @@ export default function SeleccionarContexto() {
                                                         setSitioSeleccionado(null); // Reset sitio cuando cambia organización
                                                         setMostrarListaOrganizaciones(false);
                                                     }}
-                                                    className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                                                        isActive
+                                                    className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${isActive
                                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                                             : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:hover:border-gray-600'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <Building2
-                                                        className={`mt-0.5 h-5 w-5 ${
-                                                            isActive
+                                                        className={`mt-0.5 h-5 w-5 ${isActive
                                                                 ? 'text-blue-600 dark:text-blue-400'
                                                                 : 'text-gray-400'
-                                                        }`}
+                                                            }`}
                                                     />
                                                     <div className="flex-1">
                                                         <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -395,20 +397,18 @@ export default function SeleccionarContexto() {
                                                     key={sitio.id}
                                                     onClick={() => setSitioSeleccionado(sitio.id)}
                                                     disabled={!sitio.activa}
-                                                    className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-                                                        isActive
+                                                    className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${isActive
                                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                                             : sitio.activa
-                                                              ? 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:hover:border-gray-600'
-                                                              : 'border-gray-200 bg-gray-50 opacity-50 dark:border-gray-700 dark:bg-gray-800'
-                                                    }`}
+                                                                ? 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:hover:border-gray-600'
+                                                                : 'border-gray-200 bg-gray-50 opacity-50 dark:border-gray-700 dark:bg-gray-800'
+                                                        }`}
                                                 >
                                                     <MapPin
-                                                        className={`mt-0.5 h-5 w-5 ${
-                                                            isActive
+                                                        className={`mt-0.5 h-5 w-5 ${isActive
                                                                 ? 'text-blue-600 dark:text-blue-400'
                                                                 : 'text-gray-400'
-                                                        }`}
+                                                            }`}
                                                     />
                                                     <div className="flex-1">
                                                         <div className="font-medium text-gray-900 dark:text-gray-100">
