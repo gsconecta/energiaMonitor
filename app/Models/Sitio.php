@@ -68,12 +68,26 @@ class Sitio extends Model
     public function potenciaActualTotal()
     {
         return $this->dispositivos()
-            ->with(['lecturas' => function ($query) {
-                $query->latest('fecha_lectura')->limit(1);
-            }])
+            ->with([
+                'lecturas' => function ($query) {
+                    $query->latest('fecha_lectura')->limit(1);
+                }
+            ])
             ->get()
             ->sum(function ($dispositivo) {
                 return $dispositivo->lecturas->first()?->potencia_total_w ?? 0;
             });
+    }
+
+    /**
+     * Verificar si el sitio tiene alguna instalación fotovoltaica (verificando sus dispositivos).
+     * 
+     * @return bool
+     */
+    public function tieneFotovoltaica(): bool
+    {
+        return $this->dispositivos->contains(function ($dispositivo) {
+            return $dispositivo->tieneFotovoltaica();
+        });
     }
 }

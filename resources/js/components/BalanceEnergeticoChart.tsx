@@ -34,9 +34,10 @@ interface DatosGrafica {
 
 interface Props {
     datos: DatosGrafica[];
+    tiene_fotovoltaica?: boolean;
 }
 
-export default function BalanceEnergeticoChart({ datos }: Props) {
+export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true }: Props) {
     const [horaDesde, setHoraDesde] = useState<string>('06:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
@@ -109,7 +110,7 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
     const chartData = {
         labels,
         datasets: [
-            {
+            ...(tiene_fotovoltaica ? [{
                 label: 'Producción Fotovoltaica',
                 data: datosFiltrados.map((d) => d.produccion_fotovoltaica_kw),
                 borderColor: 'rgb(251, 191, 36)', // yellow-400
@@ -120,9 +121,9 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                 pointRadius: 0, // Ocultar puntos normalmente
                 pointHoverRadius: 5, // Mostrar punto al hacer hover
                 pointHoverBorderWidth: 2,
-            },
+            }] : []),
             {
-                label: 'Red Eléctrica',
+                label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
                 data: datosFiltrados.map((d) => d.red_electrica_kw),
                 borderColor: 'rgb(59, 130, 246)', // blue-500 (puede ser positivo o negativo)
                 backgroundColor: 'rgba(59, 130, 246, 0.1)', // blue-500 con opacidad
@@ -143,7 +144,7 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                     },
                 },
             },
-            {
+            ...(tiene_fotovoltaica ? [{
                 label: 'Consumo Casa',
                 data: datosFiltrados.map((d) => d.consumo_casa_kw),
                 borderColor: 'rgb(34, 197, 94)', // green-500
@@ -154,7 +155,7 @@ export default function BalanceEnergeticoChart({ datos }: Props) {
                 pointRadius: 0, // Ocultar puntos normalmente
                 pointHoverRadius: 5, // Mostrar punto al hacer hover
                 pointHoverBorderWidth: 2,
-            },
+            }] : []),
         ],
     };
 

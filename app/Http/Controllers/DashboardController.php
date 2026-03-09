@@ -233,6 +233,7 @@ class DashboardController extends Controller
                 'nombre_canal_1' => $dispositivo->nombre_canal_1,
                 'nombre_canal_2' => $dispositivo->nombre_canal_2,
                 'nombre_canal_3' => $dispositivo->nombre_canal_3,
+                'tiene_fotovoltaica' => $dispositivo->tieneFotovoltaica(),
                 'sitio' => [
                     'id' => $dispositivo->sitio->id,
                     'nombre' => $dispositivo->sitio->nombre,

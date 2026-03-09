@@ -5,6 +5,7 @@ import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 export default function DashboardIndustrial({
     metricas,
     datos_grafica,
+    dispositivo,
 }: any) {
     return (
         <div className="flex w-full flex-col gap-4">
@@ -46,9 +47,12 @@ export default function DashboardIndustrial({
                         </div>
                         <div className="w-full lg:col-span-2">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Balance de Potencia Global
+                                {dispositivo?.tiene_fotovoltaica ? 'Balance de Potencia Global' : 'Evolución de Consumo de Potencia'}
                             </h2>
-                            <BalanceEnergeticoChart datos={datos_grafica} />
+                            <BalanceEnergeticoChart
+                                datos={datos_grafica}
+                                tiene_fotovoltaica={dispositivo?.tiene_fotovoltaica ?? true}
+                            />
                         </div>
                     </>
                 )}

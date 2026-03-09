@@ -76,7 +76,7 @@ class Dispositivo extends Model
     public function estaOnline()
     {
         $ultimaLectura = $this->ultimaLectura();
-        
+
         if (!$ultimaLectura) {
             return false;
         }
@@ -98,32 +98,38 @@ class Dispositivo extends Model
     public function detectarNumFases()
     {
         $ultimaLectura = $this->ultimaLectura();
-        
+
         if (!$ultimaLectura) {
             return null;
         }
 
         // Contar canales válidos basándose en potencias, voltajes o corrientes
         $canalesValidos = 0;
-        
-        if ($ultimaLectura->potencia_canal_1_w > 0 || 
-            $ultimaLectura->voltaje_canal_1 > 0 || 
-            $ultimaLectura->corriente_canal_1 > 0) {
+
+        if (
+            $ultimaLectura->potencia_canal_1_w > 0 ||
+            $ultimaLectura->voltaje_canal_1 > 0 ||
+            $ultimaLectura->corriente_canal_1 > 0
+        ) {
             $canalesValidos++;
         }
-        
-        if ($ultimaLectura->potencia_canal_2_w > 0 || 
-            $ultimaLectura->voltaje_canal_2 > 0 || 
-            $ultimaLectura->corriente_canal_2 > 0) {
+
+        if (
+            $ultimaLectura->potencia_canal_2_w > 0 ||
+            $ultimaLectura->voltaje_canal_2 > 0 ||
+            $ultimaLectura->corriente_canal_2 > 0
+        ) {
             $canalesValidos++;
         }
-        
-        if ($ultimaLectura->potencia_canal_3_w > 0 || 
-            $ultimaLectura->voltaje_canal_3 > 0 || 
-            $ultimaLectura->corriente_canal_3 > 0) {
+
+        if (
+            $ultimaLectura->potencia_canal_3_w > 0 ||
+            $ultimaLectura->voltaje_canal_3 > 0 ||
+            $ultimaLectura->corriente_canal_3 > 0
+        ) {
             $canalesValidos++;
         }
-        
+
         return $canalesValidos > 0 ? $canalesValidos : null;
     }
 
@@ -136,13 +142,13 @@ class Dispositivo extends Model
     public function detectarNumFasesDesdeRaw()
     {
         $ultimaLectura = $this->ultimaLectura();
-        
+
         if (!$ultimaLectura || !$ultimaLectura->datos_raw) {
             return null;
         }
 
-        $datosRaw = is_string($ultimaLectura->datos_raw) 
-            ? json_decode($ultimaLectura->datos_raw, true) 
+        $datosRaw = is_string($ultimaLectura->datos_raw)
+            ? json_decode($ultimaLectura->datos_raw, true)
             : $ultimaLectura->datos_raw;
 
         if (!$datosRaw || !isset($datosRaw['device_status'])) {
@@ -159,8 +165,10 @@ class Dispositivo extends Model
         // Formato EM1/EM1+ (em1:0, em1:1)
         if (isset($deviceStatus['em1:0']) || isset($deviceStatus['em1:1'])) {
             $numCanales = 0;
-            if (isset($deviceStatus['em1:0'])) $numCanales++;
-            if (isset($deviceStatus['em1:1'])) $numCanales++;
+            if (isset($deviceStatus['em1:0']))
+                $numCanales++;
+            if (isset($deviceStatus['em1:1']))
+                $numCanales++;
             return $numCanales > 0 ? $numCanales : null;
         }
 
@@ -186,12 +194,12 @@ class Dispositivo extends Model
     public function actualizarNumFasesAuto()
     {
         $numFases = $this->detectarNumFasesDesdeRaw() ?? $this->detectarNumFases();
-        
+
         if ($numFases !== null && $numFases !== $this->num_fases) {
             $this->update(['num_fases' => $numFases]);
             return true;
         }
-        
+
         return false;
     }
 
@@ -232,7 +240,7 @@ class Dispositivo extends Model
      */
     public function getFasesLabelAttribute()
     {
-        return match($this->num_fases) {
+        return match ($this->num_fases) {
             1 => 'Monofásico',
             2 => 'Bifásico',
             3 => 'Trifásico',
@@ -269,7 +277,7 @@ class Dispositivo extends Model
      */
     public function getNombreCanal(int $numero): string
     {
-        return match($numero) {
+        return match ($numero) {
             1 => $this->nombre_canal_1 ?? 'Canal 1',
             2 => $this->nombre_canal_2 ?? 'Canal 2',
             3 => $this->nombre_canal_3 ?? 'Canal 3',
@@ -282,7 +290,7 @@ class Dispositivo extends Model
      */
     public function getTipoCanal(int $numero): ?string
     {
-        return match($numero) {
+        return match ($numero) {
             1 => $this->tipo_canal_1,
             2 => $this->tipo_canal_2,
             3 => $this->tipo_canal_3,
@@ -435,34 +443,34 @@ class Dispositivo extends Model
 
         // Ordenar por fecha
         $lecturasOrdenadas = $lecturas->sortBy('fecha_lectura')->values();
-        
+
         // Calcular energía usando método del trapecio
         for ($i = 0; $i < $lecturasOrdenadas->count() - 1; $i++) {
             $lectura1 = $lecturasOrdenadas[$i];
             $lectura2 = $lecturasOrdenadas[$i + 1];
-            
+
             // Calcular tiempo transcurrido en horas
             $tiempoHoras = $lectura1->fecha_lectura->diffInSeconds($lectura2->fecha_lectura) / 3600;
-            
+
             // Obtener potencias de ambas lecturas
             $consumo1 = $lectura1->calcularConsumoCasa() ?? 0;
             $consumo2 = $lectura2->calcularConsumoCasa() ?? 0;
-            
+
             $exportacion1 = $lectura1->calcularExportacionNeta() ?? 0;
             $exportacion2 = $lectura2->calcularExportacionNeta() ?? 0;
-            
+
             $genFV1 = $lectura1->obtenerGeneracionFotovoltaica();
             $genFV2 = $lectura2->obtenerGeneracionFotovoltaica();
-            
+
             $carga1 = $lectura1->obtenerCargaBaterias();
             $carga2 = $lectura2->obtenerCargaBaterias();
-            
+
             $importacion1 = $lectura1->obtenerImportacionRed();
             $importacion2 = $lectura2->obtenerImportacionRed();
-            
+
             $exportacionRed1 = $lectura1->obtenerExportacionRed();
             $exportacionRed2 = $lectura2->obtenerExportacionRed();
-            
+
             // Calcular energía usando método del trapecio: (P1 + P2) / 2 * Δt
             // Convertir de W a kW y multiplicar por horas para obtener kWh
             $consumoCasa += (($consumo1 + $consumo2) / 2 / 1000) * $tiempoHoras;
@@ -481,5 +489,17 @@ class Dispositivo extends Model
             'importacion_red_kwh' => round($importacionRed, 2),
             'exportacion_red_kwh' => round($exportacionRed, 2),
         ];
+    }
+
+    /**
+     * Verificar si el dispositivo tiene algún canal configurado como fotovoltaica.
+     * 
+     * @return bool
+     */
+    public function tieneFotovoltaica(): bool
+    {
+        return $this->tipo_canal_1 === 'fotovoltaica' ||
+            $this->tipo_canal_2 === 'fotovoltaica' ||
+            $this->tipo_canal_3 === 'fotovoltaica';
     }
 }

@@ -227,15 +227,15 @@ class Lectura extends Model
         $potenciaFV = $this->obtenerPotenciaPorTipoCanal('fotovoltaica');
         $potenciaRED = $this->obtenerPotenciaPorTipoCanal('red_electrica');
 
-        // Si no se pueden identificar ambos canales, retornar null
-        if ($potenciaFV === null || $potenciaRED === null) {
+        // Si no hay lectura de red, no podemos calcular el consumo total fiablemente con este esquema base
+        if ($potenciaRED === null) {
             return null;
         }
 
         // FV: SIEMPRE invertir el signo del canal fotovoltaica
         // Si es negativo → inyecta a casa → FV positivo en la ecuación
         // Si es positivo → consume de casa → FV negativo en la ecuación
-        $fvCorregido = -$potenciaFV;
+        $fvCorregido = $potenciaFV !== null ? -$potenciaFV : 0;
 
         // RED: usar el valor tal cual (positivo = consumo, negativo = exportación)
         // Ecuación: FV - C + RED - Exp = 0

@@ -56,6 +56,7 @@ interface Dispositivo {
     nombre_canal_1: string | null;
     nombre_canal_2: string | null;
     nombre_canal_3: string | null;
+    tiene_fotovoltaica?: boolean;
     sitio: {
         id: number;
         nombre: string;
@@ -277,11 +278,13 @@ export default function Dashboard({
                             metricas={metricas}
                             datos_grafica={datos_grafica}
                             datos_meteorologicos={datos_meteorologicos}
+                            dispositivo={dispositivo}
                         />
                     ) : (
                         <DashboardIndustrial
                             metricas={metricas}
                             datos_grafica={datos_grafica}
+                            dispositivo={dispositivo}
                         />
                     )}
                 </div>
