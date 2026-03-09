@@ -25,6 +25,7 @@ class OrganizacionesController extends Controller
                     'nombre' => $org->nombre,
                     'codigo' => $org->codigo,
                     'descripcion' => $org->descripcion,
+                    'tipo_perfil' => $org->tipo_perfil,
                     'activa' => $org->activa,
                     'rol' => $org->pivot->rol,
                     'sitios_count' => $org->sitios_count,
@@ -48,7 +49,7 @@ class OrganizacionesController extends Controller
     {
         // Obtener todas las organizaciones para validar códigos únicos
         $organizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
-        
+
         return Inertia::render('Organizaciones/Create', [
             'organizaciones' => $organizaciones,
         ]);
@@ -63,6 +64,7 @@ class OrganizacionesController extends Controller
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:255|unique:organizaciones,codigo',
             'descripcion' => 'nullable|string',
+            'tipo_perfil' => 'required|in:residencial,industrial',
         ]);
 
         $organizacion = Organizacion::create($validated);
@@ -102,6 +104,7 @@ class OrganizacionesController extends Controller
                 'nombre' => $organizacion->nombre,
                 'codigo' => $organizacion->codigo,
                 'descripcion' => $organizacion->descripcion,
+                'tipo_perfil' => $organizacion->tipo_perfil,
                 'activa' => $organizacion->activa,
                 'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
                 'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
@@ -137,6 +140,7 @@ class OrganizacionesController extends Controller
                 'nombre' => $organizacion->nombre,
                 'codigo' => $organizacion->codigo,
                 'descripcion' => $organizacion->descripcion,
+                'tipo_perfil' => $organizacion->tipo_perfil,
                 'activa' => $organizacion->activa,
                 'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
                 'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
@@ -156,14 +160,17 @@ class OrganizacionesController extends Controller
             'nombre' => 'required|string|max:255',
             'codigo' => 'required|string|max:255|unique:organizaciones,codigo,' . $organizacion->id,
             'descripcion' => 'nullable|string',
+            'tipo_perfil' => 'required|in:residencial,industrial',
             'activa' => 'boolean',
             'shelly_api_key' => 'nullable|string',
             'shelly_server' => 'nullable|string|max:255',
         ]);
 
         // Si el usuario envía '***' o está vacío y ya existe una clave, no actualizarla
-        if (isset($validated['shelly_api_key']) && 
-            ($validated['shelly_api_key'] === '***' || $validated['shelly_api_key'] === '')) {
+        if (
+            isset($validated['shelly_api_key']) &&
+            ($validated['shelly_api_key'] === '***' || $validated['shelly_api_key'] === '')
+        ) {
             unset($validated['shelly_api_key']);
         }
 

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -26,6 +27,7 @@ interface Organizacion {
     nombre: string;
     codigo: string;
     descripcion: string | null;
+    tipo_perfil: string;
     activa: boolean;
     tiene_shelly_api_key?: boolean;
     shelly_server?: string | null;
@@ -40,6 +42,7 @@ export default function OrganizacionesEdit({ organizacion }: Props) {
         nombre: organizacion.nombre,
         codigo: organizacion.codigo,
         descripcion: organizacion.descripcion || '',
+        tipo_perfil: organizacion.tipo_perfil || 'industrial',
         activa: organizacion.activa,
         shelly_api_key: '', // Campo vacío inicialmente, solo se actualiza si el usuario introduce algo
         shelly_server: organizacion.shelly_server || '',
@@ -109,6 +112,28 @@ export default function OrganizacionesEdit({ organizacion }: Props) {
                                             placeholder="Descripción de la organización"
                                         />
                                         <InputError message={errors.descripcion} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="tipo_perfil">
+                                            Tipo de Perfil <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Select
+                                            value={data.tipo_perfil}
+                                            onValueChange={(value) => setData('tipo_perfil', value)}
+                                        >
+                                            <SelectTrigger id="tipo_perfil">
+                                                <SelectValue placeholder="Selecciona el tipo de perfil" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="industrial">Industrial (Trifásico / Zonas)</SelectItem>
+                                                <SelectItem value="residencial">Residencial (Monofásico / Solar)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            Determina qué tipo de panel de control verá esta organización por defecto.
+                                        </p>
+                                        <InputError message={errors.tipo_perfil} />
                                     </div>
 
                                     <div className="grid gap-2">

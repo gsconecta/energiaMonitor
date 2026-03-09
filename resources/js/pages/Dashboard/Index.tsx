@@ -4,11 +4,8 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
-import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
-import VoltajeRedChart from '@/components/VoltajeRedChart';
-import FlujoEnergetico from '@/components/FlujoEnergetico';
-import DatosMeteorologicos from '@/components/DatosMeteorologicos';
+import DashboardResidencial from './DashboardResidencial';
+import DashboardIndustrial from './DashboardIndustrial';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -71,6 +68,7 @@ interface SharedProps {
         id: number;
         nombre: string;
         codigo: string;
+        tipo_perfil?: string;
     };
     sitio_actual?: {
         id: number;
@@ -127,6 +125,10 @@ export default function Dashboard({
     const [mostrarRangoPersonalizado, setMostrarRangoPersonalizado] = useState(false);
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
+
+    // Determinar el perfil de la organización activa
+    const tipoPerfil = organizacionActual?.tipo_perfil || 'industrial';
+    const esResidencial = tipoPerfil === 'residencial';
 
 
     const handleDispositivoChange = (dispositivoId: string) => {
@@ -268,80 +270,19 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                {/* Componentes Flujo Energético y Datos Meteorológicos */}
-                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
-                    {metricas && (
-                        <FlujoEnergetico
-                            produccionSolar={metricas.produccion_fotovoltaica_actual_kw || 0}
-                            redElectrica={metricas.red_electrica_actual_kw || 0}
-                            exportacion={metricas.exportacion_actual_kw || 0}
-                            consumoTotal={metricas.consumo_total_actual_kw || 0}
+                {/* Renderizado Condicional del Dashboard según Perfil */}
+                <div className="mt-4">
+                    {esResidencial ? (
+                        <DashboardResidencial
+                            metricas={metricas}
+                            datos_grafica={datos_grafica}
+                            datos_meteorologicos={datos_meteorologicos}
                         />
-                    )}
-                    {datos_meteorologicos && (
-                        <DatosMeteorologicos datos={datos_meteorologicos} />
-                    )}
-                </div>
-
-                {/* Filtros de período */}
-                <div className="flex flex-col gap-3 sm:gap-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        {dispositivos.length > 1 && (
-                            <select
-                                value={dispositivo?.id || ''}
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        handleDispositivoChange(e.target.value);
-                                    }
-                                }}
-                                className="w-full rounded-md border-gray-300 p-3 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                            >
-                                {dispositivos.map((disp) => (
-                                    <option key={disp.id} value={disp.id}>
-                                        {disp.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        {metricas?.ultima_actualizacion_human && (
-                            <span className="text-xs text-gray-500 sm:self-center sm:text-sm dark:text-gray-400">
-                                Última actualización: {metricas.ultima_actualizacion_human}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Contenedor de Gráficas en 2 columnas para pantallas grandes */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-                    {/* Gráfica de Balance Energético */}
-                    {datos_grafica && datos_grafica.length > 0 && (
-                        <div className="w-full">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Balance Energético
-                            </h2>
-                            <BalanceEnergeticoChart datos={datos_grafica} />
-                        </div>
-                    )}
-
-                    {/* Gráfica de Producción Fotovoltaica */}
-                    {datos_grafica && datos_grafica.length > 0 && (
-                        <div className="w-full">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Producción Fotovoltaica
-                            </h2>
-                            <ProduccionFotovoltaicaChart datos={datos_grafica} />
-                        </div>
-                    )}
-
-                    {/* Gráfica de Voltaje de Red */}
-                    {datos_grafica && datos_grafica.length > 0 && (
-                        <div className="w-full xl:col-span-2">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Voltaje de Red Eléctrica
-                            </h2>
-                            <VoltajeRedChart datos={datos_grafica} />
-                        </div>
+                    ) : (
+                        <DashboardIndustrial
+                            metricas={metricas}
+                            datos_grafica={datos_grafica}
+                        />
                     )}
                 </div>
             </div>

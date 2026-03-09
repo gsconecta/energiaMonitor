@@ -76,6 +76,7 @@ interface Organizacion {
     nombre: string;
     codigo: string;
     descripcion: string | null;
+    tipo_perfil: string;
     activa: boolean;
     rol: string;
     sitios: Sitio[];
@@ -96,7 +97,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] = useState(false);
     const [openDialogAPI, setOpenDialogAPI] = useState(false);
     const [copied, setCopied] = useState<string | null>(null);
-    
+
     const { data: formUsuario, setData: setFormUsuario, post: postUsuario, processing: processingUsuario, errors: errorsUsuario, reset: resetUsuario } = useForm({
         email: '',
         rol: 'member',
@@ -114,30 +115,30 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     // Función para generar código único basado en el nombre
     const generarCodigoSitio = (nombre: string): string => {
         if (!nombre) return '';
-        
+
         let codigo = nombre.toLowerCase();
         codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         codigo = codigo.replace(/[^a-z0-9]+/g, '-');
         codigo = codigo.replace(/^-+|-+$/g, '');
-        
+
         if (codigo.length > 50) {
             codigo = codigo.substring(0, 50);
         }
-        
+
         if (!codigo) {
             codigo = 'sitio';
         }
-        
+
         // Verificar si el código ya existe en los sitios de la organización
         const codigoBase = codigo;
         let codigoFinal = codigoBase;
         let contador = 1;
-        
+
         while (todos_sitios.some(s => s.codigo === codigoFinal)) {
             codigoFinal = `${codigoBase}-${contador}`;
             contador++;
         }
-        
+
         return codigoFinal;
     };
 
@@ -187,17 +188,17 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
 
     const onSubmitSitio = (data: z.infer<typeof formSchemaSitio>) => {
         formSitio.clearErrors();
-        
+
         // Obtener los valores actuales del formulario directamente
         const formValues = formSitio.getValues();
-        
+
         // Asegurar que los valores no estén vacíos
         const codigoValue = (formValues.codigo || data.codigo || '').trim();
         const nombreValue = (formValues.nombre || data.nombre || '').trim();
         const ubicacionValue = (formValues.ubicacion || data.ubicacion || '').trim();
         const descripcionValue = (formValues.descripcion || data.descripcion || '').trim();
         const activaValue = formValues.activa !== undefined ? formValues.activa : (data.activa !== undefined ? data.activa : true);
-        
+
         if (!codigoValue) {
             formSitio.setError('codigo', {
                 type: 'manual',
@@ -205,7 +206,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             });
             return;
         }
-        
+
         if (!nombreValue) {
             formSitio.setError('nombre', {
                 type: 'manual',
@@ -213,7 +214,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             });
             return;
         }
-        
+
         // Preparar los datos para enviar
         const formData = {
             organizacion_id: organizacion.id.toString(),
@@ -223,9 +224,9 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             descripcion: descripcionValue,
             activa: activaValue,
         };
-        
+
         inertiaFormSitio.setData(formData);
-        
+
         inertiaFormSitio.post('/sitios', {
             preserveScroll: true,
             onSuccess: () => {
@@ -438,7 +439,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                 {!organizacion.tiene_shelly_api_key && !organizacion.shelly_server && (
                                                     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
                                                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                                            No hay configuración de API de Shelly para esta organización. 
+                                                            No hay configuración de API de Shelly para esta organización.
                                                             Configúrala desde el formulario de edición.
                                                         </p>
                                                     </div>
@@ -467,6 +468,10 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <MapPin className="h-4 w-4" />
                                     <span>{organizacion.sitios.length} sitios</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <Building2 className="h-4 w-4" />
+                                    <span>{organizacion.tipo_perfil === 'residencial' ? 'Residencial' : 'Industrial'}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <Users className="h-4 w-4" />
@@ -519,13 +524,13 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                         </div>
                                     </SheetHeader>
                                     <Form {...formSitio}>
-                                        <form 
+                                        <form
                                             onSubmit={(e) => {
                                                 e.preventDefault();
                                                 const formValues = formSitio.getValues();
                                                 console.log('Valores del formulario sitio al hacer submit:', formValues);
                                                 formSitio.handleSubmit(onSubmitSitio)(e);
-                                            }} 
+                                            }}
                                             className="w-full"
                                         >
                                             <div className="space-y-4 p-4 pt-0">
@@ -538,8 +543,8 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                                 Nombre <span className="text-red-500">*</span>
                                                             </FormLabel>
                                                             <FormControl>
-                                                                <Input 
-                                                                    placeholder="Nave Industrial 1" 
+                                                                <Input
+                                                                    placeholder="Nave Industrial 1"
                                                                     {...field}
                                                                     value={field.value || ''}
                                                                 />
@@ -633,8 +638,8 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                 />
                                             </div>
                                             <SheetFooter>
-                                                <Button 
-                                                    type="submit" 
+                                                <Button
+                                                    type="submit"
                                                     disabled={inertiaFormSitio.processing}
                                                 >
                                                     {inertiaFormSitio.processing ? 'Creando...' : 'Crear Sitio'}

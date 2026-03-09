@@ -277,18 +277,16 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                         <td className="whitespace-nowrap px-6 py-4">
                                             <div className="flex items-center gap-2">
                                                 <div
-                                                    className={`h-3 w-3 rounded-full ${
-                                                        dispositivo.esta_online
-                                                            ? 'bg-green-500'
-                                                            : 'bg-red-500'
-                                                    }`}
+                                                    className={`h-3 w-3 rounded-full ${dispositivo.esta_online
+                                                        ? 'bg-green-500'
+                                                        : 'bg-red-500'
+                                                        }`}
                                                 />
                                                 <Activity
-                                                    className={`h-4 w-4 ${
-                                                        dispositivo.activo
-                                                            ? 'text-green-500'
-                                                            : 'text-gray-400'
-                                                    }`}
+                                                    className={`h-4 w-4 ${dispositivo.activo
+                                                        ? 'text-green-500'
+                                                        : 'text-gray-400'
+                                                        }`}
                                                 />
                                             </div>
                                         </td>
@@ -333,28 +331,25 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                 <button
                                                     onClick={() => handleSincronizar(dispositivo.id)}
                                                     disabled={sincronizando === dispositivo.id}
-                                                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                                                        sincronizando === dispositivo.id
-                                                            ? 'text-gray-400 cursor-not-allowed'
-                                                            : 'text-indigo-600'
-                                                    }`}
+                                                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${sincronizando === dispositivo.id
+                                                        ? 'text-gray-400 cursor-not-allowed'
+                                                        : 'text-indigo-600'
+                                                        }`}
                                                     title="Sincronizar manualmente"
                                                 >
                                                     <RefreshCw
-                                                        className={`h-4 w-4 ${
-                                                            sincronizando === dispositivo.id
-                                                                ? 'animate-spin'
-                                                                : ''
-                                                        }`}
+                                                        className={`h-4 w-4 ${sincronizando === dispositivo.id
+                                                            ? 'animate-spin'
+                                                            : ''
+                                                            }`}
                                                     />
                                                 </button>
                                                 <button
                                                     onClick={() => handleToggleActivo(dispositivo.id)}
-                                                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                                                        dispositivo.activo
-                                                            ? 'text-green-600'
-                                                            : 'text-gray-400'
-                                                    }`}
+                                                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${dispositivo.activo
+                                                        ? 'text-green-600'
+                                                        : 'text-gray-400'
+                                                        }`}
                                                     title={
                                                         dispositivo.activo
                                                             ? 'Desactivar'
@@ -389,7 +384,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
             {/* Modal de crear/editar */}
             <Dialog open={mostrarModal} onOpenChange={setMostrarModal}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto sm:top-[5%] sm:translate-y-0">
                     <DialogHeader>
                         <DialogTitle>
                             {dispositivoEditando ? 'Editar Dispositivo' : 'Nuevo Dispositivo'}
@@ -401,82 +396,89 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="sitio_id">
-                                Sitio <span className="text-red-500">*</span>
-                            </Label>
-                            <select
-                                id="sitio_id"
-                                value={formData.sitio_id}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, sitio_id: e.target.value })
-                                }
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-                                required
-                            >
-                                {sitios.map((sitio) => (
-                                    <option key={sitio.id} value={sitio.id}>
-                                        {sitio.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    <form onSubmit={handleSubmit} className="grid gap-6 py-4">
+                        {/* Datos Básicos */}
+                        <div className="p-4 bg-muted/30 rounded-lg border grid gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid gap-2 relative">
+                                    <Label htmlFor="sitio_id">
+                                        Sitio <span className="text-red-500">*</span>
+                                    </Label>
+                                    <select
+                                        id="sitio_id"
+                                        value={formData.sitio_id}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, sitio_id: e.target.value })
+                                        }
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                        required
+                                    >
+                                        {sitios.map((sitio) => (
+                                            <option key={sitio.id} value={sitio.id}>
+                                                {sitio.nombre}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="device_id">
-                                Device ID <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="device_id"
-                                type="text"
-                                value={formData.device_id}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, device_id: e.target.value })
-                                }
-                                placeholder="shellyem3-c8c9a33e6505"
-                                required
-                                className={errors?.device_id ? 'border-red-500' : ''}
-                            />
-                            {errors?.device_id && (
-                                <p className="text-sm text-red-600 dark:text-red-400">
-                                    {errors.device_id}
-                                </p>
-                            )}
-                        </div>
+                                <div className="grid gap-2 relative">
+                                    <Label htmlFor="device_id">
+                                        Device ID <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="device_id"
+                                        type="text"
+                                        value={formData.device_id}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, device_id: e.target.value })
+                                        }
+                                        placeholder="shellyem3-c8c9a33e6505"
+                                        required
+                                        className={errors?.device_id ? 'border-red-500' : ''}
+                                    />
+                                    {errors?.device_id && (
+                                        <p className="text-sm text-red-600 dark:text-red-400 absolute -bottom-5">
+                                            {errors.device_id}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="nombre">
-                                Nombre <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="nombre"
-                                type="text"
-                                value={formData.nombre}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, nombre: e.target.value })
-                                }
-                                placeholder="Shelly Producción Solar"
-                                required
-                            />
-                        </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid gap-2 relative">
+                                    <Label htmlFor="nombre">
+                                        Nombre <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="nombre"
+                                        type="text"
+                                        value={formData.nombre}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, nombre: e.target.value })
+                                        }
+                                        placeholder="Shelly Producción Solar"
+                                        required
+                                    />
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="modelo">Modelo</Label>
-                            <Input
-                                id="modelo"
-                                type="text"
-                                value={formData.modelo}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, modelo: e.target.value })
-                                }
-                                placeholder="Shelly EM3"
-                            />
+                                <div className="grid gap-2 relative">
+                                    <Label htmlFor="modelo">Modelo</Label>
+                                    <Input
+                                        id="modelo"
+                                        type="text"
+                                        value={formData.modelo}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, modelo: e.target.value })
+                                        }
+                                        placeholder="Shelly EM3"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Configuración de Canales */}
-                        <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                            <div className="mb-2">
+                        <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border grid gap-6">
+                            <div>
                                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                     Configuración de Canales
                                 </h3>
@@ -485,7 +487,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                 </p>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="grid gap-2 relative sm:w-1/2">
                                 <Label htmlFor="num_fases">Número de Fases</Label>
                                 <select
                                     id="num_fases"
@@ -496,7 +498,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                             num_fases: e.target.value ? parseInt(e.target.value) : null,
                                         })
                                     }
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <option value="">No especificado</option>
                                     <option value="1">1 - Monofásico</option>
@@ -507,12 +509,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
                             {/* Canal 1 */}
                             {(!formData.num_fases || formData.num_fases >= 1) && (
-                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 1
                                     </Label>
-                                    <div className="space-y-2">
-                                        <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid gap-2 relative">
                                             <Label htmlFor="nombre_canal_1" className="text-xs">
                                                 Nombre
                                             </Label>
@@ -527,52 +529,50 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     })
                                                 }
                                                 placeholder="Ej: Consumo General"
-                                                className="h-8 text-sm"
+                                                className="h-9 text-sm"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
-                                            <div className="flex-1">
-                                                <Label htmlFor="color_canal_1" className="text-xs">
-                                                    Color
-                                                </Label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        id="color_canal_1"
-                                                        type="color"
-                                                        value={formData.color_canal_1}
-                                                        onChange={(e) =>
-                                                            setFormData({
-                                                                ...formData,
-                                                                color_canal_1: e.target.value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {formData.color_canal_1}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <Label htmlFor="tipo_canal_1" className="text-xs">
-                                                    Tipo
-                                                </Label>
-                                                <select
-                                                    id="tipo_canal_1"
-                                                    value={formData.tipo_canal_1 || ''}
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="color_canal_1" className="text-xs">
+                                                Color
+                                            </Label>
+                                            <div className="flex items-center gap-2 h-9">
+                                                <input
+                                                    id="color_canal_1"
+                                                    type="color"
+                                                    value={formData.color_canal_1}
                                                     onChange={(e) =>
                                                         setFormData({
                                                             ...formData,
-                                                            tipo_canal_1: e.target.value || null,
+                                                            color_canal_1: e.target.value,
                                                         })
                                                     }
-                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
+                                                    className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {formData.color_canal_1}
+                                                </span>
                                             </div>
+                                        </div>
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="tipo_canal_1" className="text-xs">
+                                                Tipo
+                                            </Label>
+                                            <select
+                                                id="tipo_canal_1"
+                                                value={formData.tipo_canal_1 || ''}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        tipo_canal_1: e.target.value || null,
+                                                    })
+                                                }
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <option value="">Seleccionar tipo</option>
+                                                <option value="fotovoltaica">Fotovoltaica</option>
+                                                <option value="red_electrica">Red Eléctrica</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -580,12 +580,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
                             {/* Canal 2 */}
                             {formData.num_fases && formData.num_fases >= 2 && (
-                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 2
                                     </Label>
-                                    <div className="space-y-2">
-                                        <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid gap-2 relative">
                                             <Label htmlFor="nombre_canal_2" className="text-xs">
                                                 Nombre
                                             </Label>
@@ -600,52 +600,50 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     })
                                                 }
                                                 placeholder="Ej: Consumo General"
-                                                className="h-8 text-sm"
+                                                className="h-9 text-sm"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
-                                            <div className="flex-1">
-                                                <Label htmlFor="color_canal_2" className="text-xs">
-                                                    Color
-                                                </Label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        id="color_canal_2"
-                                                        type="color"
-                                                        value={formData.color_canal_2}
-                                                        onChange={(e) =>
-                                                            setFormData({
-                                                                ...formData,
-                                                                color_canal_2: e.target.value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {formData.color_canal_2}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <Label htmlFor="tipo_canal_2" className="text-xs">
-                                                    Tipo
-                                                </Label>
-                                                <select
-                                                    id="tipo_canal_2"
-                                                    value={formData.tipo_canal_2 || ''}
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="color_canal_2" className="text-xs">
+                                                Color
+                                            </Label>
+                                            <div className="flex items-center gap-2 h-9">
+                                                <input
+                                                    id="color_canal_2"
+                                                    type="color"
+                                                    value={formData.color_canal_2}
                                                     onChange={(e) =>
                                                         setFormData({
                                                             ...formData,
-                                                            tipo_canal_2: e.target.value || null,
+                                                            color_canal_2: e.target.value,
                                                         })
                                                     }
-                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
+                                                    className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {formData.color_canal_2}
+                                                </span>
                                             </div>
+                                        </div>
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="tipo_canal_2" className="text-xs">
+                                                Tipo
+                                            </Label>
+                                            <select
+                                                id="tipo_canal_2"
+                                                value={formData.tipo_canal_2 || ''}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        tipo_canal_2: e.target.value || null,
+                                                    })
+                                                }
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <option value="">Seleccionar tipo</option>
+                                                <option value="fotovoltaica">Fotovoltaica</option>
+                                                <option value="red_electrica">Red Eléctrica</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -653,12 +651,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
 
                             {/* Canal 3 */}
                             {formData.num_fases && formData.num_fases >= 3 && (
-                                <div className="space-y-3 rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 3
                                     </Label>
-                                    <div className="space-y-2">
-                                        <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="grid gap-2 relative">
                                             <Label htmlFor="nombre_canal_3" className="text-xs">
                                                 Nombre
                                             </Label>
@@ -673,59 +671,57 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     })
                                                 }
                                                 placeholder="Ej: Red Eléctrica"
-                                                className="h-8 text-sm"
+                                                className="h-9 text-sm"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
-                                            <div className="flex-1">
-                                                <Label htmlFor="color_canal_3" className="text-xs">
-                                                    Color
-                                                </Label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        id="color_canal_3"
-                                                        type="color"
-                                                        value={formData.color_canal_3}
-                                                        onChange={(e) =>
-                                                            setFormData({
-                                                                ...formData,
-                                                                color_canal_3: e.target.value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {formData.color_canal_3}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <Label htmlFor="tipo_canal_3" className="text-xs">
-                                                    Tipo
-                                                </Label>
-                                                <select
-                                                    id="tipo_canal_3"
-                                                    value={formData.tipo_canal_3 || ''}
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="color_canal_3" className="text-xs">
+                                                Color
+                                            </Label>
+                                            <div className="flex items-center gap-2 h-9">
+                                                <input
+                                                    id="color_canal_3"
+                                                    type="color"
+                                                    value={formData.color_canal_3}
                                                     onChange={(e) =>
                                                         setFormData({
                                                             ...formData,
-                                                            tipo_canal_3: e.target.value || null,
+                                                            color_canal_3: e.target.value,
                                                         })
                                                     }
-                                                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
+                                                    className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {formData.color_canal_3}
+                                                </span>
                                             </div>
+                                        </div>
+                                        <div className="grid gap-2 relative">
+                                            <Label htmlFor="tipo_canal_3" className="text-xs">
+                                                Tipo
+                                            </Label>
+                                            <select
+                                                id="tipo_canal_3"
+                                                value={formData.tipo_canal_3 || ''}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        tipo_canal_3: e.target.value || null,
+                                                    })
+                                                }
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                <option value="">Seleccionar tipo</option>
+                                                <option value="fotovoltaica">Fotovoltaica</option>
+                                                <option value="red_electrica">Red Eléctrica</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 px-2">
                             <input
                                 id="activo"
                                 type="checkbox"
@@ -735,12 +731,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                 }
                                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
-                            <Label htmlFor="activo" className="cursor-pointer">
+                            <Label htmlFor="activo" className="cursor-pointer font-medium text-sm">
                                 Dispositivo activo
                             </Label>
                         </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="pt-2">
                             <Button
                                 type="button"
                                 variant="outline"

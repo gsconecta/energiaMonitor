@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -32,60 +33,61 @@ interface Props {
 export default function OrganizacionesCreate() {
     const page = usePage<Props>();
     const organizaciones = page.props.organizaciones || [];
-    
+
     const [codigoEditadoManualmente, setCodigoEditadoManualmente] = useState(false);
-    
+
     const form = useForm({
         nombre: '',
         codigo: '',
         descripcion: '',
+        tipo_perfil: 'industrial', // Valor por defecto
     });
 
     // Función para generar código único basado en el nombre
     const generarCodigo = (nombre: string): string => {
         if (!nombre) return '';
-        
+
         // Convertir a minúsculas
         let codigo = nombre.toLowerCase();
-        
+
         // Eliminar acentos
         codigo = codigo
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '');
-        
+
         // Reemplazar espacios y caracteres especiales con guiones
         codigo = codigo.replace(/[^a-z0-9]+/g, '-');
-        
+
         // Eliminar guiones al inicio y final
         codigo = codigo.replace(/^-+|-+$/g, '');
-        
+
         // Limitar longitud
         if (codigo.length > 50) {
             codigo = codigo.substring(0, 50);
         }
-        
+
         // Asegurar que no esté vacío
         if (!codigo) {
             codigo = 'organizacion';
         }
-        
+
         // Verificar si el código ya existe y añadir número si es necesario
         const codigoBase = codigo;
         let codigoFinal = codigoBase;
         let contador = 1;
-        
+
         while (organizaciones.some(org => org.codigo === codigoFinal)) {
             codigoFinal = `${codigoBase}-${contador}`;
             contador++;
         }
-        
+
         return codigoFinal;
     };
 
     // Auto-generar código cuando cambia el nombre
     const handleNombreChange = (nombre: string) => {
         form.setData('nombre', nombre);
-        
+
         // Solo auto-generar si el código no fue editado manualmente
         if (!codigoEditadoManualmente) {
             const codigoGenerado = generarCodigo(nombre);
@@ -161,6 +163,32 @@ export default function OrganizacionesCreate() {
                                     {form.errors.codigo && (
                                         <p className="text-sm text-red-600" role="alert">
                                             {form.errors.codigo}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="tipo_perfil">
+                                        Tipo de Perfil <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={form.data.tipo_perfil}
+                                        onValueChange={(value) => form.setData('tipo_perfil', value)}
+                                    >
+                                        <SelectTrigger id="tipo_perfil">
+                                            <SelectValue placeholder="Selecciona el tipo de perfil" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="industrial">Industrial (Trifásico / Zonas)</SelectItem>
+                                            <SelectItem value="residencial">Residencial (Monofásico / Solar)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Determina qué tipo de panel de control verá esta organización por defecto.
+                                    </p>
+                                    {form.errors.tipo_perfil && (
+                                        <p className="text-sm text-red-600" role="alert">
+                                            {form.errors.tipo_perfil}
                                         </p>
                                     )}
                                 </div>

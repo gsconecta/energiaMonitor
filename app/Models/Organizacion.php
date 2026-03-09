@@ -16,6 +16,7 @@ class Organizacion extends Model
         'nombre',
         'codigo',
         'descripcion',
+        'tipo_perfil',
         'activa',
         'configuracion',
         'shelly_api_key',
@@ -72,7 +73,7 @@ class Organizacion extends Model
         $pivot = $this->users()
             ->where('user_id', $user->id)
             ->first();
-            
+
         return $pivot ? $pivot->pivot->rol : null;
     }
 
@@ -96,13 +97,13 @@ class Organizacion extends Model
             // 1. El valor no está encriptado (es texto plano)
             // 2. El valor fue encriptado con otra APP_KEY
             // En ambos casos, devolvemos el valor tal cual o null si parece estar corrupto
-            
+
             // Si el valor parece ser texto plano legible (no muy largo y contiene caracteres alfanuméricos normales)
             // devolverlo tal cual
             if (strlen($value) < 200 && preg_match('/^[a-zA-Z0-9\-_]+$/', $value)) {
                 return $value;
             }
-            
+
             // Si parece estar encriptado pero no se puede descifrar, devolver null
             \Log::warning('No se pudo descifrar shelly_api_key para organización ' . ($this->id ?? 'nueva') . ': ' . $e->getMessage());
             return null;

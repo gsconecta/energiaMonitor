@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $organizacion->id,
                         'nombre' => $organizacion->nombre,
                         'codigo' => $organizacion->codigo,
+                        'tipo_perfil' => $organizacion->tipo_perfil,
                     ];
                     $shared['sitio_actual'] = [
                         'id' => $sitio->id,

@@ -238,6 +238,11 @@ class DashboardController extends Controller
                     'nombre' => $dispositivo->sitio->nombre,
                 ],
             ],
+            'organizacion_activa' => [
+                'id' => $organizacionActual->id,
+                'nombre' => $organizacionActual->nombre,
+                'tipo_perfil' => $organizacionActual->tipo_perfil,
+            ],
             'dispositivos' => $dispositivos,
             'metricas' => $metricas,
             'datos_grafica' => $datosGrafica,
