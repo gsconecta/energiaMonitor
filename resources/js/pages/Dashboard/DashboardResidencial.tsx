@@ -86,6 +86,7 @@ export default function DashboardResidencial({
                             <BalanceEnergeticoChart
                                 datos={datos_grafica}
                                 tiene_fotovoltaica={dispositivo?.tiene_fotovoltaica ?? true}
+                                num_fases={dispositivo?.num_fases ?? 1}
                             />
                         </div>
                         {dispositivo?.tiene_fotovoltaica && (

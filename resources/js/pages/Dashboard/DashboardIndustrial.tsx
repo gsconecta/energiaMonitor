@@ -52,6 +52,7 @@ export default function DashboardIndustrial({
                             <BalanceEnergeticoChart
                                 datos={datos_grafica}
                                 tiene_fotovoltaica={dispositivo?.tiene_fotovoltaica ?? true}
+                                num_fases={dispositivo?.num_fases ?? 1}
                             />
                         </div>
                     </>

@@ -29,15 +29,19 @@ interface DatosGrafica {
     fecha: string;
     produccion_fotovoltaica_kw: number;
     red_electrica_kw: number;
+    fase_1_kw?: number;
+    fase_2_kw?: number;
+    fase_3_kw?: number;
     consumo_casa_kw: number;
 }
 
 interface Props {
     datos: DatosGrafica[];
     tiene_fotovoltaica?: boolean;
+    num_fases?: number;
 }
 
-export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true }: Props) {
+export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true, num_fases = 1 }: Props) {
     const [horaDesde, setHoraDesde] = useState<string>('06:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
@@ -122,28 +126,69 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 pointHoverRadius: 5, // Mostrar punto al hacer hover
                 pointHoverBorderWidth: 2,
             }] : []),
-            {
-                label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
-                data: datosFiltrados.map((d) => d.red_electrica_kw),
-                borderColor: 'rgb(59, 130, 246)', // blue-500 (puede ser positivo o negativo)
-                backgroundColor: 'rgba(59, 130, 246, 0.1)', // blue-500 con opacidad
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0, // Ocultar puntos normalmente
-                pointHoverRadius: 5, // Mostrar punto al hacer hover
-                pointHoverBorderWidth: 2,
-                segment: {
-                    borderColor: (ctx: any) => {
-                        // Cambiar color según si el valor es positivo (azul) o negativo (rojo)
-                        const value = ctx.p1.parsed?.y;
-                        if (value === null || value === undefined) {
-                            return 'rgb(59, 130, 246)'; // default blue
-                        }
-                        return value >= 0 ? 'rgb(59, 130, 246)' : 'rgb(239, 68, 68)'; // blue-500 o red-500
-                    },
+
+            // Si no tiene fotovoltaica y es trifásico, mostrar las 3 líneas por separado
+            ...(!tiene_fotovoltaica && num_fases === 3 ? [
+                {
+                    label: 'Fase 1 (L1)',
+                    data: datosFiltrados.map((d) => d.fase_1_kw ?? 0),
+                    borderColor: 'rgb(59, 130, 246)', // blue-500
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBorderWidth: 2,
                 },
-            },
+                {
+                    label: 'Fase 2 (L2)',
+                    data: datosFiltrados.map((d) => d.fase_2_kw ?? 0),
+                    borderColor: 'rgb(245, 158, 11)', // amber-500
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBorderWidth: 2,
+                },
+                {
+                    label: 'Fase 3 (L3)',
+                    data: datosFiltrados.map((d) => d.fase_3_kw ?? 0),
+                    borderColor: 'rgb(168, 85, 247)', // purple-500
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    fill: false,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBorderWidth: 2,
+                }
+            ] : [
+                // Comportamiento monofásico o combinado clásico
+                {
+                    label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
+                    data: datosFiltrados.map((d) => d.red_electrica_kw),
+                    borderColor: 'rgb(59, 130, 246)', // blue-500
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBorderWidth: 2,
+                    segment: {
+                        borderColor: (ctx: any) => {
+                            const value = ctx.p1.parsed?.y;
+                            if (value === null || value === undefined) {
+                                return 'rgb(59, 130, 246)';
+                            }
+                            return value >= 0 ? 'rgb(59, 130, 246)' : 'rgb(239, 68, 68)';
+                        },
+                    },
+                }
+            ]),
             ...(tiene_fotovoltaica ? [{
                 label: 'Consumo Casa',
                 data: datosFiltrados.map((d) => d.consumo_casa_kw),

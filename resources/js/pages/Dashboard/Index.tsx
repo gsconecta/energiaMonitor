@@ -2,8 +2,15 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Calendar, Building2, MapPin, RefreshCw } from 'lucide-react';
+import { Calendar, Building2, MapPin, RefreshCw, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import DashboardResidencial from './DashboardResidencial';
 import DashboardIndustrial from './DashboardIndustrial';
 
@@ -238,11 +245,35 @@ export default function Dashboard({
                     </div>
                 )}
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex-1">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 space-y-2">
                         <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
-                            {dispositivo?.sitio.nombre} - {dispositivo?.nombre}
+                            {dispositivo?.sitio.nombre}
                         </p>
+
+                        {/* Selector de Dispositivos */}
+                        {dispositivos && dispositivos.length > 0 && dispositivo && (
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={dispositivo.id.toString()}
+                                    onValueChange={handleDispositivoChange}
+                                >
+                                    <SelectTrigger className="w-[250px] h-9">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-4 w-4 text-blue-500" />
+                                            <SelectValue placeholder="Seleccionar dispositivo..." />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {dispositivos.map((d) => (
+                                            <SelectItem key={d.id} value={d.id.toString()}>
+                                                {d.nombre} {d.device_id && `(${d.device_id})`}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2">
