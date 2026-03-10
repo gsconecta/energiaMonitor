@@ -33,17 +33,17 @@ class ObtenerLecturasShelly extends Command
     public function handle()
     {
         $this->info('Obteniendo lecturas de dispositivos Shelly...');
-        
+
         $dispositivoId = $this->option('dispositivo');
         $timeout = (int) $this->option('timeout');
-        
+
         // Obtener dispositivos activos
         $query = Dispositivo::with(['sitio.organizacion'])
             ->activos()
             ->whereHas('sitio.organizacion', function ($q) {
                 $q->where('activa', true)
-                  ->whereNotNull('shelly_api_key')
-                  ->whereNotNull('shelly_server');
+                    ->whereNotNull('shelly_api_key')
+                    ->whereNotNull('shelly_server');
             });
 
         if ($dispositivoId) {
@@ -67,12 +67,15 @@ class ObtenerLecturasShelly extends Command
         foreach ($dispositivos as $dispositivo) {
             try {
                 $this->line("Procesando: {$dispositivo->nombre} ({$dispositivo->device_id})");
-                
+
                 $organizacion = $dispositivo->sitio->organizacion;
-                
+
                 // Verificar credenciales
                 if (!$organizacion->tieneShellyApiKey() || !$organizacion->shelly_server) {
                     $this->warn("  ⚠️  Organización sin credenciales de Shelly configuradas");
+                    Log::channel('shelly_readings')->warning("Organización sin credenciales de Shelly configuradas para dispositivo {$dispositivo->id} ({$dispositivo->device_id})", [
+                        'organizacion_id' => $organizacion->id,
+                    ]);
                     $errores++;
                     continue;
                 }
@@ -88,18 +91,20 @@ class ObtenerLecturasShelly extends Command
 
                 // Guardar lectura en la base de datos
                 $lecturaGuardada = Lectura::create($lectura);
-                
+
                 // Actualizar número de fases del dispositivo
                 $numFasesAnterior = $dispositivo->num_fases;
                 $actualizado = $dispositivo->actualizarNumFasesAuto();
-                
+
                 if ($actualizado || $dispositivo->fresh()->num_fases !== $numFasesAnterior) {
                     $actualizados++;
                     $this->info("  ✅ Lectura guardada - Fases: {$numFasesAnterior} → {$dispositivo->fresh()->num_fases}");
                 } else {
                     $this->info("  ✅ Lectura guardada");
                 }
-                
+
+                Log::channel('shelly_readings')->info("Lectura exitosa para dispositivo {$dispositivo->id} ({$dispositivo->device_id})");
+
                 $exitosos++;
 
                 // Esperar 1 segundo entre requests para no sobrecargar
@@ -109,7 +114,7 @@ class ObtenerLecturasShelly extends Command
 
             } catch (\Exception $e) {
                 $this->error("  ❌ Error: {$e->getMessage()}");
-                Log::error("Error obteniendo lectura de Shelly para dispositivo {$dispositivo->id}", [
+                Log::channel('shelly_readings')->error("Error obteniendo lectura de Shelly para dispositivo {$dispositivo->id}", [
                     'dispositivo_id' => $dispositivo->id,
                     'device_id' => $dispositivo->device_id,
                     'error' => $e->getMessage(),
@@ -141,7 +146,7 @@ class ObtenerLecturasShelly extends Command
         $shellyServer = rtrim($organizacion->shelly_server, '/');
         $shellyServer = preg_replace('/\/device\/status.*$/', '', $shellyServer);
         $url = "{$shellyServer}/device/status";
-        
+
         $apiKey = $organizacion->shelly_api_key;
 
         try {
@@ -152,7 +157,7 @@ class ObtenerLecturasShelly extends Command
                 ]);
 
             if (!$response->successful()) {
-                Log::warning("Error en respuesta de Shelly API para dispositivo {$dispositivo->id}", [
+                Log::channel('shelly_readings')->warning("Error en respuesta de Shelly API para dispositivo {$dispositivo->id}", [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
@@ -162,7 +167,7 @@ class ObtenerLecturasShelly extends Command
             $data = $response->json();
 
             if (!isset($data['isok']) || !$data['isok'] || !isset($data['data'])) {
-                Log::warning("Respuesta inválida de Shelly API para dispositivo {$dispositivo->id}", [
+                Log::channel('shelly_readings')->warning("Respuesta inválida de Shelly API para dispositivo {$dispositivo->id}", [
                     'response' => $data
                 ]);
                 return null;
@@ -172,7 +177,7 @@ class ObtenerLecturasShelly extends Command
             return $this->procesarRespuestaShelly($dispositivo->id, $data);
 
         } catch (\Exception $e) {
-            Log::error("Excepción al obtener lectura de Shelly para dispositivo {$dispositivo->id}", [
+            Log::channel('shelly_readings')->error("Excepción al obtener lectura de Shelly para dispositivo {$dispositivo->id}", [
                 'error' => $e->getMessage(),
                 'url' => $url
             ]);
@@ -187,7 +192,7 @@ class ObtenerLecturasShelly extends Command
     private function procesarRespuestaShelly(int $dispositivoId, array $responseData): ?array
     {
         $deviceStatus = $responseData['data']['device_status'] ?? [];
-        
+
         // Inicializar variables
         $canal1 = null;
         $canal2 = null;
@@ -307,7 +312,7 @@ class ObtenerLecturasShelly extends Command
             $pfCanal3 = $canal3['pf'] ?? 0;
 
             // Contar canales activos
-            $numFases = count(array_filter($deviceStatus['emeters'], function($e) {
+            $numFases = count(array_filter($deviceStatus['emeters'], function ($e) {
                 return ($e['power'] ?? 0) > 0;
             }));
             if ($numFases === 0) {
@@ -349,7 +354,7 @@ class ObtenerLecturasShelly extends Command
         // Fecha de lectura
         // Usar la zona horaria de la aplicación (Europe/Madrid)
         $timezone = config('app.timezone', 'Europe/Madrid');
-        
+
         $fechaLectura = now($timezone);
         if (isset($deviceStatus['ts'])) {
             // El timestamp viene en segundos, crear en la zona horaria de Madrid
@@ -434,7 +439,7 @@ class ObtenerLecturasShelly extends Command
 
         // Mantener estructura mínima para detección de fases
         $datosOptimizados['device_status'] = [];
-        
+
         // Para formato EM1/EM1+ (em1:0, em1:1)
         if (isset($deviceStatus['em1:0']) || isset($deviceStatus['em1:1'])) {
             if (isset($deviceStatus['em1:0'])) {
@@ -448,17 +453,17 @@ class ObtenerLecturasShelly extends Command
                 ];
             }
         }
-        
+
         // Para formato EM3 trifásico (em:0 con prefijos a_, b_, c_)
         if (isset($deviceStatus['em:0']) && isset($deviceStatus['em:0']['a_act_power'])) {
             $datosOptimizados['device_status']['em:0'] = [
                 'a_act_power' => $deviceStatus['em:0']['a_act_power'] ?? 0
             ];
         }
-        
+
         // Para formato EM3 antiguo (emeters array)
         if (isset($deviceStatus['emeters']) && is_array($deviceStatus['emeters'])) {
-            $datosOptimizados['device_status']['emeters'] = array_map(function($emeter) {
+            $datosOptimizados['device_status']['emeters'] = array_map(function ($emeter) {
                 return [
                     'power' => $emeter['power'] ?? 0
                 ];
