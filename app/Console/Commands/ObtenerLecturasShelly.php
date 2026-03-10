@@ -152,6 +152,8 @@ class ObtenerLecturasShelly extends Command
         $apiKey = $organizacion->obtenerShellyApiKey();
 
         try {
+            Log::channel('shelly_readings')->info("Intentando consultar dispositivo {$dispositivo->id} con key_len: " . strlen($apiKey ?? '') . " key_start: " . substr($apiKey ?? '', 0, 5) . "*** (Relacion ID: " . $organizacion->credencial_shelly_id . ")");
+
             $response = Http::timeout($timeout)
                 ->get($url, [
                     'id' => $dispositivo->device_id,
