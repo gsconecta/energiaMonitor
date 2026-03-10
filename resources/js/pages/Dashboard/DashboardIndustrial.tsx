@@ -9,12 +9,6 @@ export default function DashboardIndustrial({
 }: any) {
     return (
         <div className="flex w-full flex-col gap-4">
-            {/* Cabecera del Industrial */}
-            <div className="flex items-center gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                <Factory className="h-4 w-4" />
-                <span>Panel Industrial Activo. Foco en Zonas, Calidad de Red y Reactiva.</span>
-            </div>
-
             {/* Fila de KPIs rápidos */}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">

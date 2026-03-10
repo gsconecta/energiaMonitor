@@ -295,7 +295,7 @@ export default function Dashboard({
                         </span>
                     </div>
 
-                    <div className="flex-1 space-y-0">
+                    <div className="flex-1 space-y-0 mx-2 mb-2">
                         {/* Selector de Dispositivos */}
                         {dispositivos && dispositivos.length > 1 && dispositivo && (
                             <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ export default function Dashboard({
                                     <SelectContent>
                                         {dispositivos.map((d) => (
                                             <SelectItem key={d.id} value={d.id.toString()}>
-                                                {d.nombre} {d.device_id && `(${d.device_id})`}
+                                                {d.nombre}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
