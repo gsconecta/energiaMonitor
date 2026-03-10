@@ -92,17 +92,32 @@ Route::get('/debug-shelly-prod', function () {
         }
     }
 
-    $out .= "\n=== ORGANIZACIONES ===\n";
-    $orgs = \App\Models\Organizacion::whereNotNull('credencial_shelly_id')->orWhereNotNull('shelly_api_key')->get();
-    foreach ($orgs as $org) {
-        $rawOld = $org->getAttributes()['shelly_api_key'] ?? 'null';
-        $out .= "Org ID: {$org->id} | Nombre: {$org->nombre} | Old Raw len: " . strlen($rawOld) . "\n";
-        try {
-            $dec = decrypt($rawOld);
-            $out .= "  [EXITO Old Key] Decrypted: " . strlen($dec) . "\n";
-        } catch (\Exception $e) {
-            $out .= "  [ERROR Old Key] " . $e->getMessage() . "\n";
-        }
+    $out .= "\n=== COMPARACION DIRECTA ORG VS CRED ===\n";
+    $c1 = \App\Models\CredencialShelly::find(1);
+    $org1 = \App\Models\Organizacion::find(1);
+
+    if ($c1 && $org1) {
+        $rawC1 = $c1->getAttributes()['api_key'] ?? '';
+        $rawOrg1 = $org1->getAttributes()['shelly_api_key'] ?? '';
+
+        $out .= "Raw C1:   " . substr($rawC1, 0, 30) . "... (len: " . strlen($rawC1) . ")\n";
+        $out .= "Raw Org1: " . substr($rawOrg1, 0, 30) . "... (len: " . strlen($rawOrg1) . ")\n";
+
+        $out .= "¿Son idénticos literal? " . ($rawC1 === $rawOrg1 ? 'SI' : 'NO') . "\n";
+
+        // Ver las diferencias reales
+        $c1Data = json_decode(base64_decode($rawC1), true);
+        $org1Data = json_decode(base64_decode($rawOrg1), true);
+
+        $out .= "\nEstructura C1:\n";
+        $out .= "  IV: " . substr($c1Data['iv'] ?? '', 0, 10) . "...\n";
+        $out .= "  Value: " . substr($c1Data['value'] ?? '', 0, 10) . "...\n";
+        $out .= "  MAC: " . substr($c1Data['mac'] ?? '', 0, 10) . "...\n";
+
+        $out .= "\nEstructura Org1:\n";
+        $out .= "  IV: " . substr($org1Data['iv'] ?? '', 0, 10) . "...\n";
+        $out .= "  Value: " . substr($org1Data['value'] ?? '', 0, 10) . "...\n";
+        $out .= "  MAC: " . substr($org1Data['mac'] ?? '', 0, 10) . "...\n";
     }
 
     return response($out)->header('Content-Type', 'text/plain');
