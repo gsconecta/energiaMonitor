@@ -58,15 +58,49 @@ class DashboardController extends Controller
         // Obtener todos los dispositivos del sitio seleccionado para el selector
         $dispositivos = $crearQueryDispositivos()
             ->get()
-            ->map(fn($d) => [
-                'id' => $d->id,
-                'nombre' => $d->nombre,
-                'tipo' => $d->tipo,
-                'sitio' => [
-                    'id' => $d->sitio->id,
-                    'nombre' => $d->sitio->nombre,
-                ],
-            ]);
+            ->map(function ($d) {
+                $ultimaLectura = $d->ultimaLectura();
+
+                return [
+                    'id' => $d->id,
+                    'nombre' => $d->nombre,
+                    'tipo' => $d->tipo,
+                    'device_id' => $d->device_id,
+                    'num_fases' => $d->num_fases,
+                    'nombre_canal_1' => $d->nombre_canal_1,
+                    'nombre_canal_2' => $d->nombre_canal_2,
+                    'nombre_canal_3' => $d->nombre_canal_3,
+                    'tipo_canal_1' => $d->tipo_canal_1,
+                    'tipo_canal_2' => $d->tipo_canal_2,
+                    'tipo_canal_3' => $d->tipo_canal_3,
+                    'color_canal_1' => $d->color_canal_1,
+                    'color_canal_2' => $d->color_canal_2,
+                    'color_canal_3' => $d->color_canal_3,
+                    'tiene_fotovoltaica' => $d->tieneFotovoltaica(),
+                    'estado_conexion' => $d->estaOnline() ? 'online' : 'offline',
+                    'sitio' => [
+                        'id' => $d->sitio->id,
+                        'nombre' => $d->sitio->nombre,
+                    ],
+                    'ultima_lectura' => $ultimaLectura ? [
+                        'fecha_lectura' => $ultimaLectura->fecha_lectura->toISOString(),
+                        'fecha_lectura_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
+                        'potencia_total_w' => $ultimaLectura->potencia_total_w,
+                        'potencia_canal_1_w' => $ultimaLectura->potencia_canal_1_w,
+                        'potencia_canal_2_w' => $ultimaLectura->potencia_canal_2_w,
+                        'potencia_canal_3_w' => $ultimaLectura->potencia_canal_3_w,
+                        'voltaje_canal_1' => $ultimaLectura->voltaje_canal_1,
+                        'voltaje_canal_2' => $ultimaLectura->voltaje_canal_2,
+                        'voltaje_canal_3' => $ultimaLectura->voltaje_canal_3,
+                        'energia_canal_1_kwh' => $ultimaLectura->energia_canal_1_kwh,
+                        'energia_canal_2_kwh' => $ultimaLectura->energia_canal_2_kwh,
+                        'energia_canal_3_kwh' => $ultimaLectura->energia_canal_3_kwh,
+                        'corriente_canal_1' => $ultimaLectura->corriente_canal_1,
+                        'corriente_canal_2' => $ultimaLectura->corriente_canal_2,
+                        'corriente_canal_3' => $ultimaLectura->corriente_canal_3,
+                    ] : null,
+                ];
+            });
 
         // Obtener dispositivo (usar el primero del sitio si no se especifica)
         if ($dispositivoId) {

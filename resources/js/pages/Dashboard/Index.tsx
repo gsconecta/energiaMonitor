@@ -63,11 +63,35 @@ interface Dispositivo {
     nombre_canal_1: string | null;
     nombre_canal_2: string | null;
     nombre_canal_3: string | null;
+    tipo_canal_1: string | null;
+    tipo_canal_2: string | null;
+    tipo_canal_3: string | null;
+    color_canal_1: string | null;
+    color_canal_2: string | null;
+    color_canal_3: string | null;
     tiene_fotovoltaica?: boolean;
+    estado_conexion?: 'online' | 'offline';
     sitio: {
         id: number;
         nombre: string;
     };
+    ultima_lectura?: {
+        fecha_lectura: string;
+        fecha_lectura_human: string;
+        potencia_total_w: number | null;
+        potencia_canal_1_w: number | null;
+        potencia_canal_2_w: number | null;
+        potencia_canal_3_w: number | null;
+        voltaje_canal_1: number | null;
+        voltaje_canal_2: number | null;
+        voltaje_canal_3: number | null;
+        energia_canal_1_kwh: number | null;
+        energia_canal_2_kwh: number | null;
+        energia_canal_3_kwh: number | null;
+        corriente_canal_1: number | null;
+        corriente_canal_2: number | null;
+        corriente_canal_3: number | null;
+    } | null;
 }
 
 
@@ -217,10 +241,10 @@ export default function Dashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex w-full flex-1 flex-col gap-4 p-2 sm:p-4 lg:p-6">
+            <div className="flex w-full flex-1 flex-col gap-1 p-2 sm:p-1">
                 {/* Indicador de contexto actual */}
                 {organizacionActual && sitioActual && (
-                    <div className="flex items-center justify-between rounded-lg border border-sidebar-border/70 bg-white p-3 dark:border-sidebar-border dark:bg-gray-800">
+                    <div className="flex items-center justify-between p-1">
                         <div className="flex items-center gap-3">
                             <Building2 className="h-4 w-4 text-gray-400" />
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -246,37 +270,7 @@ export default function Dashboard({
                 )}
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex-1 space-y-2">
-                        <p className="mt-1 text-xs text-gray-600 sm:text-sm dark:text-gray-400">
-                            {dispositivo?.sitio.nombre}
-                        </p>
-
-                        {/* Selector de Dispositivos */}
-                        {dispositivos && dispositivos.length > 0 && dispositivo && (
-                            <div className="flex items-center gap-2">
-                                <Select
-                                    value={dispositivo.id.toString()}
-                                    onValueChange={handleDispositivoChange}
-                                >
-                                    <SelectTrigger className="w-[250px] h-9">
-                                        <div className="flex items-center gap-2">
-                                            <Zap className="h-4 w-4 text-blue-500" />
-                                            <SelectValue placeholder="Seleccionar dispositivo..." />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dispositivos.map((d) => (
-                                            <SelectItem key={d.id} value={d.id.toString()}>
-                                                {d.nombre} {d.device_id && `(${d.device_id})`}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mx-2 mb-2">
                         <div className="relative flex h-3 w-3">
                             <span
                                 className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${metricas?.estado_conexion === 'online'
@@ -300,16 +294,43 @@ export default function Dashboard({
                             {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
                         </span>
                     </div>
+
+                    <div className="flex-1 space-y-0">
+                        {/* Selector de Dispositivos */}
+                        {dispositivos && dispositivos.length > 1 && dispositivo && (
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={dispositivo.id.toString()}
+                                    onValueChange={handleDispositivoChange}
+                                >
+                                    <SelectTrigger className="w-[250px] h-9">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-4 w-4 text-blue-500" />
+                                            <SelectValue placeholder="Seleccionar dispositivo..." />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {dispositivos.map((d) => (
+                                            <SelectItem key={d.id} value={d.id.toString()}>
+                                                {d.nombre} {d.device_id && `(${d.device_id})`}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Renderizado Condicional del Dashboard según Perfil */}
-                <div className="mt-4">
+                <div className="mt-2 sm:mt-0">
                     {esResidencial ? (
                         <DashboardResidencial
                             metricas={metricas}
                             datos_grafica={datos_grafica}
                             datos_meteorologicos={datos_meteorologicos}
                             dispositivo={dispositivo}
+                            dispositivos={dispositivos}
                         />
                     ) : (
                         <DashboardIndustrial
