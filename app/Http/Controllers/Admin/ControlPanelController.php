@@ -14,6 +14,12 @@ class ControlPanelController extends Controller
 {
     public function index(Request $request)
     {
+        // Limpiar contexto actual para "salir" del sitio donde estaba
+        $request->session()->forget([
+            'organizacion_actual_id',
+            'sitio_actual_id',
+            'is_impersonating'
+        ]);
         // Verificar permisos (solo admin y tecnico pueden acceder)
         if (!auth()->user()->esAdminOTecnico()) {
             abort(403, 'No tienes permisos para acceder al Panel de Control Global.');
@@ -74,6 +80,25 @@ class ControlPanelController extends Controller
                 ];
             });
 
+        // 3. Obtener últimas lecturas (exitosas)
+        $ultimasLecturas = \App\Models\Lectura::with(['dispositivo.sitio.organizacion'])
+            ->orderBy('fecha_lectura', 'desc')
+            ->take(50)
+            ->get()
+            ->map(function ($lectura) {
+                return [
+                    'id' => $lectura->id,
+                    'dispositivo_nombre' => $lectura->dispositivo->nombre ?? 'N/A',
+                    'sitio_nombre' => $lectura->dispositivo->sitio->nombre ?? 'N/A',
+                    'organizacion_nombre' => $lectura->dispositivo->sitio->organizacion->nombre ?? 'N/A',
+                    'organizacion_id' => $lectura->dispositivo->sitio->organizacion_id ?? null,
+                    'sitio_id' => $lectura->dispositivo->sitio_id ?? null,
+                    'fecha_lectura' => $lectura->fecha_lectura->diffForHumans(),
+                    'potencia_total_w' => $lectura->potencia_total_w,
+                    'estado' => 'ok', // Si está en la base de datos, fue exitosa
+                ];
+            });
+
         return Inertia::render('Admin/ControlPanel', [
             'metricasGlobales' => [
                 'total_organizaciones' => $totalOrganizaciones,
@@ -83,6 +108,7 @@ class ControlPanelController extends Controller
             ],
             'dispositivosOffline' => $dispositivosOffline->values(),
             'alertasPendientes' => $alertasPendientes,
+            'ultimasLecturas' => $ultimasLecturas,
         ]);
     }
 

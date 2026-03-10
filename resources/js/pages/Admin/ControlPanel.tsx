@@ -1,6 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
 import { Building2, ServerCrash, AlertTriangle, ArrowRight, ShieldAlert, Cpu, Key } from 'lucide-react';
+import { useState } from 'react';
 import {
     Table,
     TableBody,
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface DispositivoOffline {
     id: number;
@@ -34,6 +36,18 @@ interface AlertaPendiente {
     fecha_creacion: string;
 }
 
+interface UltimaLectura {
+    id: number;
+    dispositivo_nombre: string;
+    sitio_nombre: string;
+    organizacion_nombre: string;
+    organizacion_id: number;
+    sitio_id: number;
+    fecha_lectura: string;
+    potencia_total_w: number;
+    estado: string;
+}
+
 interface Props {
     metricasGlobales: {
         total_organizaciones: number;
@@ -43,13 +57,27 @@ interface Props {
     };
     dispositivosOffline: DispositivoOffline[];
     alertasPendientes: AlertaPendiente[];
+    ultimasLecturas: UltimaLectura[];
 }
 
 export default function ControlPanel({
     metricasGlobales,
     dispositivosOffline,
     alertasPendientes,
+    ultimasLecturas,
 }: Props) {
+    const [busquedaLecturas, setBusquedaLecturas] = useState('');
+
+    const lecturasFiltradas = ultimasLecturas.filter(lectura => {
+        if (!busquedaLecturas) return true;
+
+        const busqueda = busquedaLecturas.toLowerCase();
+        return (
+            lectura.dispositivo_nombre?.toLowerCase().includes(busqueda) ||
+            lectura.organizacion_nombre?.toLowerCase().includes(busqueda) ||
+            lectura.sitio_nombre?.toLowerCase().includes(busqueda)
+        );
+    });
 
     // Función para impersonar / suplantar vista de cliente
     const handleImpersonate = (organizacionId: number, sitioId: number) => {
@@ -226,6 +254,92 @@ export default function ControlPanel({
                                                             onClick={() => handleImpersonate(alerta.organizacion_id, alerta.sitio_id)}
                                                         >
                                                             Ver <ArrowRight className="ml-1 h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabla de Últimas Lecturas */}
+                <div className="rounded-lg border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 mt-2">
+                    <div className="border-b px-4 py-3 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Cpu className="h-5 w-5 text-blue-500" />
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                Registro de Últimas Lecturas
+                            </h2>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800 ml-2">
+                                Últimas 50
+                            </Badge>
+                        </div>
+                        <div className="w-full sm:w-auto flex items-center gap-2">
+                            <Input
+                                placeholder="Buscar equipo, sitio u org..."
+                                value={busquedaLecturas}
+                                onChange={(e) => setBusquedaLecturas(e.target.value)}
+                                className="max-w-[300px]"
+                            />
+                        </div>
+                    </div>
+                    <div className="p-0">
+                        <div className="max-h-[500px] overflow-auto">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10 shadow-sm">
+                                    <TableRow>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead>Dispositivo</TableHead>
+                                        <TableHead>Cliente / Sitio</TableHead>
+                                        <TableHead>Potencia Act.</TableHead>
+                                        <TableHead>Recibida</TableHead>
+                                        <TableHead className="text-right">Acción</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {lecturasFiltradas.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                                                {busquedaLecturas ? "No se encontraron lecturas que coincidan con la búsqueda." : "No hay lecturas registradas."}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        lecturasFiltradas.map((lectura) => (
+                                            <TableRow key={lectura.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
+                                                        <span className="text-xs font-medium text-green-700 dark:text-green-400">OK</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{lectura.dispositivo_nombre}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span>{lectura.organizacion_nombre}</span>
+                                                        <span className="text-xs text-gray-500">{lectura.sitio_nombre}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary" className="font-mono">
+                                                        {lectura.potencia_total_w} W
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-gray-500">
+                                                    {lectura.fecha_lectura}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {lectura.organizacion_id && lectura.sitio_id && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8"
+                                                            onClick={() => handleImpersonate(lectura.organizacion_id, lectura.sitio_id)}
+                                                        >
+                                                            Asistir <ArrowRight className="ml-1 h-3 w-3" />
                                                         </Button>
                                                     )}
                                                 </TableCell>
