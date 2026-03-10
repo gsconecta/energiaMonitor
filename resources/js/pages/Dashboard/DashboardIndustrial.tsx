@@ -3,6 +3,7 @@ import VoltajeRedChart from '@/components/VoltajeRedChart';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 import PotenciaReactivaChart from '@/components/PotenciaReactivaChart';
 import FactorPotenciaChart from '@/components/FactorPotenciaChart';
+import CorrienteFasesChart from '@/components/CorrienteFasesChart';
 
 export default function DashboardIndustrial({
     metricas,
@@ -136,6 +137,21 @@ export default function DashboardIndustrial({
                                 Desplazamiento de Fase cos(φ)
                             </h2>
                             <FactorPotenciaChart
+                                datos={datos_grafica}
+                                num_fases={dispositivo?.num_fases ?? 1}
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || null,
+                                    dispositivo?.color_canal_2 || null,
+                                    dispositivo?.color_canal_3 || null,
+                                ]}
+                            />
+                        </div>
+
+                        <div className="w-full lg:col-span-2">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Intensidad de Alimentación Relativa (A)
+                            </h2>
+                            <CorrienteFasesChart
                                 datos={datos_grafica}
                                 num_fases={dispositivo?.num_fases ?? 1}
                                 colores_canales={[

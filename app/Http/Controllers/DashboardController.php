@@ -153,6 +153,9 @@ class DashboardController extends Controller
                 'factor_potencia_1' => $lectura->pf_canal_1 ?? 0,
                 'factor_potencia_2' => $lectura->pf_canal_2 ?? 0,
                 'factor_potencia_3' => $lectura->pf_canal_3 ?? 0,
+                'corriente_canal_1' => $lectura->corriente_canal_1 ?? 0,
+                'corriente_canal_2' => $lectura->corriente_canal_2 ?? 0,
+                'corriente_canal_3' => $lectura->corriente_canal_3 ?? 0,
             ];
         })->values();
 
