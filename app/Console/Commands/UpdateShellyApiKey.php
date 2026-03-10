@@ -36,19 +36,36 @@ class UpdateShellyApiKey extends Command
             return Command::FAILURE;
         }
 
-        $this->info("Actualizando API key para: {$organizacion->nombre} (ID: {$organizacion->id})");
+        $this->info("Actualizando API key para la organización: {$organizacion->nombre} (ID: {$organizacion->id})");
 
-        // Actualizar la API key (el mutator la encriptará automáticamente)
-        $organizacion->shelly_api_key = $apiKey;
-        $organizacion->save();
+        // Use existing credential or create a new one
+        $credencial = $organizacion->credencialShelly;
 
-        $this->info("✓ API key actualizada correctamente");
-        $this->info("  La clave ha sido encriptada y guardada en la base de datos.");
+        if (!$credencial) {
+            $this->info("Creando nueva Credencial Shelly para la organización...");
+            $credencial = new \App\Models\CredencialShelly();
+            $credencial->nombre = "Credencial - " . $organizacion->nombre;
+            $credencial->server = $organizacion->shelly_server ?? 'https://api.shelly.cloud'; // Default or existing legacy server
+        } else {
+            $this->info("Actualizando Credencial Shelly existente: {$credencial->nombre}");
+        }
+
+        // Actualizar la API key
+        $credencial->api_key = $apiKey;
+        $credencial->save();
+
+        if (!$organizacion->credencial_shelly_id) {
+            $organizacion->credencial_shelly_id = $credencial->id;
+            $organizacion->save();
+        }
+
+        $this->info("✓ API key actualizada y asignada correctamente");
+        $this->info("  La clave ha sido guardada en la tabla credencial_shellies.");
 
         // Verificar que se puede leer correctamente
-        $verificacion = $organizacion->fresh()->shelly_api_key;
+        $verificacion = $organizacion->fresh()->obtenerShellyApiKey();
         if ($verificacion === $apiKey) {
-            $this->info("✓ Verificación: La API key se puede leer correctamente");
+            $this->info("✓ Verificación: La API key se puede leer correctamente a través de la relación");
         } else {
             $this->warn("⚠ Advertencia: La API key no coincide después de guardarla");
         }

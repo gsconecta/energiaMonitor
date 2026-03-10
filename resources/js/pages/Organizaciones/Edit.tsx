@@ -22,6 +22,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface CredencialShelly {
+    id: number;
+    nombre: string;
+    server: string | null;
+}
+
 interface Organizacion {
     id: number;
     nombre: string;
@@ -29,28 +35,34 @@ interface Organizacion {
     descripcion: string | null;
     tipo_perfil: string;
     activa: boolean;
-    tiene_shelly_api_key?: boolean;
-    shelly_server?: string | null;
+    credencial_shelly_id?: number | null;
 }
 
 interface Props {
     organizacion: Organizacion;
+    credenciales_shelly?: CredencialShelly[];
 }
 
-export default function OrganizacionesEdit({ organizacion }: Props) {
+export default function OrganizacionesEdit({ organizacion, credenciales_shelly = [] }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         nombre: organizacion.nombre,
         codigo: organizacion.codigo,
         descripcion: organizacion.descripcion || '',
         tipo_perfil: organizacion.tipo_perfil || 'industrial',
         activa: organizacion.activa,
-        shelly_api_key: '', // Campo vacío inicialmente, solo se actualiza si el usuario introduce algo
-        shelly_server: organizacion.shelly_server || '',
+        credencial_shelly_id: organizacion.credencial_shelly_id ? organizacion.credencial_shelly_id.toString() : 'none',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/organizaciones/${organizacion.id}`);
+
+        // Convert "none" back to null for the backend
+        const payload = {
+            ...data,
+            credencial_shelly_id: data.credencial_shelly_id === 'none' ? null : parseInt(data.credencial_shelly_id),
+        };
+
+        router.put(`/organizaciones/${organizacion.id}`, payload);
     };
 
     return (
@@ -136,44 +148,35 @@ export default function OrganizacionesEdit({ organizacion }: Props) {
                                         <InputError message={errors.tipo_perfil} />
                                     </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="shelly_api_key">
-                                            Clave API de Shelly
-                                        </Label>
-                                        <InputPassword
-                                            id="shelly_api_key"
-                                            value={data.shelly_api_key}
-                                            onChange={(e) => setData('shelly_api_key', e.target.value)}
-                                            placeholder={
-                                                organizacion.tiene_shelly_api_key
-                                                    ? 'Dejar vacío para mantener la clave actual o escribir nueva clave'
-                                                    : 'Ingresa la clave API de Shelly'
-                                            }
-                                        />
-                                        {organizacion.tiene_shelly_api_key && (
+                                    {credenciales_shelly && credenciales_shelly.length > 0 && (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="credencial_shelly_id">
+                                                Credencial de Shelly Cloud
+                                            </Label>
+                                            <Select
+                                                value={data.credencial_shelly_id}
+                                                onValueChange={(value) => setData('credencial_shelly_id', value)}
+                                            >
+                                                <SelectTrigger id="credencial_shelly_id">
+                                                    <SelectValue placeholder="Selecciona una credencial (opcional)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">Ninguna (Sin acceso a Shelly)</SelectItem>
+                                                    {credenciales_shelly.map((credencial) => (
+                                                        <SelectItem key={credencial.id} value={credencial.id.toString()}>
+                                                            {credencial.nombre} {credencial.server ? `(${credencial.server})` : ''}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <p className="text-xs text-muted-foreground">
-                                                Ya existe una clave API configurada. Deja este campo vacío para mantenerla o ingresa una nueva para cambiarla.
+                                                Selecciona qué cuenta de Shelly se usará para obtener los datos de esta organización.
                                             </p>
-                                        )}
-                                        <InputError message={errors.shelly_api_key} />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="shelly_server">
-                                            Servidor de Shelly
-                                        </Label>
-                                        <Input
-                                            id="shelly_server"
-                                            type="text"
-                                            value={data.shelly_server}
-                                            onChange={(e) => setData('shelly_server', e.target.value)}
-                                            placeholder="Ejemplo: https://api.shelly.cloud o https://shelly-XX-eu.shelly.cloud"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            URL del servidor de Shelly Cloud para esta organización
-                                        </p>
-                                        <InputError message={errors.shelly_server} />
-                                    </div>
+                                            {errors.credencial_shelly_id && (
+                                                <InputError message={errors.credencial_shelly_id} />
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="flex items-center space-x-2">
                                         <Checkbox

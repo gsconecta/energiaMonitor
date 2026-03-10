@@ -30,7 +30,7 @@ export default function DashboardResidencial({
             </div>
 
             {/* Fila de KPIs rápidos */}
-            <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
+            <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-1 md:grid-cols-2'}`}>
                 {dispositivo?.tiene_fotovoltaica && (
                     <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Generación Solar</p>
@@ -44,12 +44,16 @@ export default function DashboardResidencial({
                 {dispositivo?.tiene_fotovoltaica ? (
                     <>
                         <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Independencia (Periodo)</p>
-                            <p className="mt-2 text-2xl font-bold text-green-500">{independenciaEnergética.toFixed(1)}%</p>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Generación Solar (Periodo)</p>
+                            <p className="mt-2 text-2xl font-bold text-yellow-500">{metricas?.generacion_fotovoltaica_kwh || 0} kWh</p>
                         </div>
                         <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Energía Retornada</p>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Energía Retornada (Periodo)</p>
                             <p className="mt-2 text-2xl font-bold text-purple-500">{metricas?.energia_retornada_kwh || 0} kWh</p>
+                        </div>
+                        <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Independencia (Periodo)</p>
+                            <p className="mt-2 text-2xl font-bold text-green-500">{independenciaEnergética.toFixed(1)}%</p>
                         </div>
                     </>
                 ) : (

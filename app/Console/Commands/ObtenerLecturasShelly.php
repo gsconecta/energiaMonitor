@@ -38,12 +38,14 @@ class ObtenerLecturasShelly extends Command
         $timeout = (int) $this->option('timeout');
 
         // Obtener dispositivos activos
-        $query = Dispositivo::with(['sitio.organizacion'])
+        $query = Dispositivo::with(['sitio.organizacion.credencialShelly'])
             ->activos()
             ->whereHas('sitio.organizacion', function ($q) {
                 $q->where('activa', true)
-                    ->whereNotNull('shelly_api_key')
-                    ->whereNotNull('shelly_server');
+                    ->where(function ($subq) {
+                        $subq->whereNotNull('credencial_shelly_id')
+                            ->orWhereNotNull('shelly_api_key');
+                    });
             });
 
         if ($dispositivoId) {
@@ -71,7 +73,7 @@ class ObtenerLecturasShelly extends Command
                 $organizacion = $dispositivo->sitio->organizacion;
 
                 // Verificar credenciales
-                if (!$organizacion->tieneShellyApiKey() || !$organizacion->shelly_server) {
+                if (!$organizacion->tieneShellyApiKey() || !$organizacion->obtenerShellyServer()) {
                     $this->warn("  ⚠️  Organización sin credenciales de Shelly configuradas");
                     Log::channel('shelly_readings')->warning("Organización sin credenciales de Shelly configuradas para dispositivo {$dispositivo->id} ({$dispositivo->device_id})", [
                         'organizacion_id' => $organizacion->id,
@@ -143,11 +145,11 @@ class ObtenerLecturasShelly extends Command
      */
     private function obtenerLecturaDeShelly(Dispositivo $dispositivo, Organizacion $organizacion, int $timeout)
     {
-        $shellyServer = rtrim($organizacion->shelly_server, '/');
+        $shellyServer = rtrim($organizacion->obtenerShellyServer(), '/');
         $shellyServer = preg_replace('/\/device\/status.*$/', '', $shellyServer);
         $url = "{$shellyServer}/device/status";
 
-        $apiKey = $organizacion->shelly_api_key;
+        $apiKey = $organizacion->obtenerShellyApiKey();
 
         try {
             $response = Http::timeout($timeout)

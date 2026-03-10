@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Organizacion;
 use App\Models\User;
+use App\Models\CredencialShelly;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -50,8 +51,11 @@ class OrganizacionesController extends Controller
         // Obtener todas las organizaciones para validar códigos únicos
         $organizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
 
+        $credencialesShelly = auth()->user()->esAdminOTecnico() ? CredencialShelly::all() : [];
+
         return Inertia::render('Organizaciones/Create', [
             'organizaciones' => $organizaciones,
+            'credenciales_shelly' => $credencialesShelly,
         ]);
     }
 
@@ -106,9 +110,9 @@ class OrganizacionesController extends Controller
                 'descripcion' => $organizacion->descripcion,
                 'tipo_perfil' => $organizacion->tipo_perfil,
                 'activa' => $organizacion->activa,
-                'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
-                'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
-                'shelly_server' => $organizacion->shelly_server,
+                'credencial_shelly_id' => $organizacion->credencial_shelly_id,
+                'shelly_server' => $organizacion->obtenerShellyServer(),
+                'tiene_shelly_api_key' => $organizacion->tieneShellyApiKey(),
                 'rol' => $organizacion->rolUsuario(auth()->user()),
                 'sitios' => $organizacion->sitios->map(fn($s) => [
                     'id' => $s->id,
@@ -134,6 +138,8 @@ class OrganizacionesController extends Controller
     {
         $this->authorize('update', $organizacion);
 
+        $credencialesShelly = auth()->user()->esAdminOTecnico() ? CredencialShelly::all() : [];
+
         return Inertia::render('Organizaciones/Edit', [
             'organizacion' => [
                 'id' => $organizacion->id,
@@ -142,10 +148,9 @@ class OrganizacionesController extends Controller
                 'descripcion' => $organizacion->descripcion,
                 'tipo_perfil' => $organizacion->tipo_perfil,
                 'activa' => $organizacion->activa,
-                'shelly_api_key' => $organizacion->shelly_api_key ? '***' : null, // No mostrar la clave real por seguridad
-                'tiene_shelly_api_key' => !empty($organizacion->shelly_api_key),
-                'shelly_server' => $organizacion->shelly_server,
+                'credencial_shelly_id' => $organizacion->credencial_shelly_id,
             ],
+            'credenciales_shelly' => $credencialesShelly,
         ]);
     }
 
@@ -162,17 +167,10 @@ class OrganizacionesController extends Controller
             'descripcion' => 'nullable|string',
             'tipo_perfil' => 'required|in:residencial,industrial',
             'activa' => 'boolean',
-            'shelly_api_key' => 'nullable|string',
-            'shelly_server' => 'nullable|string|max:255',
+            'credencial_shelly_id' => 'nullable|exists:credencial_shellies,id',
         ]);
 
-        // Si el usuario envía '***' o está vacío y ya existe una clave, no actualizarla
-        if (
-            isset($validated['shelly_api_key']) &&
-            ($validated['shelly_api_key'] === '***' || $validated['shelly_api_key'] === '')
-        ) {
-            unset($validated['shelly_api_key']);
-        }
+        // No more api key handling here, it is done in the CredencialShellyController
 
         $organizacion->update($validated);
 

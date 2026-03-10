@@ -21,6 +21,7 @@ class Organizacion extends Model
         'configuracion',
         'shelly_api_key',
         'shelly_server',
+        'credencial_shelly_id',
     ];
 
     protected $casts = [
@@ -41,6 +42,11 @@ class Organizacion extends Model
     public function sitios()
     {
         return $this->hasMany(Sitio::class);
+    }
+
+    public function credencialShelly()
+    {
+        return $this->belongsTo(CredencialShelly::class);
     }
 
     // Scopes
@@ -130,6 +136,12 @@ class Organizacion extends Model
      */
     public function obtenerShellyApiKey()
     {
+        // Priorizar la nueva relación
+        if ($this->credencialShelly) {
+            return $this->credencialShelly->api_key;
+        }
+
+        // Fallback a la clave antigua si aún existe
         return $this->shelly_api_key;
     }
 
@@ -138,6 +150,9 @@ class Organizacion extends Model
      */
     public function tieneShellyApiKey()
     {
+        if ($this->credencial_shelly_id) {
+            return true; // Asumimos que si tiene relación asignada, tiene clave
+        }
         return !empty($this->shelly_api_key);
     }
 
@@ -146,6 +161,9 @@ class Organizacion extends Model
      */
     public function obtenerShellyServer()
     {
+        if ($this->credencialShelly) {
+            return $this->credencialShelly->server;
+        }
         return $this->shelly_server;
     }
 

@@ -62,6 +62,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.control-panel');
     Route::post('/admin/impersonate/{organizacion}/{sitio}', [ControlPanelController::class, 'impersonate'])
         ->name('admin.impersonate');
+
+    // Credenciales Shelly (Globales)
+    Route::resource('admin/credenciales-shelly', \App\Http\Controllers\Admin\CredencialShellyController::class)
+        ->names('admin.credenciales-shelly')
+        ->parameters(['credenciales-shelly' => 'credencial']);
 });
 
 require __DIR__ . '/settings.php';

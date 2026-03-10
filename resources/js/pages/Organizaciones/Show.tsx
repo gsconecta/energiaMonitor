@@ -392,7 +392,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                             <Input
                                                                 value={organizacion.shelly_server}
                                                                 readOnly
-                                                                className="font-mono text-sm"
+                                                                className="font-mono text-sm bg-gray-50/50 dark:bg-gray-900/50"
                                                             />
                                                             <Button
                                                                 type="button"
@@ -417,22 +417,22 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                         </Label>
                                                         <div className="flex gap-2">
                                                             <Input
-                                                                value="••••••••••••••••"
+                                                                value="••••••••••••••••••••••••••••••••"
                                                                 readOnly
-                                                                className="font-mono text-sm"
+                                                                className="font-mono text-sm bg-gray-50/50 dark:bg-gray-900/50"
                                                             />
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
                                                                 size="icon"
                                                                 disabled
-                                                                title="La clave API está configurada. Edítala desde el formulario de edición."
+                                                                title="Por seguridad la clave no se muestra."
                                                             >
                                                                 <Copy className="h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">
-                                                            La clave API está configurada. Para verla o cambiarla, edita la organización.
+                                                            La clave API está configurada a través de una Credencial Shelly vinculada.
                                                         </p>
                                                     </div>
                                                 )}
@@ -440,7 +440,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
                                                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
                                                             No hay configuración de API de Shelly para esta organización.
-                                                            Configúrala desde el formulario de edición.
+                                                            Debes asignarle una Credencial Shelly desde el formulario de edición.
                                                         </p>
                                                     </div>
                                                 )}

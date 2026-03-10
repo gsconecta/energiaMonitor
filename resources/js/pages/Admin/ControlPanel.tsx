@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router } from '@inertiajs/react';
-import { Building2, ServerCrash, AlertTriangle, ArrowRight, ShieldAlert, Cpu } from 'lucide-react';
+import { Building2, ServerCrash, AlertTriangle, ArrowRight, ShieldAlert, Cpu, Key } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -61,11 +61,19 @@ export default function ControlPanel({
             <Head title="Control Global" />
 
             <div className="flex w-full flex-col gap-6 p-4 sm:p-6">
-                <div className="flex items-center gap-3 border-b pb-4">
-                    <ShieldAlert className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+                <div className="flex items-center justify-between border-b pb-4">
+                    <div className="flex items-center gap-3">
+                        <ShieldAlert className="h-8 w-8 text-blue-600 dark:text-blue-500" />
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Centro de Mando Técnico</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Visión panorámica de todas las organizaciones y dispositivos del sistema.</p>
+                        </div>
+                    </div>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Centro de Mando Técnico</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Visión panorámica de todas las organizaciones y dispositivos del sistema.</p>
+                        <Button onClick={() => router.visit('/admin/credenciales-shelly')} variant="outline" className="gap-2">
+                            <Key className="h-4 w-4" />
+                            Credenciales Shelly
+                        </Button>
                     </div>
                 </div>
 
