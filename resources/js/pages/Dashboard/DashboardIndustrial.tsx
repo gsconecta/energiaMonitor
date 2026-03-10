@@ -2,6 +2,7 @@ import { Factory } from 'lucide-react';
 import VoltajeRedChart from '@/components/VoltajeRedChart';
 import BalanceEnergeticoChart from '@/components/BalanceEnergeticoChart';
 import PotenciaReactivaChart from '@/components/PotenciaReactivaChart';
+import FactorPotenciaChart from '@/components/FactorPotenciaChart';
 
 export default function DashboardIndustrial({
     metricas,
@@ -74,6 +75,67 @@ export default function DashboardIndustrial({
                                 Potencia Reactiva Global
                             </h2>
                             <PotenciaReactivaChart
+                                datos={datos_grafica}
+                                num_fases={dispositivo?.num_fases ?? 1}
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || null,
+                                    dispositivo?.color_canal_2 || null,
+                                    dispositivo?.color_canal_3 || null,
+                                ]}
+                            />
+
+                            {/* Cuadro de resumen de última lectura de reactiva */}
+                            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {Array.from({ length: dispositivo?.num_fases || 1 }).map((_, i) => {
+                                    const fase = i + 1;
+                                    const v = metricas?.[`voltaje_actual_${fase}` as keyof typeof metricas] as number ?? 0;
+                                    const current = metricas?.[`corriente_actual_${fase}` as keyof typeof metricas] as number ?? 0;
+                                    const pf = metricas?.[`factor_potencia_${fase}` as keyof typeof metricas] as number ?? 0;
+                                    const q = metricas?.[`q${fase}_var_actual` as keyof typeof metricas] as number ?? 0;
+
+                                    const customColor = dispositivo?.[`color_canal_${fase}` as keyof typeof dispositivo] as string | undefined;
+                                    const defaultColors = ['text-amber-500', 'text-purple-500', 'text-cyan-500'];
+                                    const colorClass = customColor ? '' : defaultColors[i];
+
+                                    return (
+                                        <div key={fase} className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 flex flex-col">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                    Última Lectura Fase {fase}
+                                                </span>
+                                                <span
+                                                    className={`font-semibold ${colorClass}`}
+                                                    style={customColor ? { color: customColor } : {}}
+                                                >
+                                                    {Math.abs(q) >= 1000 ? (q / 1000).toFixed(2) + ' kVAR' : q.toFixed(2) + ' VAR'}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                <div className="rounded bg-gray-50 dark:bg-gray-800/50 p-2">
+                                                    <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Voltaje</div>
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{v.toFixed(1)} V</div>
+                                                </div>
+                                                <div className="rounded bg-gray-50 dark:bg-gray-800/50 p-2">
+                                                    <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Corriente</div>
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{current.toFixed(2)} A</div>
+                                                </div>
+                                                <div className="rounded bg-gray-50 dark:bg-gray-800/50 p-2">
+                                                    <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">cos(φ)</div>
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{pf.toFixed(2)}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="w-full lg:col-span-2">
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                Desplazamiento de Fase cos(φ)
+                            </h2>
+                            <FactorPotenciaChart
                                 datos={datos_grafica}
                                 num_fases={dispositivo?.num_fases ?? 1}
                                 colores_canales={[
