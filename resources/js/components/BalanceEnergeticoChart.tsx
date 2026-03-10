@@ -39,9 +39,21 @@ interface Props {
     datos: DatosGrafica[];
     tiene_fotovoltaica?: boolean;
     num_fases?: number;
+    colores_canales?: (string | null)[];
 }
 
-export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true, num_fases = 1 }: Props) {
+const getRgba = (hex: string | null | undefined, defaultRgba: string) => {
+    if (!hex) return defaultRgba;
+    if (hex.startsWith('#') && hex.length === 7) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, 0.1)`;
+    }
+    return defaultRgba;
+};
+
+export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true, num_fases = 1, colores_canales = [] }: Props) {
     const [horaDesde, setHoraDesde] = useState<string>('06:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:00');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
@@ -132,8 +144,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 {
                     label: 'Fase 1 (L1)',
                     data: datosFiltrados.map((d) => d.fase_1_kw ?? 0),
-                    borderColor: 'rgb(59, 130, 246)', // blue-500
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
+                    backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
                     fill: false,
                     tension: 0.4,
                     borderWidth: 2,
@@ -144,8 +156,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 {
                     label: 'Fase 2 (L2)',
                     data: datosFiltrados.map((d) => d.fase_2_kw ?? 0),
-                    borderColor: 'rgb(245, 158, 11)', // amber-500
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderColor: colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
+                    backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
                     fill: false,
                     tension: 0.4,
                     borderWidth: 2,
@@ -156,8 +168,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 {
                     label: 'Fase 3 (L3)',
                     data: datosFiltrados.map((d) => d.fase_3_kw ?? 0),
-                    borderColor: 'rgb(168, 85, 247)', // purple-500
-                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    borderColor: colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
+                    backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
                     fill: false,
                     tension: 0.4,
                     borderWidth: 2,
@@ -170,8 +182,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 {
                     label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
                     data: datosFiltrados.map((d) => d.red_electrica_kw),
-                    borderColor: 'rgb(59, 130, 246)', // blue-500
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
+                    backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
                     fill: true,
                     tension: 0.4,
                     borderWidth: 2,
@@ -182,9 +194,9 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                         borderColor: (ctx: any) => {
                             const value = ctx.p1.parsed?.y;
                             if (value === null || value === undefined) {
-                                return 'rgb(59, 130, 246)';
+                                return colores_canales[0] || 'rgb(59, 130, 246)';
                             }
-                            return value >= 0 ? 'rgb(59, 130, 246)' : 'rgb(239, 68, 68)';
+                            return value >= 0 ? (colores_canales[0] || 'rgb(59, 130, 246)') : 'rgb(239, 68, 68)';
                         },
                     },
                 }

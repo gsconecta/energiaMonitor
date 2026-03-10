@@ -20,8 +20,22 @@ export default function DashboardIndustrial({
                     <p className="mt-2 text-2xl font-bold text-red-500">{metricas?.potencia_maxima_kw || 0} kW</p>
                 </div>
                 <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Factor de Potencia Promedio</p>
-                    <p className="mt-2 text-2xl font-bold text-indigo-500">{metricas?.factor_potencia_promedio || 0}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Factor de Potencia</p>
+                    <div className="mt-2 flex items-center gap-4">
+                        {Array.from({ length: dispositivo?.num_fases || 1 }).map((_, i) => {
+                            const colorCanal = dispositivo?.[`color_canal_${i + 1}` as keyof typeof dispositivo] as string || '#6366f1';
+                            return (
+                                <div key={i} className="flex items-center gap-1.5 font-medium text-gray-700 dark:text-gray-300">
+                                    <span className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">L{i + 1} :</span>
+                                    <span className="text-lg font-bold" style={{ color: colorCanal }}>
+                                        {metricas?.[`factor_potencia_${i + 1}` as keyof typeof metricas] !== undefined
+                                            ? metricas?.[`factor_potencia_${i + 1}` as keyof typeof metricas]
+                                            : 0}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
                 <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Voltaje Promedio</p>
@@ -47,6 +61,11 @@ export default function DashboardIndustrial({
                                 datos={datos_grafica}
                                 tiene_fotovoltaica={dispositivo?.tiene_fotovoltaica ?? true}
                                 num_fases={dispositivo?.num_fases ?? 1}
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || null,
+                                    dispositivo?.color_canal_2 || null,
+                                    dispositivo?.color_canal_3 || null,
+                                ]}
                             />
                         </div>
                     </>

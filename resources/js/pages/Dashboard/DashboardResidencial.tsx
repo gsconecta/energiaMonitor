@@ -87,6 +87,11 @@ export default function DashboardResidencial({
                                 datos={datos_grafica}
                                 tiene_fotovoltaica={dispositivo?.tiene_fotovoltaica ?? true}
                                 num_fases={dispositivo?.num_fases ?? 1}
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || null,
+                                    dispositivo?.color_canal_2 || null,
+                                    dispositivo?.color_canal_3 || null,
+                                ]}
                             />
                         </div>
                         {dispositivo?.tiene_fotovoltaica && (

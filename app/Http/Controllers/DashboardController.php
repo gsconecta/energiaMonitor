@@ -270,6 +270,9 @@ class DashboardController extends Controller
                 'nombre_canal_1' => $dispositivo->nombre_canal_1,
                 'nombre_canal_2' => $dispositivo->nombre_canal_2,
                 'nombre_canal_3' => $dispositivo->nombre_canal_3,
+                'color_canal_1' => $dispositivo->color_canal_1,
+                'color_canal_2' => $dispositivo->color_canal_2,
+                'color_canal_3' => $dispositivo->color_canal_3,
                 'tiene_fotovoltaica' => $dispositivo->tieneFotovoltaica(),
                 'sitio' => [
                     'id' => $dispositivo->sitio->id,
@@ -377,12 +380,11 @@ class DashboardController extends Controller
         $corrientePromedio3 = $lecturas->whereNotNull('corriente_canal_3')->avg('corriente_canal_3') ?? 0;
         $corrienteNeutroPromedio = $lecturas->whereNotNull('corriente_neutro')->avg('corriente_neutro') ?? 0;
 
-        // Calcular factor de potencia promedio solo con valores válidos
-        $pfPromedios = collect([
-            $lecturas->whereNotNull('pf_canal_1')->avg('pf_canal_1'),
-            $lecturas->whereNotNull('pf_canal_2')->avg('pf_canal_2'),
-            $lecturas->whereNotNull('pf_canal_3')->avg('pf_canal_3'),
-        ])->filter(fn($val) => $val !== null);
+        $pfPromedio1 = $lecturas->whereNotNull('pf_canal_1')->avg('pf_canal_1');
+        $pfPromedio2 = $lecturas->whereNotNull('pf_canal_2')->avg('pf_canal_2');
+        $pfPromedio3 = $lecturas->whereNotNull('pf_canal_3')->avg('pf_canal_3');
+
+        $pfPromedios = collect([$pfPromedio1, $pfPromedio2, $pfPromedio3])->filter(fn($val) => $val !== null);
 
         $factorPotenciaPromedio = $pfPromedios->isNotEmpty()
             ? $pfPromedios->avg()
@@ -464,6 +466,9 @@ class DashboardController extends Controller
             'corriente_promedio_3' => round($corrientePromedio3, 2),
             'corriente_neutro_promedio' => round($corrienteNeutroPromedio, 2),
             'factor_potencia_promedio' => round($factorPotenciaPromedio, 2),
+            'factor_potencia_1' => $ultimaLectura->pf_canal_1 ?? 0,
+            'factor_potencia_2' => $ultimaLectura->pf_canal_2 ?? 0,
+            'factor_potencia_3' => $ultimaLectura->pf_canal_3 ?? 0,
             'consumo_casa_kwh' => round($energiaConsumoCasa, 2),
             'exportacion_neta_kwh' => round($energiaRetornada, 2),
             'generacion_fotovoltaica_kwh' => round($energiaFotovoltaica, 2),
