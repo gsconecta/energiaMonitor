@@ -115,6 +115,13 @@ interface DatosGrafica {
     red_electrica_kw: number;
     consumo_casa_kw: number;
     voltaje_red_electrica: number;
+    fase_1_kw?: number;
+    fase_2_kw?: number;
+    fase_3_kw?: number;
+    q1_var?: number;
+    q2_var?: number;
+    q3_var?: number;
+    q_total_var?: number;
 }
 
 interface DatosMeteorologicos {

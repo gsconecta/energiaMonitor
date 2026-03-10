@@ -144,6 +144,10 @@ class DashboardController extends Controller
                 'fase_1_kw' => round(($lectura->potencia_canal_1_w ?? 0) / 1000, 2),
                 'fase_2_kw' => round(($lectura->potencia_canal_2_w ?? 0) / 1000, 2),
                 'fase_3_kw' => round(($lectura->potencia_canal_3_w ?? 0) / 1000, 2),
+                'q1_var' => $lectura->calcularPotenciaReactivaCanal(1) ?? 0,
+                'q2_var' => $lectura->calcularPotenciaReactivaCanal(2) ?? 0,
+                'q3_var' => $lectura->calcularPotenciaReactivaCanal(3) ?? 0,
+                'q_total_var' => $lectura->calcularPotenciaReactivaTotal(),
                 'consumo_casa_kw' => round(($lectura->calcularConsumoCasa() ?? 0) / 1000, 2),
                 'voltaje_red_electrica' => round($lectura->obtenerVoltajeRedElectrica() ?? 0, 1),
             ];

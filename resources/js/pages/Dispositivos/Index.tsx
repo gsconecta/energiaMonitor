@@ -549,9 +549,18 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     }
                                                     className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {formData.color_canal_1}
-                                                </span>
+                                                <Input
+                                                    type="text"
+                                                    value={formData.color_canal_1 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            color_canal_1: e.target.value,
+                                                        })
+                                                    }
+                                                    placeholder="#000000"
+                                                    className="h-8 max-w-[100px] text-xs font-mono uppercase"
+                                                />
                                             </div>
                                         </div>
                                         <div className="grid gap-2 relative">
@@ -620,9 +629,18 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     }
                                                     className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {formData.color_canal_2}
-                                                </span>
+                                                <Input
+                                                    type="text"
+                                                    value={formData.color_canal_2 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            color_canal_2: e.target.value,
+                                                        })
+                                                    }
+                                                    placeholder="#000000"
+                                                    className="h-8 max-w-[100px] text-xs font-mono uppercase"
+                                                />
                                             </div>
                                         </div>
                                         <div className="grid gap-2 relative">
@@ -691,9 +709,18 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                                     }
                                                     className="h-8 w-16 cursor-pointer rounded border border-input bg-background"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {formData.color_canal_3}
-                                                </span>
+                                                <Input
+                                                    type="text"
+                                                    value={formData.color_canal_3 || ''}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            color_canal_3: e.target.value,
+                                                        })
+                                                    }
+                                                    placeholder="#000000"
+                                                    className="h-8 max-w-[100px] text-xs font-mono uppercase"
+                                                />
                                             </div>
                                         </div>
                                         <div className="grid gap-2 relative">

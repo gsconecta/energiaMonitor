@@ -367,4 +367,62 @@ class Lectura extends Model
         $potencia = $this->obtenerPotenciaRedElectrica();
         return $potencia !== null && $potencia > 0 ? $potencia : 0;
     }
+
+    /**
+     * Calcular Potencia Reactiva (Q) para un canal específico (en VAR)
+     * Q = V * I * sin(phi)
+     * donde sin(phi) = sqrt(1 - pf^2)
+     * 
+     * @param int $canal Número de canal (1, 2, 3)
+     * @return float|null Potencia reactiva en VAR o null si faltan datos
+     */
+    public function calcularPotenciaReactivaCanal(int $canal): ?float
+    {
+        $voltaje = match ($canal) {
+            1 => $this->voltaje_canal_1,
+            2 => $this->voltaje_canal_2,
+            3 => $this->voltaje_canal_3,
+            default => null,
+        };
+
+        $corriente = match ($canal) {
+            1 => $this->corriente_canal_1,
+            2 => $this->corriente_canal_2,
+            3 => $this->corriente_canal_3,
+            default => null,
+        };
+
+        $pf = match ($canal) {
+            1 => $this->pf_canal_1,
+            2 => $this->pf_canal_2,
+            3 => $this->pf_canal_3,
+            default => null,
+        };
+
+        if ($voltaje === null || $corriente === null || $pf === null) {
+            return null;
+        }
+
+        // Restringir el factor de potencia entre -1 y 1 para evitar errores en sqrt
+        $pfManejado = max(-1.0, min(1.0, (float) $pf));
+
+        $sinPhi = sqrt(1 - pow($pfManejado, 2));
+
+        return round($voltaje * $corriente * $sinPhi, 2);
+    }
+
+    /**
+     * Calcular Potencia Reactiva Total (Q Total) (en VAR)
+     * Suma de Q1 + Q2 + Q3
+     * 
+     * @return float
+     */
+    public function calcularPotenciaReactivaTotal(): float
+    {
+        $q1 = $this->calcularPotenciaReactivaCanal(1) ?? 0;
+        $q2 = $this->calcularPotenciaReactivaCanal(2) ?? 0;
+        $q3 = $this->calcularPotenciaReactivaCanal(3) ?? 0;
+
+        return round($q1 + $q2 + $q3, 2);
+    }
 }
