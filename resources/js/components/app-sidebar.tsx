@@ -86,7 +86,7 @@ export function AppSidebar() {
     const isAdminContext = !props.organizacion_actual || url.startsWith('/admin');
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="inset" className="dark">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
