@@ -63,6 +63,11 @@ class InformesController extends Controller
             return Inertia::render('Informes/Index', [
                 'dispositivos' => [],
                 'datos' => [],
+                'organizacion_activa' => [
+                    'id' => $organizacionActual->id,
+                    'nombre' => $organizacionActual->nombre,
+                    'tipo_perfil' => $organizacionActual->tipo_perfil,
+                ],
                 'filtros' => [
                     'periodo' => 'semana_actual',
                     'intervalo' => '1h'
@@ -213,9 +218,18 @@ class InformesController extends Controller
         }
 
         return Inertia::render('Informes/Index', [
-            'dispositivo' => $dispositivo,
+            'dispositivo' => $dispositivo ? [
+                'id' => $dispositivo->id,
+                'nombre' => $dispositivo->nombre,
+                'tiene_fotovoltaica' => $dispositivo->tieneFotovoltaica(),
+            ] : null,
             'dispositivos' => $dispositivos,
             'datos' => array_values($datosAgrupados),
+            'organizacion_activa' => [
+                'id' => $organizacionActual->id,
+                'nombre' => $organizacionActual->nombre,
+                'tipo_perfil' => $organizacionActual->tipo_perfil,
+            ],
             'filtros' => [
                 'periodo' => $periodo,
                 'intervalo' => $intervalo,

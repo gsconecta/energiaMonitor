@@ -43,6 +43,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Dispositivo {
     id: number;
     nombre: string;
+    tiene_fotovoltaica?: boolean;
 }
 
 interface DataPoint {
@@ -54,10 +55,17 @@ interface DataPoint {
     voltaje_red_electrica?: number;
 }
 
+interface OrganizacionActiva {
+    id: number;
+    nombre: string;
+    tipo_perfil: string;
+}
+
 interface Props {
     dispositivo: Dispositivo;
     dispositivos: Dispositivo[];
     datos: DataPoint[];
+    organizacion_activa: OrganizacionActiva;
     filtros: {
         periodo: string;
         intervalo: string;
@@ -67,7 +75,7 @@ interface Props {
     };
 }
 
-export default function InformesIndex({ dispositivo, dispositivos, datos, filtros }: Props) {
+export default function InformesIndex({ dispositivo, dispositivos, datos, organizacion_activa, filtros }: Props) {
     const [periodo, setPeriodo] = useState(filtros.periodo);
     const [intervalo, setIntervalo] = useState(filtros.intervalo);
     const [fechaDesde, setFechaDesde] = useState(filtros.fecha_desde);
@@ -125,21 +133,18 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
     }
 
     // Configuración del gráfico
-    const chartData = {
-        labels: datos.map(d => {
-            const date = new Date(d.fecha);
-            return filtros.intervalo === '15m' || filtros.intervalo === '1h'
-                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : date.toLocaleDateString();
-        }),
-        datasets: [
-            {
-                label: 'Consumo (kWh)',
-                data: datos.map(d => d.consumo_kwh),
-                backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 1,
-            },
+    const datasets = [
+        {
+            label: 'Consumo (kWh)',
+            data: datos.map(d => d.consumo_kwh),
+            backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1,
+        }
+    ];
+
+    if (dispositivo?.tiene_fotovoltaica) {
+        datasets.push(
             {
                 label: 'Generación (kWh)',
                 data: datos.map(d => d.generacion_kwh),
@@ -160,8 +165,18 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                 backgroundColor: 'rgba(234, 179, 8, 0.5)', // Yellow
                 borderColor: 'rgb(234, 179, 8)',
                 borderWidth: 1,
-            },
-        ],
+            }
+        );
+    }
+
+    const chartData = {
+        labels: datos.map(d => {
+            const date = new Date(d.fecha);
+            return filtros.intervalo === '15m' || filtros.intervalo === '1h'
+                ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : date.toLocaleDateString();
+        }),
+        datasets: datasets,
     };
 
     const chartOptions = {
@@ -191,6 +206,14 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Informes Energéticos" />
+
+            {/* Banner de Organización */}
+            <div className={`w-full px-6 py-3 font-semibold text-white flex justify-between items-center ${organizacion_activa.tipo_perfil === 'industrial' ? 'bg-orange-600' : 'bg-blue-600'}`}>
+                <span>{organizacion_activa.nombre}</span>
+                <span className="uppercase text-sm tracking-wider">
+                    {organizacion_activa.tipo_perfil === 'industrial' ? 'Perfil Industrial' : 'Perfil Residencial'}
+                </span>
+            </div>
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Filtros */}
@@ -277,7 +300,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                 </Card>
 
                 {/* KPIs */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-7' : 'grid-cols-1 md:grid-cols-3'}`}>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Consumo Total</CardTitle>
@@ -288,46 +311,52 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                             <p className="text-xs text-muted-foreground">En el periodo seleccionado</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Independencia</CardTitle>
-                            <Zap className="h-4 w-4 text-blue-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{independenciaEnergetica.toFixed(1)}%</div>
-                            <p className="text-xs text-muted-foreground">Autosuficiencia</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Generación FV</CardTitle>
-                            <Zap className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{totalGeneracion.toFixed(2)} kWh</div>
-                            <p className="text-xs text-muted-foreground">Energía producida</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Importación Red</CardTitle>
-                            <ArrowDown className="h-4 w-4 text-red-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{totalImportacion.toFixed(2)} kWh</div>
-                            <p className="text-xs text-muted-foreground">Comprado a la red</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Exportación Red</CardTitle>
-                            <ArrowUp className="h-4 w-4 text-yellow-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totalExportacion.toFixed(2)} kWh</div>
-                            <p className="text-xs text-muted-foreground">Vertido a la red</p>
-                        </CardContent>
-                    </Card>
+
+                    {dispositivo?.tiene_fotovoltaica && (
+                        <>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Independencia</CardTitle>
+                                    <Zap className="h-4 w-4 text-blue-500" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{independenciaEnergetica.toFixed(1)}%</div>
+                                    <p className="text-xs text-muted-foreground">Autosuficiencia</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Generación FV</CardTitle>
+                                    <Zap className="h-4 w-4 text-green-500" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{totalGeneracion.toFixed(2)} kWh</div>
+                                    <p className="text-xs text-muted-foreground">Energía producida</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Importación Red</CardTitle>
+                                    <ArrowDown className="h-4 w-4 text-red-500" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{totalImportacion.toFixed(2)} kWh</div>
+                                    <p className="text-xs text-muted-foreground">Comprado a la red</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Exportación Red</CardTitle>
+                                    <ArrowUp className="h-4 w-4 text-yellow-500" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{totalExportacion.toFixed(2)} kWh</div>
+                                    <p className="text-xs text-muted-foreground">Vertido a la red</p>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Voltaje Mínimo</CardTitle>
@@ -350,8 +379,8 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, filtro
                     </Card>
                 </div>
 
-                {/* Contenedor de Gráficas en 2 columnas */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mt-4">
+                {/* Contenedor de Gráficas en 1 columna por defecto, y 2 en pantallas extra grandes */}
+                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 lg:gap-6 mt-4">
                     {/* Gráfico Evolución Energética */}
                     <Card className="flex flex-col h-[500px]">
                         <CardHeader>
