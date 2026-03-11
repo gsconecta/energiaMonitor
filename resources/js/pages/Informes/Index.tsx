@@ -15,7 +15,7 @@ import {
     Title,
     Tooltip,
 } from 'chart.js';
-import { ArrowDown, ArrowUp, Zap } from 'lucide-react';
+import { ArrowDown, ArrowUp, Zap, Settings2 } from 'lucide-react';
 import { useState } from 'react';
 import VoltajeRedChart from '@/components/VoltajeRedChart';
 import PotenciaReactivaChart from '@/components/PotenciaReactivaChart';
@@ -88,6 +88,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
     const [fechaHasta, setFechaHasta] = useState(filtros.fecha_hasta);
     const [dispositivoId, setDispositivoId] = useState(filtros.dispositivo_id.toString());
     const [loading, setLoading] = useState(false);
+    const [mostrarConfiguracion, setMostrarConfiguracion] = useState(false);
 
     const aplicarFiltros = () => {
         setLoading(true);
@@ -224,12 +225,31 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
             </div>
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
+                {/* Cabecera y Botón de Ajustes */}
+                <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-lg border border-sidebar-border/70 shadow-sm">
+                    <div>
+                        <h2 className="text-xl font-bold">Resumen Energético</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Mostrando datos de {fechaDesde} a {fechaHasta}
+                        </p>
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setMostrarConfiguracion(!mostrarConfiguracion)}
+                        className="flex items-center gap-2"
+                    >
+                        <Settings2 className="h-4 w-4" />
+                        {mostrarConfiguracion ? 'Cerrar Ajustes' : 'Personalizar Informe'}
+                    </Button>
+                </div>
+
                 {/* Filtros */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle>Configuración del Informe</CardTitle>
-                        <CardDescription>Selecciona los parámetros para generar el informe</CardDescription>
-                    </CardHeader>
+                {mostrarConfiguracion && (
+                    <Card className="animate-in fade-in slide-in-from-top-4 duration-300">
+                        <CardHeader className="pb-3">
+                            <CardTitle>Configuración del Informe</CardTitle>
+                            <CardDescription>Selecciona los parámetros para generar el informe</CardDescription>
+                        </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 items-end">
                         <div className="space-y-2">
                             <Label>Dispositivo</Label>
@@ -306,6 +326,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                         </Button>
                     </CardContent>
                 </Card>
+                )}
 
                 {/* KPIs */}
                 <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-8' : 'grid-cols-1 md:grid-cols-4'}`}>
