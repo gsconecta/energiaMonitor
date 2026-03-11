@@ -18,6 +18,7 @@ import {
 import { ArrowDown, ArrowUp, Zap } from 'lucide-react';
 import { useState } from 'react';
 import VoltajeRedChart from '@/components/VoltajeRedChart';
+import PotenciaReactivaChart from '@/components/PotenciaReactivaChart';
 import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -44,6 +45,7 @@ interface Dispositivo {
     id: number;
     nombre: string;
     tiene_fotovoltaica?: boolean;
+    configuracion?: any;
 }
 
 interface DataPoint {
@@ -53,6 +55,10 @@ interface DataPoint {
     importacion_kwh: number;
     exportacion_kwh: number;
     voltaje_red_electrica?: number;
+    q1_var?: number;
+    q2_var?: number;
+    q3_var?: number;
+    q_total_var?: number;
 }
 
 interface OrganizacionActiva {
@@ -102,6 +108,9 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
     const totalGeneracion = datos.reduce((acc, curr) => acc + curr.generacion_kwh, 0);
     const totalImportacion = datos.reduce((acc, curr) => acc + curr.importacion_kwh, 0);
     const totalExportacion = datos.reduce((acc, curr) => acc + curr.exportacion_kwh, 0);
+
+    const picosReactiva = datos.map(d => Math.abs(d.q_total_var || 0));
+    const picoReactiva = picosReactiva.length > 0 ? Math.max(...picosReactiva) : 0;
 
     // Calcular independencia energética
     const independenciaEnergetica = totalConsumo > 0
@@ -202,7 +211,6 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
         }
     };
 
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Informes Energéticos" />
@@ -300,7 +308,7 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                 </Card>
 
                 {/* KPIs */}
-                <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-7' : 'grid-cols-1 md:grid-cols-3'}`}>
+                <div className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-8' : 'grid-cols-1 md:grid-cols-4'}`}>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Consumo Total</CardTitle>
@@ -377,6 +385,16 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                             <p className="text-xs text-muted-foreground">{maxVoltaje > 0 ? fechaMaxVoltaje : 'En el periodo'}</p>
                         </CardContent>
                     </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Pico Reactiva</CardTitle>
+                            <Zap className="h-4 w-4 text-purple-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{(picoReactiva >= 1000 ? (picoReactiva / 1000).toFixed(2) : picoReactiva.toFixed(0))}</div>
+                            <p className="text-xs text-muted-foreground">{picoReactiva >= 1000 ? 'kVAR max' : 'VAR max'}</p>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Contenedor de Gráficas en 1 columna por defecto, y 2 en pantallas extra grandes */}
@@ -402,6 +420,22 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                             <div className="h-full w-full">
                                 <VoltajeRedChart datos={datos as any} ocultarFiltros={true} />
                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Contenedor extra (Gráfico Reactiva) */}
+                <div className="grid grid-cols-1 gap-4 lg:gap-6 mt-4">
+                    <Card className="flex flex-col">
+                        <CardHeader>
+                            <CardTitle>Potencia Reactiva Promedio</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 relative p-4">
+                            <PotenciaReactivaChart 
+                                datos={datos as any} 
+                                num_fases={dispositivo?.configuracion?.fases || 3} 
+                                colores_canales={['#3B82F6', '#F59E0B', '#A855F7']} 
+                            />
                         </CardContent>
                     </Card>
                 </div>

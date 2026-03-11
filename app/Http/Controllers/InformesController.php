@@ -126,6 +126,12 @@ class InformesController extends Controller
                 'voltaje_canal_1',
                 'voltaje_canal_2',
                 'voltaje_canal_3',
+                'corriente_canal_1',
+                'corriente_canal_2',
+                'corriente_canal_3',
+                'pf_canal_1',
+                'pf_canal_2',
+                'pf_canal_3',
                 'dispositivo_id'
             ]);
 
@@ -162,6 +168,11 @@ class InformesController extends Controller
                 $potenciaImportacion = $lecturaActual->obtenerImportacionRed();
                 $potenciaExportacion = $lecturaActual->obtenerExportacionRed();
                 $voltajeActual = $lecturaActual->obtenerVoltajeRedElectrica();
+                
+                $q1_var = $lecturaActual->calcularPotenciaReactivaCanal(1) ?? 0;
+                $q2_var = $lecturaActual->calcularPotenciaReactivaCanal(2) ?? 0;
+                $q3_var = $lecturaActual->calcularPotenciaReactivaCanal(3) ?? 0;
+                $q_total_var = $lecturaActual->calcularPotenciaReactivaTotal();
 
                 // Cálculo de energía (kWh) para este delta de tiempo
                 $factor = $diffSegundos / 3600000;
@@ -182,6 +193,15 @@ class InformesController extends Controller
                         'generacion_kwh' => 0,
                         'importacion_kwh' => 0,
                         'exportacion_kwh' => 0,
+                        'suma_q1' => 0,
+                        'suma_q2' => 0,
+                        'suma_q3' => 0,
+                        'suma_q_total' => 0,
+                        'conteo_q' => 0,
+                        'q1_var' => 0,
+                        'q2_var' => 0,
+                        'q3_var' => 0,
+                        'q_total_var' => 0,
                         'suma_voltaje' => 0,
                         'conteo_voltaje' => 0,
                         'voltaje_red_electrica' => null,
@@ -194,6 +214,12 @@ class InformesController extends Controller
                 $datosAgrupados[$key]['generacion_kwh'] += $energiaGeneracion;
                 $datosAgrupados[$key]['importacion_kwh'] += $energiaImportacion;
                 $datosAgrupados[$key]['exportacion_kwh'] += $energiaExportacion;
+                
+                $datosAgrupados[$key]['suma_q1'] += $q1_var;
+                $datosAgrupados[$key]['suma_q2'] += $q2_var;
+                $datosAgrupados[$key]['suma_q3'] += $q3_var;
+                $datosAgrupados[$key]['suma_q_total'] += $q_total_var;
+                $datosAgrupados[$key]['conteo_q'] += 1;
 
                 if ($voltajeActual > 0) {
                     $datosAgrupados[$key]['suma_voltaje'] += $voltajeActual;
@@ -208,6 +234,15 @@ class InformesController extends Controller
             $dato['generacion_kwh'] = round($dato['generacion_kwh'], 3);
             $dato['importacion_kwh'] = round($dato['importacion_kwh'], 3);
             $dato['exportacion_kwh'] = round($dato['exportacion_kwh'], 3);
+
+            if ($dato['conteo_q'] > 0) {
+                $dato['q1_var'] = round($dato['suma_q1'] / $dato['conteo_q'], 2);
+                $dato['q2_var'] = round($dato['suma_q2'] / $dato['conteo_q'], 2);
+                $dato['q3_var'] = round($dato['suma_q3'] / $dato['conteo_q'], 2);
+                $dato['q_total_var'] = round($dato['suma_q_total'] / $dato['conteo_q'], 2);
+            }
+
+            unset($dato['suma_q1'], $dato['suma_q2'], $dato['suma_q3'], $dato['suma_q_total'], $dato['conteo_q']);
 
             if ($dato['conteo_voltaje'] > 0) {
                 $dato['voltaje_red_electrica'] = round($dato['suma_voltaje'] / $dato['conteo_voltaje'], 1);
