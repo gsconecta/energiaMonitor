@@ -140,7 +140,7 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
             }] : []),
 
             // Si no tiene fotovoltaica y es trifásico, mostrar las 3 líneas por separado
-            ...(!tiene_fotovoltaica && num_fases === 3 ? [
+            ...(!tiene_fotovoltaica && Number(num_fases) === 3 ? [
                 {
                     label: 'Fase 1 (L1)',
                     data: datosFiltrados.map((d) => d.fase_1_kw ?? 0),

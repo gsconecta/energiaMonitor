@@ -31,14 +31,30 @@ interface DatosGrafica {
     red_electrica_kw: number;
     consumo_casa_kw: number;
     voltaje_red_electrica?: number;
+    voltaje_canal_1?: number;
+    voltaje_canal_2?: number;
+    voltaje_canal_3?: number;
 }
 
 interface Props {
     datos: DatosGrafica[];
     ocultarFiltros?: boolean;
+    num_fases?: number;
+    colores_canales?: (string | null)[];
 }
 
-export default function VoltajeRedChart({ datos, ocultarFiltros = false }: Props) {
+const getRgba = (hex: string | null | undefined, defaultRgba: string) => {
+    if (!hex) return defaultRgba;
+    if (hex.startsWith('#') && hex.length === 7) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, 0.1)`;
+    }
+    return defaultRgba;
+};
+
+export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fases = 1, colores_canales = [] }: Props) {
     // Si ocultarFiltros es true, mostramos todo el día por defecto para no perder datos agrupados por día
     const [horaDesde, setHoraDesde] = useState<string>(ocultarFiltros ? '00:00' : '06:00');
     const [horaHasta, setHoraHasta] = useState<string>(ocultarFiltros ? '23:59' : '23:00');
@@ -109,29 +125,76 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false }: Props
         return fecha.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     });
 
-    // Calcular max y min para pintar líneas horizontales
+    // Calcular max y min para pintar líneas horizontales en base a TODAS las mediciones de voltaje
     const voltajesValidos = datosFiltrados
-        .map((d) => d.voltaje_red_electrica)
-        .filter((v): v is number => v !== undefined && v > 0);
+        .flatMap((d) => [
+            d.voltaje_red_electrica,
+            d.voltaje_canal_1,
+            d.voltaje_canal_2,
+            d.voltaje_canal_3,
+        ])
+        .filter((v): v is number => v !== undefined && v !== null && v > 0);
 
     const maxVoltaje = voltajesValidos.length > 0 ? Math.max(...voltajesValidos) : 0;
     const minVoltaje = voltajesValidos.length > 0 ? Math.min(...voltajesValidos) : 0;
 
-    const chartData = {
-        labels,
-        datasets: [
+    const datasets: any[] = [];
+
+    if (Number(num_fases) === 3) {
+        datasets.push(
             {
-                label: 'Voltaje Red Eléctrica',
-                data: datosFiltrados.map((d) => d.voltaje_red_electrica || 0),
-                borderColor: 'rgb(59, 130, 246)', // blue-500
-                backgroundColor: 'rgba(59, 130, 246, 0.2)', // blue-500 con opacidad
-                fill: true,
+                label: 'Voltaje (Fase 1)',
+                data: datosFiltrados.map((d) => d.voltaje_canal_1 || d.voltaje_red_electrica || 0),
+                borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
+                backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
+                fill: false,
                 tension: 0.4,
                 borderWidth: 2,
-                pointRadius: 0, // Ocultar puntos normalmente
-                pointHoverRadius: 5, // Mostrar punto al hacer hover
-                pointHoverBorderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
             },
+            {
+                label: 'Voltaje (Fase 2)',
+                data: datosFiltrados.map((d) => d.voltaje_canal_2 || 0),
+                borderColor: colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
+                backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
+                fill: false,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            },
+            {
+                label: 'Voltaje (Fase 3)',
+                data: datosFiltrados.map((d) => d.voltaje_canal_3 || 0),
+                borderColor: colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
+                backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
+                fill: false,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+            }
+        );
+    } else {
+        // Monofásico
+        datasets.push({
+            label: 'Voltaje Red Eléctrica',
+            data: datosFiltrados.map((d) => d.voltaje_canal_1 || d.voltaje_red_electrica || 0),
+            borderColor: colores_canales[0] || 'rgb(59, 130, 246)',
+            backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.2)'),
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBorderWidth: 2,
+        });
+    }
+
+    // Añadir líneas de máximo y mínimo
+    if (minVoltaje > 0 && maxVoltaje > 0 && maxVoltaje !== minVoltaje) {
+        datasets.push(
             {
                 label: `Máximo (${maxVoltaje.toFixed(1)} V)`,
                 data: Array(datosFiltrados.length).fill(maxVoltaje),
@@ -151,8 +214,13 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false }: Props
                 pointRadius: 0,
                 pointHoverRadius: 0,
                 fill: false,
-            },
-        ],
+            }
+        );
+    }
+
+    const chartData = {
+        labels,
+        datasets,
     };
 
     const options: ChartOptions<'line'> = {

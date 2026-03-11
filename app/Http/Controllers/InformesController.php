@@ -168,6 +168,9 @@ class InformesController extends Controller
                 $potenciaImportacion = $lecturaActual->obtenerImportacionRed();
                 $potenciaExportacion = $lecturaActual->obtenerExportacionRed();
                 $voltajeActual = $lecturaActual->obtenerVoltajeRedElectrica();
+                $v1 = $lecturaActual->voltaje_canal_1;
+                $v2 = $lecturaActual->voltaje_canal_2;
+                $v3 = $lecturaActual->voltaje_canal_3;
                 
                 $q1_var = $lecturaActual->calcularPotenciaReactivaCanal(1) ?? 0;
                 $q2_var = $lecturaActual->calcularPotenciaReactivaCanal(2) ?? 0;
@@ -203,8 +206,17 @@ class InformesController extends Controller
                         'q3_var' => 0,
                         'q_total_var' => 0,
                         'suma_voltaje' => 0,
+                        'suma_v1' => 0,
+                        'suma_v2' => 0,
+                        'suma_v3' => 0,
                         'conteo_voltaje' => 0,
+                        'conteo_v1' => 0,
+                        'conteo_v2' => 0,
+                        'conteo_v3' => 0,
                         'voltaje_red_electrica' => null,
+                        'voltaje_canal_1' => null,
+                        'voltaje_canal_2' => null,
+                        'voltaje_canal_3' => null,
                         // Guardamos contadores para calcular promedios de potencia si se quisiera, 
                         // pero el usuario pidió Energía acumulada.
                     ];
@@ -224,6 +236,18 @@ class InformesController extends Controller
                 if ($voltajeActual > 0) {
                     $datosAgrupados[$key]['suma_voltaje'] += $voltajeActual;
                     $datosAgrupados[$key]['conteo_voltaje'] += 1;
+                }
+                if ($v1 > 0) {
+                    $datosAgrupados[$key]['suma_v1'] += $v1;
+                    $datosAgrupados[$key]['conteo_v1'] += 1;
+                }
+                if ($v2 > 0) {
+                    $datosAgrupados[$key]['suma_v2'] += $v2;
+                    $datosAgrupados[$key]['conteo_v2'] += 1;
+                }
+                if ($v3 > 0) {
+                    $datosAgrupados[$key]['suma_v3'] += $v3;
+                    $datosAgrupados[$key]['conteo_v3'] += 1;
                 }
             }
         }
@@ -247,9 +271,20 @@ class InformesController extends Controller
             if ($dato['conteo_voltaje'] > 0) {
                 $dato['voltaje_red_electrica'] = round($dato['suma_voltaje'] / $dato['conteo_voltaje'], 1);
             }
+            if ($dato['conteo_v1'] > 0) {
+                $dato['voltaje_canal_1'] = round($dato['suma_v1'] / $dato['conteo_v1'], 1);
+            }
+            if ($dato['conteo_v2'] > 0) {
+                $dato['voltaje_canal_2'] = round($dato['suma_v2'] / $dato['conteo_v2'], 1);
+            }
+            if ($dato['conteo_v3'] > 0) {
+                $dato['voltaje_canal_3'] = round($dato['suma_v3'] / $dato['conteo_v3'], 1);
+            }
 
             unset($dato['suma_voltaje']);
+            unset($dato['suma_v1'], $dato['suma_v2'], $dato['suma_v3']);
             unset($dato['conteo_voltaje']);
+            unset($dato['conteo_v1'], $dato['conteo_v2'], $dato['conteo_v3']);
         }
 
         return Inertia::render('Informes/Index', [
@@ -257,6 +292,10 @@ class InformesController extends Controller
                 'id' => $dispositivo->id,
                 'nombre' => $dispositivo->nombre,
                 'tiene_fotovoltaica' => $dispositivo->tieneFotovoltaica(),
+                'num_fases' => $dispositivo->num_fases,
+                'color_canal_1' => $dispositivo->color_canal_1,
+                'color_canal_2' => $dispositivo->color_canal_2,
+                'color_canal_3' => $dispositivo->color_canal_3,
             ] : null,
             'dispositivos' => $dispositivos,
             'datos' => array_values($datosAgrupados),

@@ -156,6 +156,9 @@ class DashboardController extends Controller
                 'corriente_canal_1' => $lectura->corriente_canal_1 ?? 0,
                 'corriente_canal_2' => $lectura->corriente_canal_2 ?? 0,
                 'corriente_canal_3' => $lectura->corriente_canal_3 ?? 0,
+                'voltaje_canal_1' => $lectura->voltaje_canal_1,
+                'voltaje_canal_2' => $lectura->voltaje_canal_2,
+                'voltaje_canal_3' => $lectura->voltaje_canal_3,
             ];
         })->values();
 

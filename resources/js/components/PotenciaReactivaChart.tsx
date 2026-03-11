@@ -134,7 +134,7 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
 
     const datasets = [];
 
-    if (num_fases === 3) {
+    if (Number(num_fases) === 3) {
         datasets.push(
             {
                 label: 'Q1 (Fase 1)',

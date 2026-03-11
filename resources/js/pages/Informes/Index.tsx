@@ -45,7 +45,10 @@ interface Dispositivo {
     id: number;
     nombre: string;
     tiene_fotovoltaica?: boolean;
-    configuracion?: any;
+    num_fases?: number;
+    color_canal_1?: string;
+    color_canal_2?: string;
+    color_canal_3?: string;
 }
 
 interface DataPoint {
@@ -439,7 +442,16 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                         </CardHeader>
                         <CardContent className="flex-1 p-4 relative overflow-hidden">
                             <div className="h-full w-full">
-                                <VoltajeRedChart datos={datos as any} ocultarFiltros={true} />
+                                <VoltajeRedChart 
+                                    datos={datos as any} 
+                                    ocultarFiltros={true} 
+                                    num_fases={dispositivo?.num_fases || 3}
+                                    colores_canales={[
+                                        dispositivo?.color_canal_1 || '#3B82F6',
+                                        dispositivo?.color_canal_2 || '#F59E0B',
+                                        dispositivo?.color_canal_3 || '#A855F7',
+                                    ]}
+                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -454,8 +466,12 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
                         <CardContent className="flex-1 relative p-4">
                             <PotenciaReactivaChart 
                                 datos={datos as any} 
-                                num_fases={dispositivo?.configuracion?.fases || 3} 
-                                colores_canales={['#3B82F6', '#F59E0B', '#A855F7']} 
+                                num_fases={dispositivo?.num_fases || 3} 
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || '#3B82F6',
+                                    dispositivo?.color_canal_2 || '#F59E0B',
+                                    dispositivo?.color_canal_3 || '#A855F7',
+                                ]}
                             />
                         </CardContent>
                     </Card>

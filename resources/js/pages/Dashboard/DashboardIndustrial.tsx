@@ -54,7 +54,15 @@ export default function DashboardIndustrial({
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Voltaje de Red Eléctrica (Análisis de Calidad)
                             </h2>
-                            <VoltajeRedChart datos={datos_grafica} />
+                            <VoltajeRedChart 
+                                datos={datos_grafica} 
+                                num_fases={dispositivo?.num_fases ?? 1}
+                                colores_canales={[
+                                    dispositivo?.color_canal_1 || null,
+                                    dispositivo?.color_canal_2 || null,
+                                    dispositivo?.color_canal_3 || null,
+                                ]}
+                            />
                         </div>
                         <div className="w-full lg:col-span-2">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">

@@ -118,7 +118,7 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
 
     const datasets = [];
 
-    if (num_fases === 3) {
+    if (Number(num_fases) === 3) {
         datasets.push(
             {
                 label: 'Fase 1 (Amperaje)',
