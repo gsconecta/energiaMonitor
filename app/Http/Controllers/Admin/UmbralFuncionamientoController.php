@@ -32,6 +32,9 @@ class UmbralFuncionamientoController extends Controller
                     'notificar_email' => $umbral->notificar_email,
                     'notificar_telegram' => $umbral->notificar_telegram,
                     'destinatarios_email' => $umbral->destinatarios_email ?? [],
+                    'hora_inicio' => substr($umbral->hora_inicio, 0, 5),
+                    'hora_fin' => substr($umbral->hora_fin, 0, 5),
+                    'dias_semana' => $umbral->dias_semana ?? ['lun','mar','mie','jue','vie','sab','dom'],
                     'organizaciones' => $umbral->organizaciones->map(fn($org) => [
                         'id' => $org->id,
                         'nombre' => $org->nombre,
@@ -67,6 +70,10 @@ class UmbralFuncionamientoController extends Controller
             'destinatarios_email.*' => 'email',
             'organizacion_ids' => 'nullable|array',
             'organizacion_ids.*' => 'exists:organizaciones,id',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin' => 'required|date_format:H:i',
+            'dias_semana' => 'nullable|array',
+            'dias_semana.*' => 'in:lun,mar,mie,jue,vie,sab,dom',
         ]);
 
         $orgIds = $validated['organizacion_ids'] ?? [];

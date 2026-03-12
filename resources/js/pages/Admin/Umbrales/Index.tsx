@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Gauge, Plus, Trash2, Save, X, Building2, Pencil, Power, AlertTriangle, Info, AlertOctagon, Mail } from 'lucide-react';
+import { Gauge, Plus, Trash2, Save, X, Building2, Pencil, Power, AlertTriangle, Info, AlertOctagon, Mail, Clock } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -33,6 +33,9 @@ interface Umbral {
     notificar_email: boolean;
     notificar_telegram: boolean;
     destinatarios_email: string[];
+    hora_inicio: string;
+    hora_fin: string;
+    dias_semana: string[];
     organizaciones: Organizacion[];
 }
 
@@ -67,6 +70,9 @@ function UmbralModal({ open, onClose, umbral, organizaciones, metricas }: {
         notificar_email: umbral?.notificar_email ?? false,
         notificar_telegram: umbral?.notificar_telegram ?? false,
         destinatarios_email: umbral?.destinatarios_email ?? [],
+        hora_inicio: umbral?.hora_inicio ?? '00:00',
+        hora_fin: umbral?.hora_fin ?? '23:59',
+        dias_semana: umbral?.dias_semana ?? ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'],
         organizacion_ids: umbral?.organizaciones.map((o) => o.id) ?? [],
     });
 
@@ -184,6 +190,119 @@ function UmbralModal({ open, onClose, umbral, organizaciones, metricas }: {
                             </Select>
                         </div>
                     </div>
+
+                    {/* Horario de Actividad */}
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold flex items-center gap-1.5">
+                            <Clock className="h-4 w-4" />
+                            Horario de Actividad
+                        </Label>
+                        <p className="text-xs text-gray-400">El umbral solo se evaluará dentro de este horario. Por defecto 24h.</p>
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-gray-500">Desde</Label>
+                                    <Input
+                                        type="time"
+                                        value={form.data.hora_inicio}
+                                        onChange={(e) => form.setData('hora_inicio', e.target.value)}
+                                        className="w-32"
+                                    />
+                                </div>
+                                <span className="text-gray-400 mt-5">—</span>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-gray-500">Hasta</Label>
+                                    <Input
+                                        type="time"
+                                        value={form.data.hora_fin}
+                                        onChange={(e) => form.setData('hora_fin', e.target.value)}
+                                        className="w-32"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { key: 'lun', label: 'L' },
+                                    { key: 'mar', label: 'M' },
+                                    { key: 'mie', label: 'X' },
+                                    { key: 'jue', label: 'J' },
+                                    { key: 'vie', label: 'V' },
+                                    { key: 'sab', label: 'S' },
+                                    { key: 'dom', label: 'D' },
+                                ].map((dia) => {
+                                    const activo = form.data.dias_semana.includes(dia.key);
+                                    return (
+                                        <button
+                                            key={dia.key}
+                                            type="button"
+                                            onClick={() => {
+                                                if (activo) {
+                                                    form.setData('dias_semana', form.data.dias_semana.filter((d) => d !== dia.key));
+                                                } else {
+                                                    form.setData('dias_semana', [...form.data.dias_semana, dia.key]);
+                                                }
+                                            }}
+                                            className={`h-9 w-9 rounded-full text-xs font-semibold transition-colors ${
+                                                activo
+                                                    ? 'bg-gray-900 text-white'
+                                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {dia.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Resumen de horario */}
+                    {(() => {
+                        const diasLabels: Record<string, string> = {
+                            lun: 'Lunes', mar: 'Martes', mie: 'Miércoles',
+                            jue: 'Jueves', vie: 'Viernes', sab: 'Sábado', dom: 'Domingo',
+                        };
+                        const dias = form.data.dias_semana;
+                        const todosLosDias = dias.length === 7;
+                        const soloLaborables = dias.length === 5 &&
+                            ['lun', 'mar', 'mie', 'jue', 'vie'].every((d) => dias.includes(d));
+                        const soloFinDeSemana = dias.length === 2 &&
+                            ['sab', 'dom'].every((d) => dias.includes(d));
+                        const hi = form.data.hora_inicio || '00:00';
+                        const hf = form.data.hora_fin || '23:59';
+                        const es24h = (hi === '00:00' && (hf === '23:59' || hf === ''));
+
+                        // Caso especial: 24/7
+                        if (todosLosDias && es24h) {
+                            return (
+                                <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+                                    <p className="text-sm text-green-800">
+                                        <span className="font-medium">⏱ Activo 24/7</span> — Monitorización continua
+                                    </p>
+                                </div>
+                            );
+                        }
+
+                        let diasTexto = 'Ningún día seleccionado';
+                        if (todosLosDias) diasTexto = 'Todos los días';
+                        else if (soloLaborables) diasTexto = 'De lunes a viernes';
+                        else if (soloFinDeSemana) diasTexto = 'Fines de semana';
+                        else if (dias.length > 0) diasTexto = dias.map((d) => diasLabels[d] || d).join(', ');
+
+                        const horarioTexto = es24h ? '24 horas' : `de ${hi} a ${hf}`;
+
+                        return (
+                            <div className={`rounded-lg px-4 py-3 border ${dias.length === 0 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+                                <p className={`text-sm ${dias.length === 0 ? 'text-red-800' : 'text-blue-800'}`}>
+                                    <span className="font-medium">⏱ Activo:</span>{' '}
+                                    {dias.length === 0
+                                        ? 'No se evaluará (ningún día seleccionado)'
+                                        : `${diasTexto}, ${horarioTexto}`
+                                    }
+                                </p>
+                            </div>
+                        );
+                    })()}
 
                     {/* Notificaciones */}
                     <div className="space-y-3">

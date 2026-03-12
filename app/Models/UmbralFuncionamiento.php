@@ -22,6 +22,9 @@ class UmbralFuncionamiento extends Model
         'notificar_email',
         'notificar_telegram',
         'destinatarios_email',
+        'hora_inicio',
+        'hora_fin',
+        'dias_semana',
     ];
 
     protected $casts = [
@@ -32,6 +35,9 @@ class UmbralFuncionamiento extends Model
         'destinatarios_email' => 'array',
         'valor_minimo' => 'decimal:2',
         'valor_maximo' => 'decimal:2',
+        'hora_inicio' => 'string',
+        'hora_fin' => 'string',
+        'dias_semana' => 'array',
     ];
 
     public const METRICAS = [
@@ -42,6 +48,18 @@ class UmbralFuncionamiento extends Model
         'factor_potencia' => ['label' => 'Factor de Potencia', 'unidad' => 'cos(φ)'],
         'energia_consumo' => ['label' => 'Energía Consumida', 'unidad' => 'kWh'],
         'generacion_fv' => ['label' => 'Generación FV', 'unidad' => 'kW'],
+    ];
+
+    public const DIAS_SEMANA = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+
+    public const DIAS_LABELS = [
+        'lun' => 'Lunes',
+        'mar' => 'Martes',
+        'mie' => 'Miércoles',
+        'jue' => 'Jueves',
+        'vie' => 'Viernes',
+        'sab' => 'Sábado',
+        'dom' => 'Domingo',
     ];
 
     public function organizaciones()

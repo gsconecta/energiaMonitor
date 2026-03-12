@@ -28,6 +28,9 @@ return new class extends Migration
             $table->boolean('notificar_email')->default(false);
             $table->boolean('notificar_telegram')->default(false);
             $table->json('destinatarios_email')->nullable();
+            $table->time('hora_inicio')->default('00:00');
+            $table->time('hora_fin')->default('23:59');
+            $table->json('dias_semana')->nullable(); // ["lun","mar","mie","jue","vie","sab","dom"]
             $table->timestamps();
         });
 
