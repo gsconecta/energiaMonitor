@@ -150,8 +150,8 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
         {
             label: 'Consumo (kWh)',
             data: datos.map(d => d.consumo_kwh),
-            backgroundColor: 'rgba(59, 130, 246, 0.5)', // Blue
-            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(25, 118, 210, 0.5)', // Azul Cobalto - Consumo
+            borderColor: '#1976D2',
             borderWidth: 1,
         }
     ];
@@ -161,22 +161,22 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
             {
                 label: 'Generación (kWh)',
                 data: datos.map(d => d.generacion_kwh),
-                backgroundColor: 'rgba(34, 197, 94, 0.5)', // Green
-                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(255, 193, 7, 0.5)', // Amarillo Ámbar - Generación Solar
+                borderColor: '#FFC107',
                 borderWidth: 1,
             },
             {
                 label: 'Importación (kWh)',
                 data: datos.map(d => d.importacion_kwh),
-                backgroundColor: 'rgba(239, 68, 68, 0.5)', // Red
-                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(96, 125, 139, 0.5)', // Gris Pizarra - Importación Red
+                borderColor: '#607D8B',
                 borderWidth: 1,
             },
             {
                 label: 'Exportación (kWh)',
                 data: datos.map(d => d.exportacion_kwh),
-                backgroundColor: 'rgba(234, 179, 8, 0.5)', // Yellow
-                borderColor: 'rgb(234, 179, 8)',
+                backgroundColor: 'rgba(76, 175, 80, 0.5)', // Verde Esmeralda - Exportación/Venta
+                borderColor: '#4CAF50',
                 borderWidth: 1,
             }
         );
@@ -437,11 +437,11 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, organi
 
                     {/* Gráfico Voltaje de Red */}
                     <Card className="flex flex-col h-[500px]">
-                        <CardHeader>
+                        <CardHeader className="pb-0">
                             <CardTitle>Voltaje Promedio</CardTitle>
                         </CardHeader>
-                        <CardContent className="flex-1 p-4 relative overflow-hidden">
-                            <div className="h-full w-full">
+                        <CardContent className="flex-1 relative p-4">
+                            <div className="absolute inset-4 top-2">
                                 <VoltajeRedChart 
                                     datos={datos as any} 
                                     ocultarFiltros={true} 

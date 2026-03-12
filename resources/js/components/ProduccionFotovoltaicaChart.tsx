@@ -112,8 +112,8 @@ export default function ProduccionFotovoltaicaChart({ datos }: Props) {
             {
                 label: 'Producción Fotovoltaica',
                 data: datosFiltrados.map((d) => d.produccion_fotovoltaica_kw),
-                borderColor: 'rgb(251, 191, 36)', // yellow-400
-                backgroundColor: 'rgba(251, 191, 36, 0.2)', // yellow-400 con opacidad
+                borderColor: '#FFC107', // Amarillo Ámbar - Generación Solar
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,

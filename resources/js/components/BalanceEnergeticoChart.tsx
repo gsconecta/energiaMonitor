@@ -129,8 +129,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
             ...(tiene_fotovoltaica ? [{
                 label: 'Producción Fotovoltaica',
                 data: datosFiltrados.map((d) => d.produccion_fotovoltaica_kw),
-                borderColor: 'rgb(251, 191, 36)', // yellow-400
-                backgroundColor: 'rgba(251, 191, 36, 0.1)', // yellow-400 con opacidad
+                borderColor: '#FFC107', // Amarillo Ámbar - Generación Solar
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,
@@ -182,8 +182,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                 {
                     label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
                     data: datosFiltrados.map((d) => d.red_electrica_kw),
-                    borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
-                    backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
+                    borderColor: colores_canales[0] || '#607D8B', // Gris Pizarra - Red Eléctrica
+                    backgroundColor: getRgba(colores_canales[0], 'rgba(96, 125, 139, 0.1)'),
                     fill: true,
                     tension: 0.4,
                     borderWidth: 2,
@@ -194,9 +194,9 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                         borderColor: (ctx: any) => {
                             const value = ctx.p1.parsed?.y;
                             if (value === null || value === undefined) {
-                                return colores_canales[0] || 'rgb(59, 130, 246)';
+                                return colores_canales[0] || '#607D8B';
                             }
-                            return value >= 0 ? (colores_canales[0] || 'rgb(59, 130, 246)') : 'rgb(239, 68, 68)';
+                            return value >= 0 ? (colores_canales[0] || '#607D8B') : '#4CAF50';
                         },
                     },
                 }
@@ -204,8 +204,8 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
             ...(tiene_fotovoltaica ? [{
                 label: 'Consumo Casa',
                 data: datosFiltrados.map((d) => d.consumo_casa_kw),
-                borderColor: 'rgb(34, 197, 94)', // green-500
-                backgroundColor: 'rgba(34, 197, 94, 0.1)', // green-500 con opacidad
+                borderColor: '#1976D2', // Azul Cobalto - Consumo General
+                backgroundColor: 'rgba(25, 118, 210, 0.1)',
                 fill: true,
                 tension: 0.4,
                 borderWidth: 2,

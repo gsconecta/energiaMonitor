@@ -270,7 +270,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                     color: 'rgb(107, 114, 128)',
                     maxRotation: 45,
                     minRotation: 45,
-                    display: false,
+                    display: !ocultarFiltros ? false : true,
                 },
             },
             y: {
@@ -282,6 +282,8 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                     callback: function (value) {
                         return `${value} V`;
                     },
+                    stepSize: 10,
+                    autoSkip: false,
                 },
                 title: {
                     display: true,
@@ -290,7 +292,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                 },
                 // Optional: set a min/max to better visualize 230V typical values
                 suggestedMin: 200,
-                suggestedMax: 250,
+                suggestedMax: 260,
             },
         },
         interaction: {
@@ -333,7 +335,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
     };
 
     return (
-        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
+        <div ref={chartContainerRef} className={`w-full ${ocultarFiltros ? 'h-full' : ''} ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
             {isFullscreen && (
                 <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
                     Voltaje de Red Eléctrica
@@ -398,7 +400,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                     </p>
                 </div>
             ) : (
-                <div className={`w-full rounded-lg border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div className={`w-full ${ocultarFiltros ? '' : 'rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800'} p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : ocultarFiltros ? 'h-full' : 'h-96'}`}>
                     <Line data={chartData} options={options} />
                 </div>
             )}
