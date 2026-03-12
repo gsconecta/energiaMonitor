@@ -65,6 +65,12 @@ class Dispositivo extends Model
         return $this->hasMany(MetricaQuinceMinutos::class);
     }
 
+    public function umbrales()
+    {
+        return $this->belongsToMany(UmbralFuncionamiento::class, 'dispositivo_umbral')
+            ->withTimestamps();
+    }
+
     // Scopes
     public function scopeActivos($query)
     {

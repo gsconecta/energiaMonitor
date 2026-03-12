@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Dispositivo;
 use App\Models\Organizacion;
 use App\Models\UmbralFuncionamiento;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class UmbralFuncionamientoController extends Controller
@@ -16,7 +18,7 @@ class UmbralFuncionamientoController extends Controller
             abort(403);
         }
 
-        $umbrales = UmbralFuncionamiento::with('organizaciones')
+        $umbrales = UmbralFuncionamiento::with(['organizaciones', 'dispositivos.sitio.organizacion'])
             ->orderBy('nombre')
             ->get()
             ->map(function ($umbral) {
@@ -39,14 +41,33 @@ class UmbralFuncionamientoController extends Controller
                         'id' => $org->id,
                         'nombre' => $org->nombre,
                     ]),
+                    'dispositivos' => $umbral->dispositivos->map(fn ($dispositivo) => [
+                        'id' => $dispositivo->id,
+                        'nombre' => $dispositivo->nombre,
+                        'sitio_nombre' => $dispositivo->sitio->nombre ?? 'N/A',
+                        'organizacion_id' => $dispositivo->sitio->organizacion_id ?? null,
+                        'organizacion_nombre' => $dispositivo->sitio->organizacion->nombre ?? 'N/A',
+                    ]),
                 ];
             });
 
         $organizaciones = Organizacion::activas()->orderBy('nombre')->get(['id', 'nombre']);
+        $dispositivos = Dispositivo::with(['sitio.organizacion'])
+            ->activos()
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn ($dispositivo) => [
+                'id' => $dispositivo->id,
+                'nombre' => $dispositivo->nombre,
+                'sitio_nombre' => $dispositivo->sitio->nombre ?? 'N/A',
+                'organizacion_id' => $dispositivo->sitio->organizacion_id ?? null,
+                'organizacion_nombre' => $dispositivo->sitio->organizacion->nombre ?? 'N/A',
+            ]);
 
         return Inertia::render('Admin/Umbrales/Index', [
             'umbrales' => $umbrales,
             'organizaciones' => $organizaciones,
+            'dispositivos' => $dispositivos,
             'metricas' => UmbralFuncionamiento::METRICAS,
         ]);
     }
@@ -60,10 +81,14 @@ class UmbralFuncionamientoController extends Controller
         $validated = $request->validate($this->rules());
 
         $orgIds = $validated['organizacion_ids'] ?? [];
-        unset($validated['organizacion_ids']);
+        $dispositivoIds = $validated['dispositivo_ids'] ?? [];
+        unset($validated['organizacion_ids'], $validated['dispositivo_ids']);
+
+        $this->validarRelacionDispositivosOrganizaciones($dispositivoIds, $orgIds);
 
         $umbral = UmbralFuncionamiento::create($validated);
         $umbral->organizaciones()->sync($orgIds);
+        $umbral->dispositivos()->sync($dispositivoIds);
 
         return back()->with('success', 'Umbral creado correctamente.');
     }
@@ -77,10 +102,14 @@ class UmbralFuncionamientoController extends Controller
         $validated = $request->validate($this->rules());
 
         $orgIds = $validated['organizacion_ids'] ?? [];
-        unset($validated['organizacion_ids']);
+        $dispositivoIds = $validated['dispositivo_ids'] ?? [];
+        unset($validated['organizacion_ids'], $validated['dispositivo_ids']);
+
+        $this->validarRelacionDispositivosOrganizaciones($dispositivoIds, $orgIds);
 
         $umbral->update($validated);
         $umbral->organizaciones()->sync($orgIds);
+        $umbral->dispositivos()->sync($dispositivoIds);
 
         return back()->with('success', 'Umbral actualizado correctamente.');
     }
@@ -92,6 +121,7 @@ class UmbralFuncionamientoController extends Controller
         }
 
         $umbral->organizaciones()->detach();
+        $umbral->dispositivos()->detach();
         $umbral->delete();
 
         return back()->with('success', 'Umbral eliminado correctamente.');
@@ -123,10 +153,31 @@ class UmbralFuncionamientoController extends Controller
             'destinatarios_email.*' => 'email',
             'organizacion_ids' => 'nullable|array',
             'organizacion_ids.*' => 'exists:organizaciones,id',
+            'dispositivo_ids' => 'nullable|array',
+            'dispositivo_ids.*' => 'exists:dispositivos,id',
             'hora_inicio' => 'required|date_format:H:i',
             'hora_fin' => 'required|date_format:H:i',
             'dias_semana' => 'nullable|array',
             'dias_semana.*' => 'in:lun,mar,mie,jue,vie,sab,dom',
         ];
+    }
+
+    private function validarRelacionDispositivosOrganizaciones(array $dispositivoIds, array $orgIds): void
+    {
+        if ($dispositivoIds === [] || $orgIds === []) {
+            return;
+        }
+
+        $dispositivosFueraDeOrganizacion = Dispositivo::whereIn('id', $dispositivoIds)
+            ->whereHas('sitio', function ($query) use ($orgIds) {
+                $query->whereNotIn('organizacion_id', $orgIds);
+            })
+            ->exists();
+
+        if ($dispositivosFueraDeOrganizacion) {
+            throw ValidationException::withMessages([
+                'dispositivo_ids' => 'Hay dispositivos seleccionados que no pertenecen a las organizaciones asignadas.',
+            ]);
+        }
     }
 }

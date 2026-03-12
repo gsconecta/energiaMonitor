@@ -67,4 +67,10 @@ class UmbralFuncionamiento extends Model
         return $this->belongsToMany(Organizacion::class, 'organizacion_umbral')
             ->withTimestamps();
     }
+
+    public function dispositivos()
+    {
+        return $this->belongsToMany(Dispositivo::class, 'dispositivo_umbral')
+            ->withTimestamps();
+    }
 }

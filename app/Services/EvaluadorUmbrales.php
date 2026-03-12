@@ -68,6 +68,11 @@ class EvaluadorUmbrales
             ->whereHas('organizaciones', function ($q) use ($organizacion) {
                 $q->where('organizaciones.id', $organizacion->id);
             })
+            ->where(function ($q) use ($dispositivo) {
+                $q->whereHas('dispositivos', function ($subQuery) use ($dispositivo) {
+                    $subQuery->where('dispositivos.id', $dispositivo->id);
+                })->orWhereDoesntHave('dispositivos');
+            })
             ->get();
 
         if ($umbrales->isEmpty()) {
