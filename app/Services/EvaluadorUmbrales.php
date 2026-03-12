@@ -51,6 +51,13 @@ class EvaluadorUmbrales
     ];
 
     /**
+     * Métricas calculadas que no salen de una columna fija de lecturas.
+     */
+    private const METRICAS_CALCULADAS = [
+        'potencia_fotovoltaica',
+    ];
+
+    /**
      * Evalúa todos los umbrales aplicables a una lectura/dispositivo.
      *
      * @return AlertaUmbral[] Alertas generadas
@@ -96,12 +103,21 @@ class EvaluadorUmbrales
             // Obtener campos a evaluar para esta métrica
             $campos = self::METRICA_CAMPOS[$umbral->metrica] ?? null;
             if (!$campos) {
+                if (in_array($umbral->metrica, self::METRICAS_CALCULADAS, true)) {
+                    $campos = ['total' => null];
+                } else {
+                    continue;
+                }
+            }
+
+            // Las alertas FV solo tienen sentido en dispositivos con canal fotovoltaico
+            if ($umbral->metrica === 'potencia_fotovoltaica' && !$dispositivo->tieneFotovoltaica()) {
                 continue;
             }
 
             // Evaluar cada canal/campo
             foreach ($campos as $canal => $campo) {
-                $valor = $lectura->$campo;
+                $valor = $this->obtenerValorMetrica($umbral->metrica, $lectura, $campo);
 
                 // Saltar valores nulos o cero (canal no conectado)
                 if ($valor === null || ($valor == 0 && in_array($umbral->metrica, ['voltaje', 'corriente']))) {
@@ -225,5 +241,13 @@ class EvaluadorUmbrales
             ->where('resuelta', false)
             ->where('created_at', '>=', Carbon::now()->subMinutes(self::COOLDOWN_MINUTOS))
             ->exists();
+    }
+
+    private function obtenerValorMetrica(string $metrica, Lectura $lectura, ?string $campo): ?float
+    {
+        return match ($metrica) {
+            'potencia_fotovoltaica' => $lectura->obtenerGeneracionFotovoltaica(),
+            default => $campo ? $lectura->$campo : null,
+        };
     }
 }

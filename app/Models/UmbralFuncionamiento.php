@@ -44,6 +44,7 @@ class UmbralFuncionamiento extends Model
         'voltaje' => ['label' => 'Voltaje', 'unidad' => 'V'],
         'corriente' => ['label' => 'Intensidad', 'unidad' => 'A'],
         'potencia_activa' => ['label' => 'Potencia Activa', 'unidad' => 'W'],
+        'potencia_fotovoltaica' => ['label' => 'Potencia Fotovoltaica', 'unidad' => 'W'],
         'potencia_reactiva' => ['label' => 'Potencia Reactiva', 'unidad' => 'VAR'],
         'factor_potencia' => ['label' => 'Factor de Potencia', 'unidad' => 'cos(phi)'],
         'energia_consumo' => ['label' => 'Energia Consumida', 'unidad' => 'kWh'],
