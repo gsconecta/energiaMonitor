@@ -67,6 +67,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('admin/credenciales-shelly', \App\Http\Controllers\Admin\CredencialShellyController::class)
         ->names('admin.credenciales-shelly')
         ->parameters(['credenciales-shelly' => 'credencial']);
+
+    // Gestión de Usuarios (Admin)
+    Route::get('/admin/usuarios', [\App\Http\Controllers\Admin\UserAdminController::class, 'index'])
+        ->name('admin.usuarios.index');
+    Route::put('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'update'])
+        ->name('admin.usuarios.update');
+    Route::delete('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'destroy'])
+        ->name('admin.usuarios.destroy');
+    Route::post('/admin/usuarios/{user}/organizaciones', [\App\Http\Controllers\Admin\UserAdminController::class, 'addOrganizacion'])
+        ->name('admin.usuarios.add-org');
+    Route::put('/admin/usuarios/{user}/organizaciones/{organizacion}', [\App\Http\Controllers\Admin\UserAdminController::class, 'updateOrganizacionRol'])
+        ->name('admin.usuarios.update-org-rol');
+    Route::delete('/admin/usuarios/{user}/organizaciones/{organizacion}', [\App\Http\Controllers\Admin\UserAdminController::class, 'removeOrganizacion'])
+        ->name('admin.usuarios.remove-org');
 });
 
 require __DIR__ . '/settings.php';

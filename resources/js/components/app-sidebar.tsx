@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Cpu, Building2, ChartArea, ShieldAlert, Key } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Cpu, Building2, ChartArea, ShieldAlert, Key, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -49,6 +49,11 @@ const adminNavItems: NavItem[] = [
         title: 'Cred. Shelly',
         href: '/admin/credenciales-shelly',
         icon: Key,
+    },
+    {
+        title: 'Usuarios',
+        href: '/admin/usuarios',
+        icon: Users,
     },
     {
         title: 'Organizaciones',
