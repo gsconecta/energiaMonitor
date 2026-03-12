@@ -49,6 +49,12 @@ class Organizacion extends Model
         return $this->belongsTo(CredencialShelly::class);
     }
 
+    public function umbrales()
+    {
+        return $this->belongsToMany(UmbralFuncionamiento::class, 'organizacion_umbral')
+            ->withTimestamps();
+    }
+
     // Scopes
     public function scopeActivas($query)
     {

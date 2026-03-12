@@ -81,6 +81,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.usuarios.update-org-rol');
     Route::delete('/admin/usuarios/{user}/organizaciones/{organizacion}', [\App\Http\Controllers\Admin\UserAdminController::class, 'removeOrganizacion'])
         ->name('admin.usuarios.remove-org');
+
+    // Umbrales de Funcionamiento (Admin)
+    Route::get('/admin/umbrales', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'index'])
+        ->name('admin.umbrales.index');
+    Route::post('/admin/umbrales', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'store'])
+        ->name('admin.umbrales.store');
+    Route::put('/admin/umbrales/{umbral}', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'update'])
+        ->name('admin.umbrales.update');
+    Route::delete('/admin/umbrales/{umbral}', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'destroy'])
+        ->name('admin.umbrales.destroy');
+    Route::post('/admin/umbrales/{umbral}/toggle-activo', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'toggleActivo'])
+        ->name('admin.umbrales.toggle-activo');
 });
 
 require __DIR__ . '/settings.php';
