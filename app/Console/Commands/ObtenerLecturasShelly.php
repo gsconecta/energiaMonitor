@@ -220,6 +220,10 @@ class ObtenerLecturasShelly extends Command
         $pfCanal1 = 0;
         $pfCanal2 = 0;
         $pfCanal3 = 0;
+        $aparenteCanal1 = 0;
+        $aparenteCanal2 = 0;
+        $aparenteCanal3 = 0;
+        
         $numFases = null;
 
         // Detectar formato y extraer datos
@@ -252,6 +256,10 @@ class ObtenerLecturasShelly extends Command
             $pfCanal1 = $em0['a_pf'] ?? 0;
             $pfCanal2 = $em0['b_pf'] ?? 0;
             $pfCanal3 = $em0['c_pf'] ?? 0;
+            
+            $aparenteCanal1 = $em0['a_aprt_power'] ?? ($voltajeCanal1 * $corrienteCanal1);
+            $aparenteCanal2 = $em0['b_aprt_power'] ?? ($voltajeCanal2 * $corrienteCanal2);
+            $aparenteCanal3 = $em0['c_aprt_power'] ?? ($voltajeCanal3 * $corrienteCanal3);
 
             $numFases = 3;
 
@@ -281,6 +289,9 @@ class ObtenerLecturasShelly extends Command
 
             $pfCanal1 = $canal1['pf'] ?? 0;
             $pfCanal2 = $canal2['pf'] ?? 0;
+
+            $aparenteCanal1 = $canal1['aprt_power'] ?? ($voltajeCanal1 * $corrienteCanal1);
+            $aparenteCanal2 = $canal2['aprt_power'] ?? ($voltajeCanal2 * $corrienteCanal2);
 
             $numFases = 2;
 
@@ -315,6 +326,10 @@ class ObtenerLecturasShelly extends Command
             $pfCanal2 = $canal2['pf'] ?? 0;
             $pfCanal3 = $canal3['pf'] ?? 0;
 
+            $aparenteCanal1 = $voltajeCanal1 * $corrienteCanal1;
+            $aparenteCanal2 = $voltajeCanal2 * $corrienteCanal2;
+            $aparenteCanal3 = $voltajeCanal3 * $corrienteCanal3;
+
             // Contar canales activos
             $numFases = count(array_filter($deviceStatus['emeters'], function ($e) {
                 return ($e['power'] ?? 0) > 0;
@@ -323,6 +338,17 @@ class ObtenerLecturasShelly extends Command
                 $numFases = null;
             }
         }
+
+        // Calcular reactiva
+        $calcReactiva = function ($aparente, $activa) {
+            $resta = pow($aparente, 2) - pow($activa, 2);
+            return $resta > 0 ? sqrt($resta) : 0;
+        };
+
+        $reactivaCanal1 = $calcReactiva($aparenteCanal1, $potenciaCanal1);
+        $reactivaCanal2 = $calcReactiva($aparenteCanal2, $potenciaCanal2);
+        $reactivaCanal3 = $calcReactiva($aparenteCanal3, $potenciaCanal3);
+        $reactivaTotal = $reactivaCanal1 + $reactivaCanal2 + $reactivaCanal3;
 
         // Energías totales
         $emdata0 = $deviceStatus['emdata:0'] ?? [];
@@ -392,6 +418,10 @@ class ObtenerLecturasShelly extends Command
             'pf_canal_1' => round($pfCanal1, 3),
             'pf_canal_2' => round($pfCanal2, 3),
             'pf_canal_3' => round($pfCanal3, 3),
+            'reactiva_canal_1_var' => round($reactivaCanal1, 2),
+            'reactiva_canal_2_var' => round($reactivaCanal2, 2),
+            'reactiva_canal_3_var' => round($reactivaCanal3, 2),
+            'reactiva_total_var' => round($reactivaTotal, 2),
             'online' => $online ? 1 : 0,
             'wifi_conectado' => $wifiConectado ? 1 : 0,
             'wifi_rssi' => $wifiRssi,
