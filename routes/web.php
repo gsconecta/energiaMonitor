@@ -1,14 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use App\Http\Controllers\Admin\ControlPanelController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispositivosController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OrganizacionesController;
 use App\Http\Controllers\SeleccionarContextoController;
 use App\Http\Controllers\SitiosController;
-use App\Http\Controllers\Admin\ControlPanelController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -24,51 +24,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/informes', [\App\Http\Controllers\InformesController::class, 'index'])->name('informes');
 
-    // Organizaciones
     Route::resource('organizaciones', OrganizacionesController::class)
         ->parameters(['organizaciones' => 'organizacion']);
     Route::post(
         '/organizaciones/{organizacion}/usuarios',
         [OrganizacionesController::class, 'agregarUsuario']
-    )
-        ->name('organizaciones.usuarios.store');
+    )->name('organizaciones.usuarios.store');
     Route::put(
         '/organizaciones/{organizacion}/usuarios/{user}',
         [OrganizacionesController::class, 'actualizarRolUsuario']
-    )
-        ->name('organizaciones.usuarios.update');
+    )->name('organizaciones.usuarios.update');
     Route::delete(
         '/organizaciones/{organizacion}/usuarios/{user}',
         [OrganizacionesController::class, 'eliminarUsuario']
-    )
-        ->name('organizaciones.usuarios.destroy');
+    )->name('organizaciones.usuarios.destroy');
 
-    // Sitios
     Route::resource('sitios', SitiosController::class);
 
-    // Dispositivos
     Route::resource('dispositivos', DispositivosController::class);
     Route::post('/dispositivos/{dispositivo}/toggle-activo', [DispositivosController::class, 'toggleActivo'])
         ->name('dispositivos.toggle-activo');
     Route::post('/dispositivos/{dispositivo}/sincronizar', [DispositivosController::class, 'sincronizar'])
         ->name('dispositivos.sincronizar');
 
-    // Búsqueda de lugares para selector de localización
     Route::get('/api/location/search', [LocationController::class, 'search'])
         ->name('location.search');
 
-    // Panel de Control Global (Técnicos)
     Route::get('/admin/control-panel', [ControlPanelController::class, 'index'])
         ->name('admin.control-panel');
     Route::post('/admin/impersonate/{organizacion}/{sitio}', [ControlPanelController::class, 'impersonate'])
         ->name('admin.impersonate');
+    Route::post('/admin/alertas-umbral/{alertaUmbral}/resolver', [ControlPanelController::class, 'resolverAlertaUmbral'])
+        ->name('admin.alertas-umbral.resolver');
 
-    // Credenciales Shelly (Globales)
     Route::resource('admin/credenciales-shelly', \App\Http\Controllers\Admin\CredencialShellyController::class)
         ->names('admin.credenciales-shelly')
         ->parameters(['credenciales-shelly' => 'credencial']);
 
-    // Gestión de Usuarios (Admin)
     Route::get('/admin/usuarios', [\App\Http\Controllers\Admin\UserAdminController::class, 'index'])
         ->name('admin.usuarios.index');
     Route::put('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'update'])
@@ -82,7 +74,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/admin/usuarios/{user}/organizaciones/{organizacion}', [\App\Http\Controllers\Admin\UserAdminController::class, 'removeOrganizacion'])
         ->name('admin.usuarios.remove-org');
 
-    // Umbrales de Funcionamiento (Admin)
     Route::get('/admin/umbrales', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'index'])
         ->name('admin.umbrales.index');
     Route::post('/admin/umbrales', [\App\Http\Controllers\Admin\UmbralFuncionamientoController::class, 'store'])

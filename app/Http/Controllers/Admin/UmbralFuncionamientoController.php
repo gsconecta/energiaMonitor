@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\UmbralFuncionamiento;
 use App\Models\Organizacion;
+use App\Models\UmbralFuncionamiento;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -32,10 +32,10 @@ class UmbralFuncionamientoController extends Controller
                     'notificar_email' => $umbral->notificar_email,
                     'notificar_telegram' => $umbral->notificar_telegram,
                     'destinatarios_email' => $umbral->destinatarios_email ?? [],
-                    'hora_inicio' => substr($umbral->hora_inicio, 0, 5),
-                    'hora_fin' => substr($umbral->hora_fin, 0, 5),
-                    'dias_semana' => $umbral->dias_semana ?? ['lun','mar','mie','jue','vie','sab','dom'],
-                    'organizaciones' => $umbral->organizaciones->map(fn($org) => [
+                    'hora_inicio' => substr((string) $umbral->hora_inicio, 0, 5),
+                    'hora_fin' => substr((string) $umbral->hora_fin, 0, 5),
+                    'dias_semana' => $umbral->dias_semana ?? ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'],
+                    'organizaciones' => $umbral->organizaciones->map(fn ($org) => [
                         'id' => $org->id,
                         'nombre' => $org->nombre,
                     ]),
@@ -57,24 +57,7 @@ class UmbralFuncionamientoController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'metrica' => 'required|in:' . implode(',', array_keys(UmbralFuncionamiento::METRICAS)),
-            'valor_minimo' => 'nullable|numeric',
-            'valor_maximo' => 'nullable|numeric',
-            'severidad' => 'required|in:info,warning,critical',
-            'notificar_app' => 'boolean',
-            'notificar_email' => 'boolean',
-            'notificar_telegram' => 'boolean',
-            'destinatarios_email' => 'nullable|array',
-            'destinatarios_email.*' => 'email',
-            'organizacion_ids' => 'nullable|array',
-            'organizacion_ids.*' => 'exists:organizaciones,id',
-            'hora_inicio' => 'required|date_format:H:i',
-            'hora_fin' => 'required|date_format:H:i',
-            'dias_semana' => 'nullable|array',
-            'dias_semana.*' => 'in:lun,mar,mie,jue,vie,sab,dom',
-        ]);
+        $validated = $request->validate($this->rules());
 
         $orgIds = $validated['organizacion_ids'] ?? [];
         unset($validated['organizacion_ids']);
@@ -91,20 +74,7 @@ class UmbralFuncionamientoController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'metrica' => 'required|in:' . implode(',', array_keys(UmbralFuncionamiento::METRICAS)),
-            'valor_minimo' => 'nullable|numeric',
-            'valor_maximo' => 'nullable|numeric',
-            'severidad' => 'required|in:info,warning,critical',
-            'notificar_app' => 'boolean',
-            'notificar_email' => 'boolean',
-            'notificar_telegram' => 'boolean',
-            'destinatarios_email' => 'nullable|array',
-            'destinatarios_email.*' => 'email',
-            'organizacion_ids' => 'nullable|array',
-            'organizacion_ids.*' => 'exists:organizaciones,id',
-        ]);
+        $validated = $request->validate($this->rules());
 
         $orgIds = $validated['organizacion_ids'] ?? [];
         unset($validated['organizacion_ids']);
@@ -136,5 +106,27 @@ class UmbralFuncionamientoController extends Controller
         $umbral->update(['activo' => !$umbral->activo]);
 
         return back()->with('success', $umbral->activo ? 'Umbral activado.' : 'Umbral desactivado.');
+    }
+
+    private function rules(): array
+    {
+        return [
+            'nombre' => 'required|string|max:255',
+            'metrica' => 'required|in:' . implode(',', array_keys(UmbralFuncionamiento::METRICAS)),
+            'valor_minimo' => 'nullable|numeric|required_without:valor_maximo',
+            'valor_maximo' => 'nullable|numeric|required_without:valor_minimo',
+            'severidad' => 'required|in:info,warning,critical',
+            'notificar_app' => 'boolean',
+            'notificar_email' => 'boolean',
+            'notificar_telegram' => 'boolean',
+            'destinatarios_email' => 'nullable|array',
+            'destinatarios_email.*' => 'email',
+            'organizacion_ids' => 'nullable|array',
+            'organizacion_ids.*' => 'exists:organizaciones,id',
+            'hora_inicio' => 'required|date_format:H:i',
+            'hora_fin' => 'required|date_format:H:i',
+            'dias_semana' => 'nullable|array',
+            'dias_semana.*' => 'in:lun,mar,mie,jue,vie,sab,dom',
+        ];
     }
 }

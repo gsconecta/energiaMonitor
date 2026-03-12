@@ -3,51 +3,51 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlertaUmbral;
 use App\Models\Dispositivo;
-use App\Models\Alerta;
+use App\Models\Lectura;
 use App\Models\Organizacion;
+use App\Models\Sitio;
+use App\Models\UmbralFuncionamiento;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class ControlPanelController extends Controller
 {
     public function index(Request $request)
     {
-        // Limpiar contexto actual para "salir" del sitio donde estaba
         $request->session()->forget([
             'organizacion_actual_id',
             'sitio_actual_id',
-            'is_impersonating'
+            'is_impersonating',
         ]);
-        // Verificar permisos (solo admin y tecnico pueden acceder)
+
         if (!auth()->user()->esAdminOTecnico()) {
             abort(403, 'No tienes permisos para acceder al Panel de Control Global.');
         }
 
-        // Obtener resumen global
         $totalOrganizaciones = Organizacion::activas()->count();
         $totalDispositivos = Dispositivo::activos()->count();
 
-        // 1. Obtener los dispositivos offline (usando la heurística visual del Dashboard)
-        $minutosOffline = 15; // Consideraremos offline si no hay lectura en los últimos 15 min
-        $deadline = Carbon::now()->subMinutes($minutosOffline);
+        $deadline = Carbon::now()->subMinutes(15);
 
         $dispositivosOffline = Dispositivo::with(['sitio.organizacion'])
             ->activos()
-            ->where(function ($query) use ($deadline) {
-                $query->whereHas('lecturas', function ($q) use ($deadline) {
-                    // La última lectura es muy antigua
+            ->where(function ($query) {
+                $query->whereHas('lecturas', function ($q) {
+                    // La ultima lectura se valida despues contra la fecha real.
                 })->orWhereDoesntHave('lecturas');
             })
             ->get()
             ->filter(function ($disp) use ($deadline) {
-                // Filtramos programáticamente para asegurar precisión con la última lectura real
                 $ultimaLectura = $disp->lecturas()->orderBy('fecha_lectura', 'desc')->first();
+
                 return !$ultimaLectura || $ultimaLectura->fecha_lectura < $deadline;
             })
             ->map(function ($disp) {
                 $ultimaLectura = $disp->lecturas()->orderBy('fecha_lectura', 'desc')->first();
+
                 return [
                     'id' => $disp->id,
                     'nombre' => $disp->nombre,
@@ -59,29 +59,38 @@ class ControlPanelController extends Controller
                 ];
             });
 
-        // 2. Obtener Alertas Activas (Pendientes de resolver)
-        // Simularemos las alertas si la tabla está vacía o usaremos un formato general
-        $alertasPendientes = Alerta::with(['dispositivo.sitio.organizacion'])
+        $alertasPendientes = AlertaUmbral::with(['umbral', 'dispositivo.sitio.organizacion'])
             ->activas()
             ->orderBy('created_at', 'desc')
             ->take(50)
             ->get()
             ->map(function ($alerta) {
+                $metrica = UmbralFuncionamiento::METRICAS[$alerta->metrica] ?? null;
+                $unidad = $metrica['unidad'] ?? '';
+
                 return [
                     'id' => $alerta->id,
-                    'tipo' => $alerta->titulo ?? 'Alerta',
-                    'mensaje' => $alerta->descripcion,
-                    'severidad' => $alerta->nivel ?? 'warning',
+                    'tipo' => $alerta->umbral->nombre ?? 'Umbral',
+                    'mensaje' => sprintf(
+                        '%s%s fuera de rango',
+                        $metrica['label'] ?? $alerta->metrica,
+                        $alerta->canal ? ' - ' . $this->formatearCanal($alerta->canal) : ''
+                    ),
+                    'severidad' => $alerta->severidad,
+                    'canal' => $this->formatearCanal($alerta->canal),
+                    'rango' => $this->formatearRango($alerta->valor_minimo, $alerta->valor_maximo, $unidad),
+                    'valor_leido' => (string) $alerta->valor_leido,
+                    'unidad' => $unidad,
                     'dispositivo_nombre' => $alerta->dispositivo->nombre ?? 'N/A',
                     'organizacion_nombre' => $alerta->dispositivo->sitio->organizacion->nombre ?? 'N/A',
                     'organizacion_id' => $alerta->dispositivo->sitio->organizacion_id ?? null,
                     'sitio_id' => $alerta->dispositivo->sitio_id ?? null,
+                    'lectura_id' => $alerta->lectura_id,
                     'fecha_creacion' => $alerta->created_at->diffForHumans(),
                 ];
             });
 
-        // 3. Obtener últimas lecturas (exitosas)
-        $ultimasLecturas = \App\Models\Lectura::with(['dispositivo.sitio.organizacion'])
+        $ultimasLecturas = Lectura::with(['dispositivo.sitio.organizacion'])
             ->orderBy('fecha_lectura', 'desc')
             ->take(50)
             ->get()
@@ -95,7 +104,7 @@ class ControlPanelController extends Controller
                     'sitio_id' => $lectura->dispositivo->sitio_id ?? null,
                     'fecha_lectura' => $lectura->fecha_lectura->diffForHumans(),
                     'potencia_total_w' => $lectura->potencia_total_w,
-                    'estado' => 'ok', // Si está en la base de datos, fue exitosa
+                    'estado' => 'ok',
                 ];
             });
 
@@ -112,7 +121,19 @@ class ControlPanelController extends Controller
         ]);
     }
 
-    // Método para Supersonation (Impersonate)
+    public function resolverAlertaUmbral(AlertaUmbral $alertaUmbral)
+    {
+        if (!auth()->user()->esAdminOTecnico()) {
+            abort(403);
+        }
+
+        if (!$alertaUmbral->resuelta) {
+            $alertaUmbral->resolver();
+        }
+
+        return back()->with('success', 'Alerta resuelta correctamente.');
+    }
+
     public function impersonate(Request $request, $organizacionId, $sitioId)
     {
         if (!auth()->user()->esAdminOTecnico()) {
@@ -120,15 +141,45 @@ class ControlPanelController extends Controller
         }
 
         $organizacion = Organizacion::findOrFail($organizacionId);
-        $sitio = \App\Models\Sitio::findOrFail($sitioId);
+        $sitio = Sitio::findOrFail($sitioId);
 
-        // Guardar en sesión forzando el contexto
         $request->session()->put([
             'organizacion_actual_id' => $organizacion->id,
             'sitio_actual_id' => $sitio->id,
-            'is_impersonating' => true // Bandera útil para UI
+            'is_impersonating' => true,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Sesión de soporte iniciada en: ' . $organizacion->nombre);
+        return redirect()->route('dashboard')->with('success', 'Sesion de soporte iniciada en: ' . $organizacion->nombre);
+    }
+
+    private function formatearCanal(?string $canal): string
+    {
+        return match ($canal) {
+            'canal_1' => 'Canal 1',
+            'canal_2' => 'Canal 2',
+            'canal_3' => 'Canal 3',
+            'total' => 'Total',
+            null, '' => '',
+            default => ucfirst(str_replace('_', ' ', $canal)),
+        };
+    }
+
+    private function formatearRango($valorMinimo, $valorMaximo, string $unidad): string
+    {
+        $sufijoUnidad = $unidad ? ' ' . $unidad : '';
+
+        if ($valorMinimo !== null && $valorMaximo !== null) {
+            return "{$valorMinimo} - {$valorMaximo}{$sufijoUnidad}";
+        }
+
+        if ($valorMinimo !== null) {
+            return ">= {$valorMinimo}{$sufijoUnidad}";
+        }
+
+        if ($valorMaximo !== null) {
+            return "<= {$valorMaximo}{$sufijoUnidad}";
+        }
+
+        return 'Sin rango';
     }
 }

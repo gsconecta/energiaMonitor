@@ -87,7 +87,7 @@ export default function Welcome() {
                 <div className="welcome-orb absolute bottom-[-10rem] left-1/3 h-96 w-96 rounded-full bg-[#eab308]/15 blur-3xl" />
 
                 <header className="relative z-10">
-                    <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
+                    <div className="flex w-full items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
                         <Link
                             href={auth.user ? dashboard() : '/'}
                             className="group inline-flex items-center gap-3"
@@ -140,7 +140,7 @@ export default function Welcome() {
                 </header>
 
                 <main className="relative z-10">
-                    <section className="mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 sm:pt-12 lg:px-8 lg:pt-16 lg:pb-28">
+                    <section className="w-full px-4 pt-8 pb-20 sm:px-6 sm:pt-12 lg:px-8 lg:pt-16 lg:pb-28">
                         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
                             <div className="max-w-2xl">
                                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-4 py-2 text-sm text-white/80 backdrop-blur-xl">
@@ -355,7 +355,7 @@ export default function Welcome() {
                         </div>
                     </section>
 
-                    <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8 lg:pb-28">
+                    <section className="w-full px-4 pb-20 sm:px-6 lg:px-8 lg:pb-28">
                         <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                             <div className="rounded-[2rem] border border-white/10 bg-white/[0.07] p-6 backdrop-blur-xl">
                                 <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/45">
@@ -400,7 +400,7 @@ export default function Welcome() {
                     </section>
 
                     {!auth.user && (
-                        <section className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+                        <section className="w-full px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
                             <div className="overflow-hidden rounded-[2.2rem] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] p-8 shadow-[0_30px_110px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-10">
                                 <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
                                     <div>

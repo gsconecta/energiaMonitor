@@ -45,9 +45,9 @@ class UmbralFuncionamiento extends Model
         'corriente' => ['label' => 'Intensidad', 'unidad' => 'A'],
         'potencia_activa' => ['label' => 'Potencia Activa', 'unidad' => 'W'],
         'potencia_reactiva' => ['label' => 'Potencia Reactiva', 'unidad' => 'VAR'],
-        'factor_potencia' => ['label' => 'Factor de Potencia', 'unidad' => 'cos(φ)'],
-        'energia_consumo' => ['label' => 'Energía Consumida', 'unidad' => 'kWh'],
-        'generacion_fv' => ['label' => 'Generación FV', 'unidad' => 'kW'],
+        'factor_potencia' => ['label' => 'Factor de Potencia', 'unidad' => 'cos(phi)'],
+        'energia_consumo' => ['label' => 'Energia Consumida', 'unidad' => 'kWh'],
+        'generacion_fv' => ['label' => 'Generacion FV', 'unidad' => 'kWh'],
     ];
 
     public const DIAS_SEMANA = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
@@ -55,10 +55,10 @@ class UmbralFuncionamiento extends Model
     public const DIAS_LABELS = [
         'lun' => 'Lunes',
         'mar' => 'Martes',
-        'mie' => 'Miércoles',
+        'mie' => 'Miercoles',
         'jue' => 'Jueves',
         'vie' => 'Viernes',
-        'sab' => 'Sábado',
+        'sab' => 'Sabado',
         'dom' => 'Domingo',
     ];
 

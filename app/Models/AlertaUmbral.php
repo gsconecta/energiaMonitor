@@ -47,4 +47,22 @@ class AlertaUmbral extends Model
     {
         return $this->belongsTo(Dispositivo::class);
     }
+
+    public function scopeActivas($query)
+    {
+        return $query->where('resuelta', false);
+    }
+
+    public function scopeResueltas($query)
+    {
+        return $query->where('resuelta', true);
+    }
+
+    public function resolver(): void
+    {
+        $this->update([
+            'resuelta' => true,
+            'resuelta_at' => now(),
+        ]);
+    }
 }

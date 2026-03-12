@@ -1,7 +1,6 @@
-import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
-import { Building2, ServerCrash, AlertTriangle, ArrowRight, ShieldAlert, Cpu, Key } from 'lucide-react';
-import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -10,9 +9,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import { Head, router } from '@inertiajs/react';
+import { AlertTriangle, ArrowRight, Building2, CheckCircle2, Cpu, Key, ServerCrash, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
 
 interface DispositivoOffline {
     id: number;
@@ -29,10 +29,15 @@ interface AlertaPendiente {
     tipo: string;
     mensaje: string;
     severidad: string;
+    canal: string;
+    rango: string;
+    valor_leido: string;
+    unidad: string;
     dispositivo_nombre: string;
     organizacion_nombre: string;
     organizacion_id: number;
     sitio_id: number;
+    lectura_id: number;
     fecha_creacion: string;
 }
 
@@ -60,6 +65,12 @@ interface Props {
     ultimasLecturas: UltimaLectura[];
 }
 
+const severityStyles: Record<string, string> = {
+    info: 'bg-blue-100 text-blue-700 border-blue-200',
+    warning: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    critical: 'bg-red-100 text-red-700 border-red-200',
+};
+
 export default function ControlPanel({
     metricasGlobales,
     dispositivosOffline,
@@ -67,11 +78,15 @@ export default function ControlPanel({
     ultimasLecturas,
 }: Props) {
     const [busquedaLecturas, setBusquedaLecturas] = useState('');
+    const [resolviendoAlertaId, setResolviendoAlertaId] = useState<number | null>(null);
 
-    const lecturasFiltradas = ultimasLecturas.filter(lectura => {
-        if (!busquedaLecturas) return true;
+    const lecturasFiltradas = ultimasLecturas.filter((lectura) => {
+        if (!busquedaLecturas) {
+            return true;
+        }
 
         const busqueda = busquedaLecturas.toLowerCase();
+
         return (
             lectura.dispositivo_nombre?.toLowerCase().includes(busqueda) ||
             lectura.organizacion_nombre?.toLowerCase().includes(busqueda) ||
@@ -79,9 +94,16 @@ export default function ControlPanel({
         );
     });
 
-    // Función para impersonar / suplantar vista de cliente
     const handleImpersonate = (organizacionId: number, sitioId: number) => {
         router.post(`/admin/impersonate/${organizacionId}/${sitioId}`);
+    };
+
+    const handleResolveAlert = (alertaId: number) => {
+        setResolviendoAlertaId(alertaId);
+        router.post(`/admin/alertas-umbral/${alertaId}/resolver`, {}, {
+            preserveScroll: true,
+            onFinish: () => setResolviendoAlertaId(null),
+        });
     };
 
     return (
@@ -93,19 +115,16 @@ export default function ControlPanel({
                     <div className="flex items-center gap-3">
                         <ShieldAlert className="h-8 w-8 text-blue-600 dark:text-blue-500" />
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Centro de Mando Técnico</h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Visión panorámica de todas las organizaciones y dispositivos del sistema.</p>
+                            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Centro de Mando Tecnico</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Vision panoramica de todas las organizaciones y dispositivos del sistema.</p>
                         </div>
                     </div>
-                    <div>
-                        <Button onClick={() => router.visit('/admin/credenciales-shelly')} variant="outline" className="gap-2">
-                            <Key className="h-4 w-4" />
-                            Credenciales Shelly
-                        </Button>
-                    </div>
+                    <Button onClick={() => router.visit('/admin/credenciales-shelly')} variant="outline" className="gap-2">
+                        <Key className="h-4 w-4" />
+                        Credenciales Shelly
+                    </Button>
                 </div>
 
-                {/* Métricas Superiores */}
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                         <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -124,7 +143,7 @@ export default function ControlPanel({
                     <div className={`rounded-lg border p-4 shadow-sm ${metricasGlobales.dispositivos_offline_count > 0 ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' : 'bg-white dark:bg-gray-900 dark:border-gray-800'}`}>
                         <div className={`flex items-center gap-2 ${metricasGlobales.dispositivos_offline_count > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
                             <ServerCrash className="h-4 w-4" />
-                            <p className="text-sm font-medium">Dispositivos Caídos</p>
+                            <p className="text-sm font-medium">Dispositivos Caidos</p>
                         </div>
                         <p className={`mt-2 text-2xl font-bold ${metricasGlobales.dispositivos_offline_count > 0 ? 'text-red-700 dark:text-red-500' : 'text-gray-900 dark:text-white'}`}>
                             {metricasGlobales.dispositivos_offline_count}
@@ -142,12 +161,11 @@ export default function ControlPanel({
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    {/* Tabla de Dispositivos Offline */}
                     <div className="rounded-lg border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                         <div className="border-b px-4 py-3 dark:border-gray-800">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                 <ServerCrash className="h-5 w-5 text-red-500" />
-                                Monitor de Pérdida de Conexión
+                                Monitor de Perdida de Conexion
                             </h2>
                         </div>
                         <div className="p-0">
@@ -156,15 +174,15 @@ export default function ControlPanel({
                                     <TableRow>
                                         <TableHead>Dispositivo</TableHead>
                                         <TableHead>Cliente / Sitio</TableHead>
-                                        <TableHead>Última Señal</TableHead>
-                                        <TableHead className="text-right">Acción</TableHead>
+                                        <TableHead>Ultima Senal</TableHead>
+                                        <TableHead className="text-right">Accion</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {dispositivosOffline.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center py-6 text-gray-500">
-                                                Todos los dispositivos están emitiendo correctamente.
+                                                Todos los dispositivos estan emitiendo correctamente.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -202,12 +220,11 @@ export default function ControlPanel({
                         </div>
                     </div>
 
-                    {/* Tabla de Alertas */}
                     <div className="rounded-lg border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                         <div className="border-b px-4 py-3 dark:border-gray-800">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                 <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                                Bandeja de Alertas Críticas
+                                Bandeja de Alertas de Umbral
                             </h2>
                         </div>
                         <div className="p-0">
@@ -215,16 +232,17 @@ export default function ControlPanel({
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Alerta</TableHead>
+                                        <TableHead>Estado</TableHead>
                                         <TableHead>Cliente / Dispositivo</TableHead>
                                         <TableHead>Hace</TableHead>
-                                        <TableHead className="text-right">Acción</TableHead>
+                                        <TableHead className="text-right">Accion</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {alertasPendientes.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-6 text-gray-500">
-                                                No hay alertas activas en el sistema.
+                                            <TableCell colSpan={5} className="text-center py-6 text-gray-500">
+                                                No hay alertas de umbral pendientes.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -233,29 +251,52 @@ export default function ControlPanel({
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-medium text-gray-900 dark:text-gray-100">{alerta.tipo}</span>
-                                                        <span className="text-xs text-gray-500 line-clamp-1">{alerta.mensaje}</span>
+                                                        <span className="text-xs text-gray-500">{alerta.mensaje}</span>
+                                                        <span className="text-xs text-gray-400">
+                                                            {alerta.rango} | Valor: {alerta.valor_leido} {alerta.unidad}
+                                                        </span>
                                                     </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={severityStyles[alerta.severidad] ?? severityStyles.warning}>
+                                                        {alerta.severidad.toUpperCase()}
+                                                    </Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span>{alerta.organizacion_nombre}</span>
                                                         <span className="text-xs text-gray-500">{alerta.dispositivo_nombre}</span>
+                                                        {alerta.canal && (
+                                                            <span className="text-xs text-gray-400">{alerta.canal}</span>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs text-gray-500">
                                                     {alerta.fecha_creacion}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {alerta.organizacion_id && alerta.sitio_id && (
+                                                    <div className="flex justify-end gap-2">
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
                                                             className="h-8"
-                                                            onClick={() => handleImpersonate(alerta.organizacion_id, alerta.sitio_id)}
+                                                            onClick={() => handleResolveAlert(alerta.id)}
+                                                            disabled={resolviendoAlertaId === alerta.id}
                                                         >
-                                                            Ver <ArrowRight className="ml-1 h-3 w-3" />
+                                                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                                                            Resolver
                                                         </Button>
-                                                    )}
+                                                        {alerta.organizacion_id && alerta.sitio_id && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8"
+                                                                onClick={() => handleImpersonate(alerta.organizacion_id, alerta.sitio_id)}
+                                                            >
+                                                                Ver <ArrowRight className="ml-1 h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -266,16 +307,15 @@ export default function ControlPanel({
                     </div>
                 </div>
 
-                {/* Tabla de Últimas Lecturas */}
                 <div className="rounded-lg border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 mt-2">
                     <div className="border-b px-4 py-3 dark:border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-2">
                             <Cpu className="h-5 w-5 text-blue-500" />
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                Registro de Últimas Lecturas
+                                Registro de Ultimas Lecturas
                             </h2>
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800 ml-2">
-                                Últimas 50
+                                Ultimas 50
                             </Badge>
                         </div>
                         <div className="w-full sm:w-auto flex items-center gap-2">
@@ -297,14 +337,14 @@ export default function ControlPanel({
                                         <TableHead>Cliente / Sitio</TableHead>
                                         <TableHead>Potencia Act.</TableHead>
                                         <TableHead>Recibida</TableHead>
-                                        <TableHead className="text-right">Acción</TableHead>
+                                        <TableHead className="text-right">Accion</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {lecturasFiltradas.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center py-6 text-gray-500">
-                                                {busquedaLecturas ? "No se encontraron lecturas que coincidan con la búsqueda." : "No hay lecturas registradas."}
+                                                {busquedaLecturas ? 'No se encontraron lecturas que coincidan con la busqueda.' : 'No hay lecturas registradas.'}
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -351,7 +391,6 @@ export default function ControlPanel({
                         </div>
                     </div>
                 </div>
-
             </div>
         </AppLayout>
     );
