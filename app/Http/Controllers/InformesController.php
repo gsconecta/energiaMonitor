@@ -132,6 +132,10 @@ class InformesController extends Controller
                 'pf_canal_1',
                 'pf_canal_2',
                 'pf_canal_3',
+                'reactiva_canal_1_var',
+                'reactiva_canal_2_var',
+                'reactiva_canal_3_var',
+                'reactiva_total_var',
                 'dispositivo_id'
             ]);
 
@@ -172,10 +176,10 @@ class InformesController extends Controller
                 $v2 = $lecturaActual->voltaje_canal_2;
                 $v3 = $lecturaActual->voltaje_canal_3;
                 
-                $q1_var = $lecturaActual->calcularPotenciaReactivaCanal(1) ?? 0;
-                $q2_var = $lecturaActual->calcularPotenciaReactivaCanal(2) ?? 0;
-                $q3_var = $lecturaActual->calcularPotenciaReactivaCanal(3) ?? 0;
-                $q_total_var = $lecturaActual->calcularPotenciaReactivaTotal();
+                $q1_var = $lecturaActual->reactiva_canal_1_var ?? 0;
+                $q2_var = $lecturaActual->reactiva_canal_2_var ?? 0;
+                $q3_var = $lecturaActual->reactiva_canal_3_var ?? 0;
+                $q_total_var = $lecturaActual->reactiva_total_var ?? 0;
 
                 // Cálculo de energía (kWh) para este delta de tiempo
                 $factor = $diffSegundos / 3600000;
