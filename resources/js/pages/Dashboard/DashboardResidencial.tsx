@@ -79,7 +79,7 @@ export default function DashboardResidencial({
             <div className={`grid grid-cols-1 gap-4 ${dispositivo?.tiene_fotovoltaica ? 'lg:grid-cols-2 lg:gap-6' : ''}`}>
                 {datos_grafica && datos_grafica.length > 0 && (
                     <>
-                        <div className="w-full">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {dispositivo?.tiene_fotovoltaica ? 'Balance Energético' : 'Evolución de Consumo Eléctrico'}
                             </h2>
@@ -95,7 +95,7 @@ export default function DashboardResidencial({
                             />
                         </div>
                         {dispositivo?.tiene_fotovoltaica && (
-                            <div className="w-full">
+                            <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                                 <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     Producción Fotovoltaica
                                 </h2>

@@ -50,7 +50,7 @@ export default function DashboardIndustrial({
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
                 {datos_grafica && datos_grafica.length > 0 && (
                     <>
-                        <div className="w-full lg:col-span-2">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Voltaje de Red Eléctrica (Análisis de Calidad)
                             </h2>
@@ -64,7 +64,7 @@ export default function DashboardIndustrial({
                                 ]}
                             />
                         </div>
-                        <div className="w-full lg:col-span-2">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {dispositivo?.tiene_fotovoltaica ? 'Balance de Potencia Global' : 'Evolución de Consumo de Potencia'}
                             </h2>
@@ -79,7 +79,7 @@ export default function DashboardIndustrial({
                                 ]}
                             />
                         </div>
-                        <div className="w-full lg:col-span-2">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Potencia Reactiva Global
                             </h2>
@@ -140,7 +140,7 @@ export default function DashboardIndustrial({
                             </div>
                         </div>
 
-                        <div className="w-full lg:col-span-2">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Desplazamiento de Fase cos(φ)
                             </h2>
@@ -155,7 +155,7 @@ export default function DashboardIndustrial({
                             />
                         </div>
 
-                        <div className="w-full lg:col-span-2">
+                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Intensidad de Alimentación Relativa (A)
                             </h2>

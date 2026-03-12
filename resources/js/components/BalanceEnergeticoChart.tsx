@@ -263,7 +263,7 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                     color: 'rgb(107, 114, 128)',
                     maxRotation: 45,
                     minRotation: 45,
-                    display: false,
+                    display: true,
                 },
             },
             y: {
@@ -384,7 +384,7 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                     </p>
                 </div>
             ) : (
-                <div className={`w-full rounded-lg border border-sidebar-border/70 bg-white p-4 dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
                     <Line data={chartData} options={options} />
                 </div>
             )}
