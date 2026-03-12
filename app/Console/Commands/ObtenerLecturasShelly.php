@@ -8,6 +8,7 @@ use App\Models\Lectura;
 use App\Models\Organizacion;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\EvaluadorUmbrales;
 
 class ObtenerLecturasShelly extends Command
 {
@@ -93,6 +94,13 @@ class ObtenerLecturasShelly extends Command
 
                 // Guardar lectura en la base de datos
                 $lecturaGuardada = Lectura::create($lectura);
+
+                // Evaluar umbrales de funcionamiento
+                $evaluador = app(EvaluadorUmbrales::class);
+                $alertas = $evaluador->evaluar($lecturaGuardada, $dispositivo);
+                if (count($alertas) > 0) {
+                    $this->warn("  ⚠️  " . count($alertas) . " alerta(s) de umbral generada(s)");
+                }
 
                 // Actualizar número de fases del dispositivo
                 $numFasesAnterior = $dispositivo->num_fases;
