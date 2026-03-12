@@ -270,7 +270,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                     color: 'rgb(107, 114, 128)',
                     maxRotation: 45,
                     minRotation: 45,
-                    display: !ocultarFiltros ? false : true,
+                    display: true,
                 },
             },
             y: {
@@ -400,7 +400,7 @@ export default function VoltajeRedChart({ datos, ocultarFiltros = false, num_fas
                     </p>
                 </div>
             ) : (
-                <div className={`w-full ${ocultarFiltros ? '' : 'rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800'} p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : ocultarFiltros ? 'h-full' : 'h-96'}`}>
+                <div className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : ocultarFiltros ? 'h-full' : 'h-96'}`}>
                     <Line data={chartData} options={options} />
                 </div>
             )}
