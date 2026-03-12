@@ -60,6 +60,11 @@ class Dispositivo extends Model
         return $this->hasMany(MetricaDiaria::class);
     }
 
+    public function metricasQuinceMinutos()
+    {
+        return $this->hasMany(MetricaQuinceMinutos::class);
+    }
+
     // Scopes
     public function scopeActivos($query)
     {

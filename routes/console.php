@@ -18,4 +18,12 @@ if (!app()->environment('local')) {
         ->onFailure(function () {
             \Log::error('Error al ejecutar comando shelly:obtener-lecturas');
         });
+
+    Schedule::command('lecturas:compactar-15m --days=60')
+        ->dailyAt('02:15')
+        ->withoutOverlapping()
+        ->runInBackground()
+        ->onFailure(function () {
+            \Log::error('Error al ejecutar comando lecturas:compactar-15m');
+        });
 }
