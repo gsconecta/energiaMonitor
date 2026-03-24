@@ -23,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('limpiar-contexto');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/informes', [\App\Http\Controllers\InformesController::class, 'index'])->name('informes');
+    Route::get('/informes/exportar', [\App\Http\Controllers\InformesController::class, 'export'])->name('informes.export');
 
     Route::resource('organizaciones', OrganizacionesController::class)
         ->parameters(['organizaciones' => 'organizacion']);
