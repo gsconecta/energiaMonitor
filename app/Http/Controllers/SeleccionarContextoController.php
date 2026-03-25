@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CredencialShelly;
 use App\Models\Organizacion;
 use App\Models\Sitio;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class SeleccionarContextoController extends Controller
                     'id' => $org->id,
                     'nombre' => $org->nombre,
                     'codigo' => $org->codigo,
-                    'sitios' => $org->sitios->map(fn($s) => [
+                    'sitios' => $org->sitios->map(fn ($s) => [
                         'id' => $s->id,
                         'nombre' => $s->nombre,
                         'codigo' => $s->codigo,
@@ -38,13 +39,16 @@ class SeleccionarContextoController extends Controller
 
         $organizacionActualId = $request->session()->get('organizacion_actual_id');
         $sitioActualId = $request->session()->get('sitio_actual_id');
+        $credencialesShelly = $user->esAdminOTecnico() ? CredencialShelly::all() : [];
 
         return Inertia::render('SeleccionarContexto/Index', [
             'organizaciones' => $organizaciones,
             'organizacion_actual_id' => $organizacionActualId,
             'sitio_actual_id' => $sitioActualId,
+            'credenciales_shelly' => $credencialesShelly,
         ]);
     }
+
     /**
      * Guardar la selección de organización y sitio en la sesión
      */
@@ -59,9 +63,9 @@ class SeleccionarContextoController extends Controller
 
         // Verificar que el usuario pertenece a la organización
         $organizacion = Organizacion::findOrFail($validated['organizacion_id']);
-        if (!$organizacion->tieneUsuario($user)) {
+        if (! $organizacion->tieneUsuario($user)) {
             return back()->withErrors([
-                'organizacion_id' => 'No tienes acceso a esta organización'
+                'organizacion_id' => 'No tienes acceso a esta organización',
             ]);
         }
 
@@ -69,7 +73,7 @@ class SeleccionarContextoController extends Controller
         $sitio = Sitio::findOrFail($validated['sitio_id']);
         if ($sitio->organizacion_id !== $organizacion->id) {
             return back()->withErrors([
-                'sitio_id' => 'El sitio no pertenece a la organización seleccionada'
+                'sitio_id' => 'El sitio no pertenece a la organización seleccionada',
             ]);
         }
 

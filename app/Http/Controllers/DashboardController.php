@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Dispositivo;
 use App\Models\Lectura;
-use App\Models\Sitio;
 use App\Models\Organizacion;
+use App\Models\Sitio;
 use App\Services\AemetService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $sitioActualId = $request->session()->get('sitio_actual_id');
 
         // Si no hay contexto seleccionado, redirigir al selector
-        if (!$organizacionActualId || !$sitioActualId) {
+        if (! $organizacionActualId || ! $sitioActualId) {
             return redirect()->route('seleccionar-contexto');
         }
 
@@ -29,15 +29,17 @@ class DashboardController extends Controller
         $organizacionActual = Organizacion::find($organizacionActualId);
         $sitioActual = Sitio::find($sitioActualId);
 
-        if (!$organizacionActual || !$organizacionActual->tieneUsuario($user)) {
+        if (! $organizacionActual || ! $organizacionActual->tieneUsuario($user)) {
             // El usuario ya no tiene acceso, limpiar sesión y redirigir al selector
             $request->session()->forget(['organizacion_actual_id', 'sitio_actual_id']);
+
             return redirect()->route('seleccionar-contexto');
         }
 
-        if (!$sitioActual || $sitioActual->organizacion_id !== $organizacionActual->id) {
+        if (! $sitioActual || $sitioActual->organizacion_id !== $organizacionActual->id) {
             // El sitio ya no pertenece a la organización, limpiar y redirigir al selector
             $request->session()->forget(['organizacion_actual_id', 'sitio_actual_id']);
+
             return redirect()->route('seleccionar-contexto');
         }
 
@@ -110,14 +112,14 @@ class DashboardController extends Controller
                 ->first();
 
             // Si el dispositivo no pertenece al sitio, usar el primero disponible
-            if (!$dispositivo) {
+            if (! $dispositivo) {
                 $dispositivo = $crearQueryDispositivos()->first();
             }
         } else {
             $dispositivo = $crearQueryDispositivos()->first();
         }
 
-        if (!$dispositivo) {
+        if (! $dispositivo) {
             return Inertia::render('Dashboard/Index', [
                 'sinDispositivos' => true,
                 'dispositivos' => [],
@@ -168,8 +170,8 @@ class DashboardController extends Controller
             try {
                 // Usar PVGIS solo para radiación solar (más preciso)
                 // AEMET para el resto de datos del día actual (temperatura, viento, estado del cielo, salida/puesta del sol)
-                $pvgisService = new \App\Services\PvgisService();
-                $aemetService = new AemetService();
+                $pvgisService = new \App\Services\PvgisService;
+                $aemetService = new AemetService;
 
                 $datosMeteorologicos = [];
 
@@ -189,7 +191,7 @@ class DashboardController extends Controller
                 $codigoMunicipio = $sitioActual->codigo_municipio_aemet;
                 $codigoFuente = 'manual';
 
-                if (!$codigoMunicipio && $sitioActual->latitud && $sitioActual->longitud) {
+                if (! $codigoMunicipio && $sitioActual->latitud && $sitioActual->longitud) {
                     $codigoMunicipio = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                         $sitioActual->latitud,
                         $sitioActual->longitud
@@ -201,7 +203,7 @@ class DashboardController extends Controller
                     $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoMunicipio);
 
                     // Si el código manual no funciona y hay coordenadas, intentar con el código calculado
-                    if (!$datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->latitud && $sitioActual->longitud) {
+                    if (! $datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->latitud && $sitioActual->longitud) {
                         $codigoCalculado = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                             $sitioActual->latitud,
                             $sitioActual->longitud
@@ -227,7 +229,7 @@ class DashboardController extends Controller
 
                     // Si AEMET no tiene salida/puesta del sol, calcular desde coordenadas
                     if (
-                        (!isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null)
+                        (! isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null)
                         && $sitioActual->latitud && $sitioActual->longitud
                     ) {
                         $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
@@ -242,7 +244,7 @@ class DashboardController extends Controller
                 }
 
                 // Si no hay datos de ninguna fuente, crear estructura vacía
-                if (!$datosMeteorologicos) {
+                if (! $datosMeteorologicos) {
                     $datosMeteorologicos = [
                         'temperatura_actual' => null,
                         'temperatura_maxima' => null,
@@ -314,7 +316,7 @@ class DashboardController extends Controller
         if ($fechaDesde && $fechaHasta) {
             $query->whereBetween('fecha_lectura', [
                 \Carbon\Carbon::parse($fechaDesde)->startOfDay(),
-                \Carbon\Carbon::parse($fechaHasta)->endOfDay()
+                \Carbon\Carbon::parse($fechaHasta)->endOfDay(),
             ]);
         } else {
             // Usar períodos predefinidos
@@ -328,7 +330,7 @@ class DashboardController extends Controller
                 case 'semana':
                     $query->whereBetween('fecha_lectura', [
                         now()->startOfWeek(),
-                        now()->endOfWeek()
+                        now()->endOfWeek(),
                     ]);
                     break;
                 case 'mes':
@@ -379,7 +381,7 @@ class DashboardController extends Controller
 
         // Verificar si está online (última lectura hace menos de 10 minutos)
         $estaOnline = $ultimaLectura && $ultimaLectura->fecha_lectura
-            ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10
+            ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) < Dispositivo::ONLINE_THRESHOLD_MINUTES
             : false;
 
         // Calcular promedios con manejo de nulls
@@ -397,7 +399,7 @@ class DashboardController extends Controller
         $pfPromedio2 = $lecturas->whereNotNull('pf_canal_2')->avg('pf_canal_2');
         $pfPromedio3 = $lecturas->whereNotNull('pf_canal_3')->avg('pf_canal_3');
 
-        $pfPromedios = collect([$pfPromedio1, $pfPromedio2, $pfPromedio3])->filter(fn($val) => $val !== null);
+        $pfPromedios = collect([$pfPromedio1, $pfPromedio2, $pfPromedio3])->filter(fn ($val) => $val !== null);
 
         $factorPotenciaPromedio = $pfPromedios->isNotEmpty()
             ? $pfPromedios->avg()
@@ -466,6 +468,7 @@ class DashboardController extends Controller
             'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
             'energia_total_kwh' => round(max(0, (function () use ($ultimaLectura, $primeraLectura) {
                 $diferencia = ($ultimaLectura->energia_total_kwh ?? 0) - ($primeraLectura->energia_total_kwh ?? 0);
+
                 // Convertir de Wh a kWh si el valor es muy grande
                 return $diferencia > 1000 ? $diferencia / 1000 : $diferencia;
             })()), 2),
@@ -514,9 +517,9 @@ class DashboardController extends Controller
 
     /**
      * Calcula la salida y puesta del sol para unas coordenadas dadas
-     * 
-     * @param float $lat Latitud
-     * @param float $lng Longitud
+     *
+     * @param  float  $lat  Latitud
+     * @param  float  $lng  Longitud
      * @return array Con 'salida' y 'puesta' en formato HH:mm
      */
     private function calcularSalidaPuestaSol(float $lat, float $lng): array
@@ -560,11 +563,11 @@ class DashboardController extends Controller
                 'lat' => $lat,
                 'lng' => $lng,
             ]);
+
             return [
                 'salida' => null,
                 'puesta' => null,
             ];
         }
     }
-
 }

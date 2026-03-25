@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CredencialShelly;
 use App\Models\Organizacion;
 use App\Models\User;
-use App\Models\CredencialShelly;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -69,13 +69,15 @@ class OrganizacionesController extends Controller
             'codigo' => 'required|string|max:255|unique:organizaciones,codigo',
             'descripcion' => 'nullable|string',
             'tipo_perfil' => 'required|in:residencial,industrial',
+            'activa' => 'boolean',
+            'credencial_shelly_id' => 'nullable|exists:credencial_shellies,id',
         ]);
 
         $organizacion = Organizacion::create($validated);
 
         // Asignar usuario actual como owner
         $organizacion->users()->attach(auth()->id(), [
-            'rol' => 'owner'
+            'rol' => 'owner',
         ]);
 
         // Si viene de la página de selección de contexto, volver ahí
@@ -114,13 +116,13 @@ class OrganizacionesController extends Controller
                 'shelly_server' => $organizacion->obtenerShellyServer(),
                 'tiene_shelly_api_key' => $organizacion->tieneShellyApiKey(),
                 'rol' => $organizacion->rolUsuario(auth()->user()),
-                'sitios' => $organizacion->sitios->map(fn($s) => [
+                'sitios' => $organizacion->sitios->map(fn ($s) => [
                     'id' => $s->id,
                     'nombre' => $s->nombre,
                     'codigo' => $s->codigo,
                     'activa' => $s->activa,
                 ]),
-                'usuarios' => $organizacion->users->map(fn($u) => [
+                'usuarios' => $organizacion->users->map(fn ($u) => [
                     'id' => $u->id,
                     'name' => $u->name,
                     'email' => $u->email,
@@ -163,7 +165,7 @@ class OrganizacionesController extends Controller
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'codigo' => 'required|string|max:255|unique:organizaciones,codigo,' . $organizacion->id,
+            'codigo' => 'required|string|max:255|unique:organizaciones,codigo,'.$organizacion->id,
             'descripcion' => 'nullable|string',
             'tipo_perfil' => 'required|in:residencial,industrial',
             'activa' => 'boolean',
@@ -209,12 +211,12 @@ class OrganizacionesController extends Controller
 
         if ($organizacion->tieneUsuario($user)) {
             return back()->withErrors([
-                'email' => 'Este usuario ya pertenece a la organización'
+                'email' => 'Este usuario ya pertenece a la organización',
             ]);
         }
 
         $organizacion->users()->attach($user->id, [
-            'rol' => $validated['rol']
+            'rol' => $validated['rol'],
         ]);
 
         return back()->with('success', 'Usuario agregado correctamente');
@@ -236,13 +238,13 @@ class OrganizacionesController extends Controller
             $ownersCount = $organizacion->usuariosConRol('owner')->count();
             if ($ownersCount <= 1) {
                 return back()->withErrors([
-                    'rol' => 'No se puede cambiar el rol del último propietario'
+                    'rol' => 'No se puede cambiar el rol del último propietario',
                 ]);
             }
         }
 
         $organizacion->users()->updateExistingPivot($user->id, [
-            'rol' => $validated['rol']
+            'rol' => $validated['rol'],
         ]);
 
         return back()->with('success', 'Rol actualizado correctamente');
@@ -260,7 +262,7 @@ class OrganizacionesController extends Controller
             $ownersCount = $organizacion->usuariosConRol('owner')->count();
             if ($ownersCount <= 1) {
                 return back()->withErrors([
-                    'usuario' => 'No se puede eliminar el último propietario'
+                    'usuario' => 'No se puede eliminar el último propietario',
                 ]);
             }
         }

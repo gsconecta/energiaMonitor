@@ -10,6 +10,8 @@ class Dispositivo extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const ONLINE_THRESHOLD_MINUTES = 5;
+
     protected $table = 'dispositivos';
 
     protected $fillable = [
@@ -77,7 +79,6 @@ class Dispositivo extends Model
         return $query->where('activo', true);
     }
 
-
     // Métodos útiles
     public function ultimaLectura()
     {
@@ -88,12 +89,12 @@ class Dispositivo extends Model
     {
         $ultimaLectura = $this->ultimaLectura();
 
-        if (!$ultimaLectura) {
+        if (! $ultimaLectura) {
             return false;
         }
 
         // Considerar offline si no hay lectura en los últimos 10 minutos
-        return $ultimaLectura->fecha_lectura->diffInMinutes(now()) <= 10;
+        return $ultimaLectura->fecha_lectura->diffInMinutes(now()) < self::ONLINE_THRESHOLD_MINUTES;
     }
 
     public function potenciaActual()
@@ -103,14 +104,14 @@ class Dispositivo extends Model
 
     /**
      * Detectar el número de fases desde la última lectura
-     * 
+     *
      * @return int|null Número de fases detectado (1, 2, o 3) o null si no se puede determinar
      */
     public function detectarNumFases()
     {
         $ultimaLectura = $this->ultimaLectura();
 
-        if (!$ultimaLectura) {
+        if (! $ultimaLectura) {
             return null;
         }
 
@@ -147,14 +148,14 @@ class Dispositivo extends Model
     /**
      * Detectar el número de fases desde datos_raw de la última lectura
      * Analiza el JSON raw para determinar el formato del dispositivo
-     * 
+     *
      * @return int|null Número de fases detectado (1, 2, o 3) o null si no se puede determinar
      */
     public function detectarNumFasesDesdeRaw()
     {
         $ultimaLectura = $this->ultimaLectura();
 
-        if (!$ultimaLectura || !$ultimaLectura->datos_raw) {
+        if (! $ultimaLectura || ! $ultimaLectura->datos_raw) {
             return null;
         }
 
@@ -162,7 +163,7 @@ class Dispositivo extends Model
             ? json_decode($ultimaLectura->datos_raw, true)
             : $ultimaLectura->datos_raw;
 
-        if (!$datosRaw || !isset($datosRaw['device_status'])) {
+        if (! $datosRaw || ! isset($datosRaw['device_status'])) {
             return null;
         }
 
@@ -176,10 +177,13 @@ class Dispositivo extends Model
         // Formato EM1/EM1+ (em1:0, em1:1)
         if (isset($deviceStatus['em1:0']) || isset($deviceStatus['em1:1'])) {
             $numCanales = 0;
-            if (isset($deviceStatus['em1:0']))
+            if (isset($deviceStatus['em1:0'])) {
                 $numCanales++;
-            if (isset($deviceStatus['em1:1']))
+            }
+            if (isset($deviceStatus['em1:1'])) {
                 $numCanales++;
+            }
+
             return $numCanales > 0 ? $numCanales : null;
         }
 
@@ -191,6 +195,7 @@ class Dispositivo extends Model
                     $numCanales++;
                 }
             }
+
             return $numCanales > 0 ? $numCanales : null;
         }
 
@@ -199,7 +204,7 @@ class Dispositivo extends Model
 
     /**
      * Actualizar el número de fases automáticamente desde la última lectura
-     * 
+     *
      * @return bool True si se actualizó, false si no
      */
     public function actualizarNumFasesAuto()
@@ -208,6 +213,7 @@ class Dispositivo extends Model
 
         if ($numFases !== null && $numFases !== $this->num_fases) {
             $this->update(['num_fases' => $numFases]);
+
             return true;
         }
 
@@ -343,8 +349,8 @@ class Dispositivo extends Model
 
     /**
      * Obtener el número de canal según su tipo
-     * 
-     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     *
+     * @param  string  $tipo  'fotovoltaica' o 'red_electrica'
      * @return int|null Número de canal (1, 2, o 3) o null si no se encuentra
      */
     public function obtenerCanalPorTipo(string $tipo): ?int
@@ -360,18 +366,18 @@ class Dispositivo extends Model
 
     /**
      * Obtener potencia de un canal según su tipo desde una lectura
-     * 
-     * @param string $tipo 'fotovoltaica' o 'red_electrica'
-     * @param \App\Models\Lectura|null $lectura Lectura de la que obtener el valor
+     *
+     * @param  string  $tipo  'fotovoltaica' o 'red_electrica'
+     * @param  \App\Models\Lectura|null  $lectura  Lectura de la que obtener el valor
      * @return float|null Potencia en W o null
      */
     public function obtenerPotenciaCanal(string $tipo, ?Lectura $lectura = null): ?float
     {
-        if (!$lectura) {
+        if (! $lectura) {
             $lectura = $this->ultimaLectura();
         }
 
-        if (!$lectura) {
+        if (! $lectura) {
             return null;
         }
 
@@ -380,8 +386,8 @@ class Dispositivo extends Model
 
     /**
      * Calcular métricas de energía agregadas desde una colección de lecturas
-     * 
-     * @param \Illuminate\Database\Eloquent\Collection $lecturas
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection  $lecturas
      * @return array Métricas calculadas
      */
     public function calcularMetricasEnergia($lecturas): array
@@ -408,10 +414,10 @@ class Dispositivo extends Model
         $exportacionRed = $ultimaLectura->obtenerExportacionRed();
 
         // Calcular promedios del período
-        $consumos = $lecturas->map(fn($l) => $l->calcularConsumoCasa())->filter(fn($v) => $v !== null);
+        $consumos = $lecturas->map(fn ($l) => $l->calcularConsumoCasa())->filter(fn ($v) => $v !== null);
         $consumoPromedio = $consumos->isNotEmpty() ? $consumos->avg() : 0;
 
-        $exportacionesNetas = $lecturas->map(fn($l) => $l->calcularExportacionNeta())->filter(fn($v) => $v !== null);
+        $exportacionesNetas = $lecturas->map(fn ($l) => $l->calcularExportacionNeta())->filter(fn ($v) => $v !== null);
         $exportacionNetaPromedio = $exportacionesNetas->isNotEmpty() ? $exportacionesNetas->avg() : 0;
 
         return [
@@ -428,8 +434,8 @@ class Dispositivo extends Model
 
     /**
      * Calcular energía acumulada (kWh) en un período usando integración trapezoidal
-     * 
-     * @param \Illuminate\Database\Eloquent\Collection $lecturas
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection  $lecturas
      * @return array Métricas de energía en kWh
      */
     public function calcularEnergiaAcumulada($lecturas): array
@@ -504,8 +510,6 @@ class Dispositivo extends Model
 
     /**
      * Verificar si el dispositivo tiene algún canal configurado como fotovoltaica.
-     * 
-     * @return bool
      */
     public function tieneFotovoltaica(): bool
     {

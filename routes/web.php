@@ -55,6 +55,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.control-panel');
     Route::post('/admin/impersonate/{organizacion}/{sitio}', [ControlPanelController::class, 'impersonate'])
         ->name('admin.impersonate');
+    Route::post('/admin/alertas-umbral/resolver-multiple', [ControlPanelController::class, 'resolverAlertasUmbral'])
+        ->name('admin.alertas-umbral.resolver-multiple');
     Route::post('/admin/alertas-umbral/{alertaUmbral}/resolver', [ControlPanelController::class, 'resolverAlertaUmbral'])
         ->name('admin.alertas-umbral.resolver');
 
@@ -87,5 +89,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.umbrales.toggle-activo');
 });
 
-require __DIR__ . '/settings.php';
-require __DIR__ . '/auth.php';
+require __DIR__.'/settings.php';
+require __DIR__.'/auth.php';
