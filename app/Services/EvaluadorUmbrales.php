@@ -12,11 +12,6 @@ use Illuminate\Support\Facades\Log;
 class EvaluadorUmbrales
 {
     /**
-     * Cooldown en minutos para evitar alertas repetidas
-     */
-    private const COOLDOWN_MINUTOS = 15;
-
-    /**
      * Mapeo de métricas a campos de la lectura.
      * Las métricas con múltiples canales se evalúan por separado.
      */
@@ -140,7 +135,7 @@ class EvaluadorUmbrales
                     continue;
                 }
 
-                // Verificar cooldown: no crear alerta si hay una reciente sin resolver
+                // No duplicar alertas: solo una abierta por umbral/dispositivo/canal
                 if ($this->enCooldown($umbral->id, $dispositivo->id, $canal)) {
                     continue;
                 }
@@ -231,7 +226,7 @@ class EvaluadorUmbrales
     }
 
     /**
-     * Verifica si existe una alerta reciente sin resolver para el mismo umbral/dispositivo/canal.
+     * Verifica si ya existe una alerta sin resolver para el mismo umbral/dispositivo/canal.
      */
     private function enCooldown(int $umbralId, int $dispositivoId, string $canal): bool
     {
@@ -239,7 +234,6 @@ class EvaluadorUmbrales
             ->where('dispositivo_id', $dispositivoId)
             ->where('canal', $canal)
             ->where('resuelta', false)
-            ->where('created_at', '>=', Carbon::now()->subMinutes(self::COOLDOWN_MINUTOS))
             ->exists();
     }
 

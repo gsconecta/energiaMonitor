@@ -19,8 +19,8 @@ import {
     Title,
     Tooltip,
 } from 'chart.js';
-import { ArrowDown, ArrowUp, Download, Settings2, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowDown, ArrowUp, Download, Maximize, Minimize, Settings2, Zap } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Bar, Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
@@ -86,6 +86,59 @@ interface Props {
         fecha_hasta: string;
         dispositivo_id: number | null;
     };
+}
+
+interface FullscreenChartCardProps {
+    title: string;
+    defaultHeightClassName: string;
+    children: ReactNode;
+}
+
+function FullscreenChartCard({ title, defaultHeightClassName, children }: FullscreenChartCardProps) {
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(document.fullscreenElement === chartContainerRef.current);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (document.fullscreenElement === chartContainerRef.current) {
+            document.exitFullscreen();
+            return;
+        }
+
+        chartContainerRef.current?.requestFullscreen().catch((err: Error) => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+    };
+
+    return (
+        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900' : ''}`}>
+            <Card className={`flex flex-col ${isFullscreen ? 'h-[calc(100vh-120px)]' : defaultHeightClassName}`}>
+                <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+                    <CardTitle>{title}</CardTitle>
+                    <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        title={isFullscreen ? 'Salir de pantalla completa' : 'Ver en pantalla completa'}
+                    >
+                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                    </button>
+                </CardHeader>
+                <CardContent className="relative flex-1 p-4">
+                    <div className="absolute inset-4">{children}</div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
 
 export default function InformesIndex({ dispositivo, dispositivos, datos, metricas, organizacion_activa, filtros }: Props) {
@@ -547,16 +600,11 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:gap-6 2xl:grid-cols-2">
-                    <Card className="flex h-[500px] flex-col">
-                        <CardHeader>
-                            <CardTitle>Evolución Energética</CardTitle>
-                        </CardHeader>
-                        <CardContent className="relative flex-1 p-4">
-                            <div className="absolute inset-4">
-                                <Bar options={chartOptions} data={chartData} />
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <FullscreenChartCard title="Evolución Energética" defaultHeightClassName="h-[500px]">
+                        <div className="h-full">
+                            <Bar options={chartOptions} data={chartData} />
+                        </div>
+                    </FullscreenChartCard>
 
                     <Card className="flex h-[500px] flex-col">
                         <CardHeader className="pb-0">
@@ -581,16 +629,11 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
 
                 <div className={`mt-4 grid grid-cols-1 gap-4 lg:gap-6 ${esPerfilIndustrial ? '2xl:grid-cols-2' : ''}`}>
                     {esPerfilIndustrial && (
-                        <Card className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle>Potencia en kW</CardTitle>
-                            </CardHeader>
-                            <CardContent className="relative h-[420px] flex-1 p-4">
-                                <div className="absolute inset-4">
-                                    <Line data={potenciaChartData} options={potenciaChartOptions} />
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <FullscreenChartCard title="Potencia en kW" defaultHeightClassName="h-[420px]">
+                            <div className="h-full">
+                                <Line data={potenciaChartData} options={potenciaChartOptions} />
+                            </div>
+                        </FullscreenChartCard>
                     )}
 
                     <Card className="flex flex-col">
