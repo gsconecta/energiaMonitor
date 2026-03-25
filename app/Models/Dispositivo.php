@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Dispositivo extends Model
@@ -50,6 +51,11 @@ class Dispositivo extends Model
     public function lecturas()
     {
         return $this->hasMany(Lectura::class);
+    }
+
+    public function ultimaLecturaRelacion(): HasOne
+    {
+        return $this->hasOne(Lectura::class)->latestOfMany('fecha_lectura');
     }
 
     public function alertas()

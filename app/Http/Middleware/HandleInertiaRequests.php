@@ -46,6 +46,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => !isset($_COOKIE['sidebar_state']) || $_COOKIE['sidebar_state'] === 'true',
+            'organizacion_actual' => null,
+            'sitio_actual' => null,
         ];
 
         // Compartir contexto actual si el usuario está autenticado

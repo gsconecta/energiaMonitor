@@ -87,9 +87,14 @@ interface MetricasEnergia {
 interface Props {
     dispositivo: Dispositivo;
     metricas_energia?: MetricasEnergia | null;
+    panel_global_mode: boolean;
 }
 
-export default function DispositivosShow({ dispositivo, metricas_energia }: Props) {
+export default function DispositivosShow({
+    dispositivo,
+    metricas_energia,
+    panel_global_mode,
+}: Props) {
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
     const [nombresCanales, setNombresCanales] = useState({
@@ -139,6 +144,13 @@ export default function DispositivosShow({ dispositivo, metricas_energia }: Prop
     };
 
     const handleVerDashboard = () => {
+        if (panel_global_mode) {
+            router.post(
+                `/admin/impersonate/${dispositivo.sitio.organizacion.id}/${dispositivo.sitio.id}`
+            );
+            return;
+        }
+
         router.get(dashboard().url, { dispositivo_id: dispositivo.id });
     };
 
@@ -203,7 +215,9 @@ export default function DispositivosShow({ dispositivo, metricas_energia }: Prop
                             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                         >
                             <BarChart3 className="h-4 w-4" />
-                            Ver Dashboard
+                            {panel_global_mode
+                                ? 'Abrir Dashboard del sitio'
+                                : 'Ver Dashboard'}
                         </button>
                         <button
                             onClick={handleSincronizar}
@@ -391,12 +405,14 @@ export default function DispositivosShow({ dispositivo, metricas_energia }: Prop
                                     <span className="font-medium">Código:</span>
                                     <span>{dispositivo.sitio.codigo}</span>
                                 </div>
-                                <button
-                                    onClick={() => router.visit(`/sitios/${dispositivo.sitio.id}`)}
-                                    className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                >
-                                    Ver detalles del sitio →
-                                </button>
+                                {!panel_global_mode && (
+                                    <button
+                                        onClick={() => router.visit(`/sitios/${dispositivo.sitio.id}`)}
+                                        className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                    >
+                                        Ver detalles del sitio →
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -885,4 +901,3 @@ export default function DispositivosShow({ dispositivo, metricas_energia }: Prop
         </AppLayout>
     );
 }
-

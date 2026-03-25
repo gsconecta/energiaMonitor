@@ -11,40 +11,42 @@ use Inertia\Inertia;
 class DispositivosController extends Controller
 {
     /**
-     * Mostrar listado de dispositivos
+     * Mostrar listado de dispositivos.
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
         $sitioActualId = $request->session()->get('sitio_actual_id');
         $organizacionActualId = $request->session()->get('organizacion_actual_id');
-        
-        // Obtener IDs de organizaciones a las que el usuario pertenece
-        $organizacionesIds = $user->organizacionesActivas()->pluck('organizaciones.id');
-        
-        // Construir la consulta de dispositivos
-        $query = Dispositivo::with('sitio')
-            ->withCount('lecturas')
-            ->whereHas('sitio', function ($q) use ($organizacionesIds, $organizacionActualId, $sitioActualId) {
-                // Filtrar por organizaciones del usuario
+        $panelGlobalMode = $this->isGlobalPanelMode($request);
+        $organizacionesIds = $panelGlobalMode
+            ? collect()
+            : $user->organizacionesActivas()->pluck('organizaciones.id');
+
+        $query = Dispositivo::with([
+            'sitio.organizacion',
+            'ultimaLecturaRelacion',
+        ])->withCount('lecturas');
+
+        if (! $panelGlobalMode) {
+            $query->whereHas('sitio', function ($q) use ($organizacionesIds, $organizacionActualId, $sitioActualId) {
                 $q->whereIn('organizacion_id', $organizacionesIds);
-                
-                // Si hay una organización seleccionada, filtrar por esa organización
+
                 if ($organizacionActualId && $organizacionesIds->contains($organizacionActualId)) {
                     $q->where('organizacion_id', $organizacionActualId);
                 }
-                
-                // Si hay un sitio seleccionado, filtrar por ese sitio
+
                 if ($sitioActualId) {
                     $q->where('id', $sitioActualId);
                 }
             });
-        
+        }
+
         $dispositivos = $query->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($dispositivo) {
-                $ultimaLectura = $dispositivo->ultimaLectura();
-                
+                $ultimaLectura = $dispositivo->ultimaLecturaRelacion;
+
                 return [
                     'id' => $dispositivo->id,
                     'device_id' => $dispositivo->device_id,
@@ -66,67 +68,66 @@ class DispositivosController extends Controller
                     'sitio' => [
                         'id' => $dispositivo->sitio->id,
                         'nombre' => $dispositivo->sitio->nombre,
+                        'organizacion' => [
+                            'id' => $dispositivo->sitio->organizacion?->id,
+                            'nombre' => $dispositivo->sitio->organizacion?->nombre ?? 'N/A',
+                        ],
                     ],
                     'lecturas_count' => $dispositivo->lecturas_count,
-                    'esta_online' => $dispositivo->estaOnline(),
+                    'esta_online' => $ultimaLectura
+                        ? $ultimaLectura->fecha_lectura->diffInMinutes(now()) < Dispositivo::ONLINE_THRESHOLD_MINUTES
+                        : false,
                     'ultima_lectura' => $ultimaLectura ? $ultimaLectura->fecha_lectura->diffForHumans() : null,
                     'ultima_lectura_fecha' => $ultimaLectura ? $ultimaLectura->fecha_lectura->toISOString() : null,
-                    'potencia_actual' => $ultimaLectura ? round($ultimaLectura->potencia_total_w / 1000, 2) : 0,
+                    'potencia_actual' => $ultimaLectura ? round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2) : 0,
                 ];
             });
 
-        // Obtener sitios según el contexto - solo sitios de organizaciones a las que el usuario pertenece
-        $user = auth()->user();
-        $organizacionActualId = $request->session()->get('organizacion_actual_id');
-        
-        // Obtener IDs de organizaciones a las que el usuario pertenece
-        $organizacionesIds = $user->organizacionesActivas()->pluck('organizaciones.id');
-        
-        $querySitios = Sitio::activos()
-            ->whereIn('organizacion_id', $organizacionesIds);
-        
-        // Si hay una organización seleccionada, filtrar por esa organización
-        if ($organizacionActualId && $organizacionesIds->contains($organizacionActualId)) {
-            $querySitios->where('organizacion_id', $organizacionActualId);
+        $querySitios = Sitio::activos()->with('organizacion:id,nombre');
+
+        if (! $panelGlobalMode) {
+            $querySitios->whereIn('organizacion_id', $organizacionesIds);
+
+            if ($organizacionActualId && $organizacionesIds->contains($organizacionActualId)) {
+                $querySitios->where('organizacion_id', $organizacionActualId);
+            }
         }
-        
-        $sitios = $querySitios->get()->map(fn($sitio) => [
-            'id' => $sitio->id,
-            'nombre' => $sitio->nombre,
-        ]);
+
+        $sitios = $querySitios->orderBy('organizacion_id')
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn ($sitio) => [
+                'id' => $sitio->id,
+                'nombre' => $sitio->nombre,
+                'organizacion' => [
+                    'id' => $sitio->organizacion?->id,
+                    'nombre' => $sitio->organizacion?->nombre ?? 'N/A',
+                ],
+            ]);
 
         return Inertia::render('Dispositivos/Index', [
             'dispositivos' => $dispositivos,
             'sitios' => $sitios,
+            'panel_global_mode' => $panelGlobalMode,
         ]);
     }
 
     /**
-     * Mostrar detalles de un dispositivo
+     * Mostrar detalles de un dispositivo.
      */
-    public function show(Dispositivo $dispositivo)
+    public function show(Request $request, Dispositivo $dispositivo)
     {
-        $user = auth()->user();
-        
-        // Cargar relaciones necesarias
         $dispositivo->load('sitio.organizacion');
-        
-        // Verificar que el usuario tiene acceso al sitio del dispositivo
-        $organizacionesIds = $user->organizacionesActivas()->pluck('organizaciones.id');
-        
-        if (!$organizacionesIds->contains($dispositivo->sitio->organizacion_id)) {
-            abort(403, 'No tienes acceso a este dispositivo');
-        }
+        $this->ensureCanAccessDispositivo($request, $dispositivo);
 
         $ultimaLectura = $dispositivo->ultimaLectura();
         $lecturasCount = $dispositivo->lecturas()->count();
-        
-        // Calcular métricas de energía si hay lecturas
+
         $metricasEnergia = null;
         if ($ultimaLectura) {
             $metricasEnergia = $dispositivo->calcularMetricasEnergia(collect([$ultimaLectura]));
         }
-        
+
         return Inertia::render('Dispositivos/Show', [
             'dispositivo' => [
                 'id' => $dispositivo->id,
@@ -162,16 +163,17 @@ class DispositivosController extends Controller
                 'ultima_lectura' => $ultimaLectura ? [
                     'fecha' => $ultimaLectura->fecha_lectura->toISOString(),
                     'fecha_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
-                    'potencia_total_kw' => round($ultimaLectura->potencia_total_w / 1000, 2),
+                    'potencia_total_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
                     'energia_total_kwh' => round($ultimaLectura->energia_total_kwh ?? 0, 2),
                 ] : null,
             ],
             'metricas_energia' => $metricasEnergia,
+            'panel_global_mode' => $this->isGlobalPanelMode($request),
         ]);
     }
 
     /**
-     * Mostrar formulario de creación (redirige a index ya que el formulario está en un modal)
+     * Mostrar formulario de creacion (redirige a index porque el formulario esta en un modal).
      */
     public function create()
     {
@@ -179,7 +181,7 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Mostrar formulario de edición (redirige a index ya que el formulario está en un modal)
+     * Mostrar formulario de edicion (redirige a index porque el formulario esta en un modal).
      */
     public function edit(Dispositivo $dispositivo)
     {
@@ -187,7 +189,7 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Almacenar nuevo dispositivo
+     * Almacenar nuevo dispositivo.
      */
     public function store(Request $request)
     {
@@ -215,41 +217,35 @@ class DispositivosController extends Controller
             'activo' => 'boolean',
         ]);
 
-        // Verificar si existe un dispositivo (incluyendo eliminados) con ese device_id
-        // La restricción de unicidad en la BD no considera soft deletes, así que debemos manejarlo manualmente
+        $sitio = Sitio::findOrFail($validated['sitio_id']);
+        $this->ensureCanAccessSitio($request, $sitio);
+
         $dispositivoExistente = Dispositivo::withTrashed()
             ->where('device_id', $validated['device_id'])
             ->first();
-        
+
         if ($dispositivoExistente) {
-            if (!$dispositivoExistente->trashed()) {
-                // El dispositivo existe y está activo
+            if (! $dispositivoExistente->trashed()) {
                 return back()->withErrors([
-                    'device_id' => 'Este dispositivo ya está siendo usado por otra organización o sitio.',
+                    'device_id' => 'Este dispositivo ya esta siendo usado por otra organizacion o sitio.',
                 ])->withInput();
-            } else {
-                // El dispositivo existe pero está eliminado (soft delete)
-                // Como la restricción de unicidad en la BD no permite insertar, 
-                // debemos hacer un hard delete primero y luego crear el nuevo
-                $dispositivoExistente->forceDelete();
             }
+
+            $dispositivoExistente->forceDelete();
         }
 
         try {
-            $dispositivo = Dispositivo::create($validated);
-            
-            // Intentar detectar automáticamente el número de fases si no se proporcionó
-            // Esto se actualizará cuando llegue la primera lectura
+            Dispositivo::create($validated);
         } catch (\Illuminate\Database\QueryException $e) {
-            // Si aún así falla (por ejemplo, condición de carrera), verificar nuevamente
-            if ($e->getCode() == 23000) { // Integrity constraint violation
+            if ($e->getCode() == 23000) {
                 $dispositivoExistente = Dispositivo::where('device_id', $validated['device_id'])->first();
                 if ($dispositivoExistente) {
                     return back()->withErrors([
-                        'device_id' => 'Este dispositivo ya está siendo usado por otra organización o sitio.',
+                        'device_id' => 'Este dispositivo ya esta siendo usado por otra organizacion o sitio.',
                     ])->withInput();
                 }
             }
+
             throw $e;
         }
 
@@ -258,10 +254,12 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Actualizar dispositivo
+     * Actualizar dispositivo.
      */
     public function update(Request $request, Dispositivo $dispositivo)
     {
+        $this->ensureCanAccessDispositivo($request, $dispositivo);
+
         $validated = $request->validate([
             'sitio_id' => 'required|exists:sitios,id',
             'device_id' => [
@@ -288,10 +286,12 @@ class DispositivosController extends Controller
             'activo' => 'boolean',
         ]);
 
+        $sitio = Sitio::findOrFail($validated['sitio_id']);
+        $this->ensureCanAccessSitio($request, $sitio);
+
         $dispositivo->update($validated);
-        
-        // Si no se especificó num_fases y hay lecturas, intentar detectarlo automáticamente
-        if (!isset($validated['num_fases']) || $validated['num_fases'] === null) {
+
+        if (! isset($validated['num_fases']) || $validated['num_fases'] === null) {
             $dispositivo->actualizarNumFasesAuto();
         }
 
@@ -300,10 +300,12 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Eliminar dispositivo (soft delete)
+     * Eliminar dispositivo (soft delete).
      */
-    public function destroy(Dispositivo $dispositivo)
+    public function destroy(Request $request, Dispositivo $dispositivo)
     {
+        $this->ensureCanAccessDispositivo($request, $dispositivo);
+
         $dispositivo->delete();
 
         return redirect()->route('dispositivos.index')
@@ -311,12 +313,14 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Activar/Desactivar dispositivo
+     * Activar/desactivar dispositivo.
      */
-    public function toggleActivo(Dispositivo $dispositivo)
+    public function toggleActivo(Request $request, Dispositivo $dispositivo)
     {
+        $this->ensureCanAccessDispositivo($request, $dispositivo);
+
         $dispositivo->update([
-            'activo' => !$dispositivo->activo
+            'activo' => ! $dispositivo->activo,
         ]);
 
         return redirect()->route('dispositivos.index')
@@ -324,24 +328,53 @@ class DispositivosController extends Controller
     }
 
     /**
-     * Sincronizar manualmente un dispositivo
+     * Sincronizar manualmente un dispositivo.
      */
-    public function sincronizar(Dispositivo $dispositivo)
+    public function sincronizar(Request $request, Dispositivo $dispositivo)
     {
+        $this->ensureCanAccessDispositivo($request, $dispositivo);
+
         try {
-            // Ejecutar el comando de sincronización para este dispositivo específico
             \Artisan::call('shelly:obtener-lecturas', [
                 '--dispositivo' => $dispositivo->id,
             ]);
 
-            $output = \Artisan::output();
-            
             return redirect()->route('dispositivos.index')
                 ->with('success', 'Dispositivo sincronizado correctamente');
         } catch (\Exception $e) {
             return redirect()->route('dispositivos.index')
-                ->with('error', 'Error al sincronizar el dispositivo: ' . $e->getMessage());
+                ->with('error', 'Error al sincronizar el dispositivo: '.$e->getMessage());
         }
     }
 
+    private function isGlobalPanelMode(Request $request): bool
+    {
+        $user = $request->user();
+
+        return $user !== null
+            && $user->esAdminOTecnico()
+            && ! $request->session()->has('organizacion_actual_id')
+            && ! $request->session()->has('sitio_actual_id');
+    }
+
+    private function ensureCanAccessSitio(Request $request, Sitio $sitio): void
+    {
+        if ($this->isGlobalPanelMode($request)) {
+            return;
+        }
+
+        $allowed = $request->user()
+            ->organizacionesActivas()
+            ->where('organizaciones.id', $sitio->organizacion_id)
+            ->exists();
+
+        abort_unless($allowed, 403, 'No tienes acceso a este sitio.');
+    }
+
+    private function ensureCanAccessDispositivo(Request $request, Dispositivo $dispositivo): void
+    {
+        $dispositivo->loadMissing('sitio');
+
+        $this->ensureCanAccessSitio($request, $dispositivo->sitio);
+    }
 }

@@ -272,7 +272,7 @@ export default function SeleccionarContexto() {
 
     const entrarPanelControl = () => {
         setEntrandoPanel(true);
-        router.visit('/admin/control-panel', {
+        router.post('/seleccionar-contexto/entrar-panel', {}, {
             onFinish: () => setEntrandoPanel(false),
         });
     };

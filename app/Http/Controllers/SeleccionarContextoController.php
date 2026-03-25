@@ -92,9 +92,28 @@ class SeleccionarContextoController extends Controller
      */
     public function destroy(Request $request)
     {
-        $request->session()->forget(['organizacion_actual_id', 'sitio_actual_id']);
+        $this->clearCurrentContext($request);
 
         return redirect()->route('seleccionar-contexto')
             ->with('success', 'Contexto limpiado');
+    }
+
+    /**
+     * Limpiar el contexto actual y entrar al panel global.
+     */
+    public function enterPanel(Request $request)
+    {
+        $this->clearCurrentContext($request);
+
+        return redirect()->route('admin.control-panel');
+    }
+
+    private function clearCurrentContext(Request $request): void
+    {
+        $request->session()->forget([
+            'organizacion_actual_id',
+            'sitio_actual_id',
+            'is_impersonating',
+        ]);
     }
 }

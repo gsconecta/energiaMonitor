@@ -19,6 +19,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('seleccionar-contexto');
     Route::post('/seleccionar-contexto', [SeleccionarContextoController::class, 'store'])
         ->name('seleccionar-contexto.store');
+    Route::post('/seleccionar-contexto/entrar-panel', [SeleccionarContextoController::class, 'enterPanel'])
+        ->name('seleccionar-contexto.enter-panel');
     Route::delete('/seleccionar-contexto', [SeleccionarContextoController::class, 'destroy'])
         ->name('limpiar-contexto');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

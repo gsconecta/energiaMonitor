@@ -25,13 +25,17 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Sitio {
     id: number;
     nombre: string;
+    organizacion: {
+        id: number | null;
+        nombre: string;
+    };
 }
 
 interface Dispositivo {
     id: number;
     device_id: string;
     nombre: string;
-    modelo: string;
+    modelo: string | null;
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
@@ -56,9 +60,14 @@ interface Dispositivo {
 interface Props {
     dispositivos: Dispositivo[];
     sitios: Sitio[];
+    panel_global_mode: boolean;
 }
 
-export default function DispositivosIndex({ dispositivos, sitios }: Props) {
+export default function DispositivosIndex({
+    dispositivos,
+    sitios,
+    panel_global_mode,
+}: Props) {
     const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [mostrarModal, setMostrarModal] = useState(false);
     const [dispositivoEditando, setDispositivoEditando] = useState<Dispositivo | null>(null);
@@ -114,7 +123,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
             sitio_id: dispositivo.sitio.id.toString(),
             device_id: dispositivo.device_id,
             nombre: dispositivo.nombre,
-            modelo: dispositivo.modelo,
+            modelo: dispositivo.modelo || '',
             ip_local: dispositivo.ip_local || '',
             firmware: dispositivo.firmware || '',
             activo: dispositivo.activo,
@@ -221,6 +230,11 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
         }
     };
 
+    const formatoSitio = (sitio: Sitio) =>
+        panel_global_mode
+            ? `${sitio.organizacion.nombre} -> ${sitio.nombre}`
+            : sitio.nombre;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dispositivos" />
@@ -305,7 +319,12 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                             </div>
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                            {dispositivo.sitio.nombre}
+                                            <div>{dispositivo.sitio.nombre}</div>
+                                            {panel_global_mode && (
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {dispositivo.sitio.organizacion.nombre}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="whitespace-nowrap px-6 py-4">
                                             <div className="text-sm text-gray-900 dark:text-gray-100">
@@ -415,7 +434,7 @@ export default function DispositivosIndex({ dispositivos, sitios }: Props) {
                                     >
                                         {sitios.map((sitio) => (
                                             <option key={sitio.id} value={sitio.id}>
-                                                {sitio.nombre}
+                                                {formatoSitio(sitio)}
                                             </option>
                                         ))}
                                     </select>
