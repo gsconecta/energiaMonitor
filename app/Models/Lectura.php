@@ -95,7 +95,7 @@ class Lectura extends Model
     {
         return $query->whereBetween('fecha_lectura', [
             now()->startOfWeek(),
-            now()->endOfWeek()
+            now()->endOfWeek(),
         ]);
     }
 
@@ -126,7 +126,7 @@ class Lectura extends Model
         $voltajes = [
             $this->voltaje_canal_1,
             $this->voltaje_canal_2,
-            $this->voltaje_canal_3
+            $this->voltaje_canal_3,
         ];
 
         return round(array_sum($voltajes) / count($voltajes), 2);
@@ -134,89 +134,68 @@ class Lectura extends Model
 
     public function obtenerPotenciaPorTipoCanal(string $tipo): ?float
     {
-        $dispositivo = $this->dispositivo;
+        $potencias = $this->obtenerValoresPorTipoCanal($tipo, fn (int $canal) => match ($canal) {
+            1 => $this->potencia_canal_1_w,
+            2 => $this->potencia_canal_2_w,
+            3 => $this->potencia_canal_3_w,
+            default => null,
+        });
 
-        if (!$dispositivo) {
+        if ($potencias === []) {
             return null;
         }
 
-        // Buscar qué canal tiene el tipo especificado
-        for ($i = 1; $i <= 3; $i++) {
-            if ($dispositivo->getTipoCanal($i) === $tipo) {
-                return match ($i) {
-                    1 => $this->potencia_canal_1_w,
-                    2 => $this->potencia_canal_2_w,
-                    3 => $this->potencia_canal_3_w,
-                    default => null,
-                };
-            }
-        }
-
-        return null;
+        return array_sum($potencias);
     }
 
     /**
      * Obtener voltaje de un canal según su tipo
-     * 
-     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     *
+     * @param  string  $tipo  'fotovoltaica' o 'red_electrica'
      * @return float|null Voltaje o null si no se encuentra el canal
      */
     public function obtenerVoltajePorTipoCanal(string $tipo): ?float
     {
-        $dispositivo = $this->dispositivo;
+        $voltajes = $this->obtenerValoresPorTipoCanal($tipo, fn (int $canal) => match ($canal) {
+            1 => $this->voltaje_canal_1,
+            2 => $this->voltaje_canal_2,
+            3 => $this->voltaje_canal_3,
+            default => null,
+        });
 
-        if (!$dispositivo) {
+        if ($voltajes === []) {
             return null;
         }
 
-        // Buscar qué canal tiene el tipo especificado
-        for ($i = 1; $i <= 3; $i++) {
-            if ($dispositivo->getTipoCanal($i) === $tipo) {
-                return match ($i) {
-                    1 => $this->voltaje_canal_1,
-                    2 => $this->voltaje_canal_2,
-                    3 => $this->voltaje_canal_3,
-                    default => null,
-                };
-            }
-        }
-
-        return null;
+        return array_sum($voltajes) / count($voltajes);
     }
 
     /**
      * Obtener energía de un canal según su tipo
-     * 
-     * @param string $tipo 'fotovoltaica' o 'red_electrica'
+     *
+     * @param  string  $tipo  'fotovoltaica' o 'red_electrica'
      * @return float|null Energía en kWh o null si no se encuentra el canal
      */
     public function obtenerEnergiaPorTipoCanal(string $tipo): ?float
     {
-        $dispositivo = $this->dispositivo;
+        $energias = $this->obtenerValoresPorTipoCanal($tipo, fn (int $canal) => match ($canal) {
+            1 => $this->energia_canal_1_kwh,
+            2 => $this->energia_canal_2_kwh,
+            3 => $this->energia_canal_3_kwh,
+            default => null,
+        });
 
-        if (!$dispositivo) {
+        if ($energias === []) {
             return null;
         }
 
-        // Buscar qué canal tiene el tipo especificado
-        for ($i = 1; $i <= 3; $i++) {
-            if ($dispositivo->getTipoCanal($i) === $tipo) {
-                return match ($i) {
-                    1 => $this->energia_canal_1_kwh,
-                    2 => $this->energia_canal_2_kwh,
-                    3 => $this->energia_canal_3_kwh,
-                    default => null,
-                };
-            }
-        }
-
-        return null;
+        return array_sum($energias);
     }
 
     /**
      * Calcular consumo de la casa basándose en la ecuación de balance energético
      * Ecuación: FV - C + RED - Exp = 0
-     * 
+     *
      * Donde:
      * - FV = Fase monitorizada de Fotovoltaica (SIEMPRE se invierte el signo)
      *   * Si el valor original es negativo → está inyectando a la casa → FV positivo
@@ -225,9 +204,9 @@ class Lectura extends Model
      * - RED = Fase monitorizada Red Eléctrica
      *   * Si es positivo = consumo de red (RED)
      *   * Si es negativo = exportación (Exp)
-     * 
+     *
      * Fórmula resultante: C = FV_corregido + RED
-     * 
+     *
      * @return float|null Consumo en W, o null si no se pueden identificar los canales
      */
     public function calcularConsumoCasa(): ?float
@@ -254,7 +233,7 @@ class Lectura extends Model
     /**
      * Calcular exportación neta basada en la ecuación de balance energético
      * Si RED es negativo, hay exportación. Si RED es positivo, no hay exportación.
-     * 
+     *
      * @return float|null Exportación neta en W, o null si no se pueden calcular
      */
     public function calcularExportacionNeta(): ?float
@@ -273,7 +252,7 @@ class Lectura extends Model
     /**
      * Obtener potencia fotovoltaica corregida (SIEMPRE invierte el signo)
      * Según la ecuación de balance: el canal fotovoltaica siempre se invierte
-     * 
+     *
      * @return float|null Potencia en W (signo invertido respecto al valor original)
      */
     public function obtenerPotenciaFotovoltaica(): ?float
@@ -297,7 +276,7 @@ class Lectura extends Model
 
     /**
      * Obtener voltaje de red eléctrica
-     * 
+     *
      * @return float|null Voltaje
      */
     public function obtenerVoltajeRedElectrica(): ?float
@@ -307,43 +286,46 @@ class Lectura extends Model
 
     /**
      * Obtener consumo de red eléctrica (solo valores positivos de RED)
-     * 
+     *
      * @return float Consumo de red en W (0 si es negativo o null)
      */
     public function obtenerConsumoRed(): float
     {
         $potencia = $this->obtenerPotenciaRedElectrica();
+
         return $potencia !== null && $potencia > 0 ? $potencia : 0;
     }
 
     /**
      * Obtener generación fotovoltaica (solo valores positivos después de corrección)
      * Esto representa cuando FV está inyectando energía a la casa
-     * 
+     *
      * @return float Generación en W (0 si no está generando)
      */
     public function obtenerGeneracionFotovoltaica(): float
     {
         $potencia = $this->obtenerPotenciaFotovoltaica();
+
         return $potencia !== null && $potencia > 0 ? $potencia : 0;
     }
 
     /**
      * Obtener consumo fotovoltaico (solo valores negativos después de corrección)
      * Esto representa cuando el inversor está consumiendo energía de la casa/red
-     * 
+     *
      * @return float Consumo en W (0 si no está consumiendo)
      */
     public function obtenerConsumoFotovoltaico(): float
     {
         $potencia = $this->obtenerPotenciaFotovoltaica();
+
         return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
     }
 
     /**
      * Obtener carga de baterías (cuando FV original es negativo y muy grande)
      * Esto ocurre cuando el inversor está cargando baterías en lugar de generar
-     * 
+     *
      * @return float Carga en W (0 si no está cargando)
      */
     public function obtenerCargaBaterias(): float
@@ -351,37 +333,65 @@ class Lectura extends Model
         // La carga de baterías se detectaría por otros medios (si hay datos del inversor)
         // Por ahora, si FV corregido es negativo, podría indicar consumo del inversor
         $potencia = $this->obtenerPotenciaFotovoltaica();
+
         return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
     }
 
     /**
      * Obtener exportación a red (solo cuando RED es negativo)
-     * 
+     *
      * @return float Exportación en W (0 si es positivo o null)
      */
     public function obtenerExportacionRed(): float
     {
         $potencia = $this->obtenerPotenciaRedElectrica();
+
         return $potencia !== null && $potencia < 0 ? abs($potencia) : 0;
     }
 
     /**
      * Obtener importación de red (solo cuando RED es positivo)
-     * 
+     *
      * @return float Importación en W (0 si es negativo o null)
      */
     public function obtenerImportacionRed(): float
     {
         $potencia = $this->obtenerPotenciaRedElectrica();
+
         return $potencia !== null && $potencia > 0 ? $potencia : 0;
+    }
+
+    private function obtenerValoresPorTipoCanal(string $tipo, callable $resolver): array
+    {
+        $dispositivo = $this->dispositivo;
+
+        if (! $dispositivo) {
+            return [];
+        }
+
+        $valores = [];
+
+        for ($i = 1; $i <= 3; $i++) {
+            if ($dispositivo->getTipoCanal($i) !== $tipo) {
+                continue;
+            }
+
+            $valor = $resolver($i);
+
+            if ($valor !== null) {
+                $valores[] = (float) $valor;
+            }
+        }
+
+        return $valores;
     }
 
     /**
      * Calcular Potencia Reactiva (Q) para un canal específico (en VAR)
      * Q = V * I * sin(phi)
      * donde sin(phi) = sqrt(1 - pf^2)
-     * 
-     * @param int $canal Número de canal (1, 2, 3)
+     *
+     * @param  int  $canal  Número de canal (1, 2, 3)
      * @return float|null Potencia reactiva en VAR o null si faltan datos
      */
     public function calcularPotenciaReactivaCanal(int $canal): ?float
@@ -422,8 +432,6 @@ class Lectura extends Model
     /**
      * Calcular Potencia Reactiva Total (Q Total) (en VAR)
      * Suma de Q1 + Q2 + Q3
-     * 
-     * @return float
      */
     public function calcularPotenciaReactivaTotal(): float
     {

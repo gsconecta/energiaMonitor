@@ -11,19 +11,10 @@ import {
     type ChartOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Clock, Maximize, Minimize } from 'lucide-react';
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 interface DatosGrafica {
     fecha: string;
@@ -37,63 +28,91 @@ interface Props {
     datos: DatosGrafica[];
     num_fases?: number;
     colores_canales?: (string | null)[];
+    ocultarFiltros?: boolean;
 }
 
 const getRgba = (hex: string | null | undefined, defaultRgba: string) => {
     if (!hex) return defaultRgba;
+
     if (hex.startsWith('#') && hex.length === 7) {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
+
         return `rgba(${r}, ${g}, ${b}, 0.1)`;
     }
+
     return defaultRgba;
 };
 
-export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_canales = [] }: Props) {
+export default function PotenciaReactivaChart({
+    datos,
+    num_fases = 1,
+    colores_canales = [],
+    ocultarFiltros = false,
+}: Props) {
     const [horaDesde, setHoraDesde] = useState<string>('00:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:59');
     const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
+    const chartContainerRef = useRef<HTMLDivElement>(null);
 
-    // Filtrar datos cuando cambian las horas o los datos originales
     useEffect(() => {
         if (!datos || datos.length === 0) {
             setDatosFiltrados([]);
             return;
         }
 
-        const filtrarPorHora = () => {
-            const [horaDesdeH, horaDesdeM] = horaDesde.split(':').map(Number);
-            const [horaHastaH, horaHastaM] = horaHasta.split(':').map(Number);
+        const [horaDesdeH, horaDesdeM] = horaDesde.split(':').map(Number);
+        const [horaHastaH, horaHastaM] = horaHasta.split(':').map(Number);
+        const desdeMinutos = horaDesdeH * 60 + horaDesdeM;
+        const hastaMinutos = horaHastaH * 60 + horaHastaM;
 
-            const desdeMinutos = horaDesdeH * 60 + horaDesdeM;
-            const hastaMinutos = horaHastaH * 60 + horaHastaM;
+        const filtrados = datos.filter((dato) => {
+            const fecha = new Date(dato.fecha);
+            const horaMinutos = fecha.getHours() * 60 + fecha.getMinutes();
 
-            const filtrados = datos.filter((dato) => {
-                const fecha = new Date(dato.fecha);
-                const horaMinutos = fecha.getHours() * 60 + fecha.getMinutes();
+            if (hastaMinutos < desdeMinutos) {
+                return horaMinutos >= desdeMinutos || horaMinutos <= hastaMinutos;
+            }
 
-                if (hastaMinutos < desdeMinutos) {
-                    return horaMinutos >= desdeMinutos || horaMinutos <= hastaMinutos;
-                }
-                return horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos;
-            });
+            return horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos;
+        });
 
-            setDatosFiltrados(filtrados);
+        setDatosFiltrados(filtrados);
+    }, [datos, horaDesde, horaHasta]);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
         };
 
-        filtrarPorHora();
-    }, [datos, horaDesde, horaHasta]);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     const handleLimpiarFiltro = () => {
         if (horaDesdeRef.current && horaHastaRef.current) {
             horaDesdeRef.current.value = '00:00';
             horaHastaRef.current.value = '23:59';
-            setHoraDesde('00:00');
-            setHoraHasta('23:59');
         }
+
+        setHoraDesde('00:00');
+        setHoraHasta('23:59');
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            chartContainerRef.current?.requestFullscreen().catch((err: Error) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+            return;
+        }
+
+        document.exitFullscreen();
     };
 
     if (!datos || datos.length === 0) {
@@ -106,13 +125,12 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
         );
     }
 
-    // Calcular si usamos kVAR o VAR dinámicamente según el dato mayor
     let maxAbsValue = 0;
-    datosFiltrados.forEach(d => {
-        const vals = [d.q1_var ?? 0, d.q2_var ?? 0, d.q3_var ?? 0, d.q_total_var ?? 0];
-        vals.forEach(v => {
-            if (Math.abs(v) > maxAbsValue) {
-                maxAbsValue = Math.abs(v);
+
+    datosFiltrados.forEach((dato) => {
+        [dato.q1_var ?? 0, dato.q2_var ?? 0, dato.q3_var ?? 0].forEach((valor) => {
+            if (Math.abs(valor) > maxAbsValue) {
+                maxAbsValue = Math.abs(valor);
             }
         });
     });
@@ -129,61 +147,58 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
         if (esHoy) {
             return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         }
-        return fecha.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+        return fecha.toLocaleString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     });
 
     const datasets = [];
 
-    if (Number(num_fases) === 3) {
-        datasets.push(
-            {
-                label: 'Q1 (Fase 1)',
-                data: datosFiltrados.map((d) => (d.q1_var ?? 0) / factor),
-                borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
-                backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
-                fill: false,
-                tension: 0.4,
-                borderWidth: 1.5,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-            {
-                label: 'Q2 (Fase 2)',
-                data: datosFiltrados.map((d) => (d.q2_var ?? 0) / factor),
-                borderColor: colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
-                backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
-                fill: false,
-                tension: 0.4,
-                borderWidth: 1.5,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            },
-            {
-                label: 'Q3 (Fase 3)',
-                data: datosFiltrados.map((d) => (d.q3_var ?? 0) / factor),
-                borderColor: colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
-                backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
-                fill: false,
-                tension: 0.4,
-                borderWidth: 1.5,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            }
-        );
+    if (Number(num_fases) >= 1) {
+        datasets.push({
+            label: 'Q1 (Fase 1)',
+            data: datosFiltrados.map((dato) => (dato.q1_var ?? 0) / factor),
+            borderColor: colores_canales[0] || 'rgb(59, 130, 246)',
+            backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
+            fill: false,
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
     }
 
-    datasets.push({
-        label: 'Q Total',
-        data: datosFiltrados.map((d) => (d.q_total_var ?? 0) / factor),
-        borderColor: 'rgba(236, 72, 153, 0.5)', // pink-500 50%
-        backgroundColor: 'rgba(236, 72, 153, 0.1)', // pink-500 50%
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2.5,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        pointHoverBorderWidth: 2,
-    });
+    if (Number(num_fases) >= 2) {
+        datasets.push({
+            label: 'Q2 (Fase 2)',
+            data: datosFiltrados.map((dato) => (dato.q2_var ?? 0) / factor),
+            borderColor: colores_canales[1] || 'rgb(245, 158, 11)',
+            backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
+            fill: false,
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
+    }
+
+    if (Number(num_fases) >= 3) {
+        datasets.push({
+            label: 'Q3 (Fase 3)',
+            data: datosFiltrados.map((dato) => (dato.q3_var ?? 0) / factor),
+            borderColor: colores_canales[2] || 'rgb(168, 85, 247)',
+            backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
+            fill: false,
+            tension: 0.4,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
+    }
 
     const chartData = {
         labels,
@@ -216,11 +231,13 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
                 borderWidth: 1,
                 padding: 12,
                 callbacks: {
-                    label: function (context) {
+                    label: (context) => {
                         const value = context.parsed.y;
+
                         if (value === null || value === undefined) {
                             return `${context.dataset.label}: N/A`;
                         }
+
                         return `${context.dataset.label}: ${value >= 0 ? '+' : ''}${value.toFixed(2)} ${unidadX}`;
                     },
                 },
@@ -244,9 +261,7 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
                 },
                 ticks: {
                     color: 'rgb(107, 114, 128)',
-                    callback: function (value) {
-                        return `${value} ${unidadX}`;
-                    },
+                    callback: (value) => `${value} ${unidadX}`,
                 },
                 title: {
                     display: true,
@@ -263,6 +278,7 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
     };
 
     const isDarkMode = document.documentElement.classList.contains('dark');
+
     if (isDarkMode) {
         options.plugins!.legend!.labels!.color = 'rgb(156, 163, 175)';
         options.scales!.x!.ticks!.color = 'rgb(156, 163, 175)';
@@ -272,29 +288,17 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
         options.scales!.y!.grid!.color = 'rgba(156, 163, 175, 0.1)';
     }
 
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
-
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            chartContainerRef.current?.requestFullscreen().catch((err: Error) => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
-        } else {
-            document.exitFullscreen();
-        }
-    };
+    const chartHeightClass = isFullscreen
+        ? 'h-[calc(100vh-120px)]'
+        : ocultarFiltros
+            ? 'min-h-[320px] flex-1'
+            : 'h-96';
 
     return (
-        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
+        <div
+            ref={chartContainerRef}
+            className={`flex w-full flex-col ${ocultarFiltros ? 'h-full min-h-0' : ''} ${isFullscreen ? 'overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900' : ''}`}
+        >
             {isFullscreen && (
                 <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
                     Potencia Reactiva (Q)
@@ -302,44 +306,49 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
             )}
 
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                    <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
-                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            Desde:
-                        </label>
-                        <input
-                            ref={horaDesdeRef}
-                            type="time"
-                            defaultValue={horaDesde}
-                            className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
-                            onChange={(e) => setHoraDesde(e.target.value)}
-                        />
+                {!ocultarFiltros && (
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Desde:
+                            </label>
+                            <input
+                                ref={horaDesdeRef}
+                                type="time"
+                                defaultValue={horaDesde}
+                                className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
+                                onChange={(e) => setHoraDesde(e.target.value)}
+                            />
+                        </div>
+                        <span className="text-gray-500 dark:text-gray-400">-</span>
+                        <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                Hasta:
+                            </label>
+                            <input
+                                ref={horaHastaRef}
+                                type="time"
+                                defaultValue={horaHasta}
+                                className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
+                                onChange={(e) => setHoraHasta(e.target.value)}
+                            />
+                        </div>
+                        <button
+                            onClick={handleLimpiarFiltro}
+                            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            title="Limpiar filtro horario (mostrar todo el dia)"
+                        >
+                            Limpiar
+                        </button>
                     </div>
-                    <span className="text-gray-500 dark:text-gray-400">-</span>
-                    <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800">
-                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            Hasta:
-                        </label>
-                        <input
-                            ref={horaHastaRef}
-                            type="time"
-                            defaultValue={horaHasta}
-                            className="border-none bg-transparent text-xs text-gray-900 focus:outline-none dark:text-gray-100"
-                            onChange={(e) => setHoraHasta(e.target.value)}
-                        />
-                    </div>
-                    <button
-                        onClick={handleLimpiarFiltro}
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title="Limpiar filtro horario (mostrar todo el día)"
-                    >
-                        Limpiar
-                    </button>
+                )}
+
+                <div className="flex items-center gap-2 sm:self-end">
                     <button
                         onClick={toggleFullscreen}
                         className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                        title={isFullscreen ? 'Salir de pantalla completa' : 'Ver en pantalla completa'}
                     >
                         {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                     </button>
@@ -347,13 +356,17 @@ export default function PotenciaReactivaChart({ datos, num_fases = 1, colores_ca
             </div>
 
             {datosFiltrados.length === 0 ? (
-                <div className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div
+                    className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${chartHeightClass}`}
+                >
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No hay datos en el rango horario seleccionado ({horaDesde} - {horaHasta})
+                        {ocultarFiltros
+                            ? 'No hay datos de potencia reactiva disponibles'
+                            : `No hay datos en el rango horario seleccionado (${horaDesde} - ${horaHasta})`}
                     </p>
                 </div>
             ) : (
-                <div className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div className={`w-full p-4 ${chartHeightClass}`}>
                     <Line data={chartData} options={options} />
                 </div>
             )}

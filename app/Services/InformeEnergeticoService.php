@@ -171,9 +171,15 @@ class InformeEnergeticoService
                 'nombre' => $dispositivo->nombre,
                 'tiene_fotovoltaica' => $dispositivo->tieneFotovoltaica(),
                 'num_fases' => $dispositivo->num_fases,
+                'nombre_canal_1' => $dispositivo->getNombreCanal(1),
+                'nombre_canal_2' => $dispositivo->getNombreCanal(2),
+                'nombre_canal_3' => $dispositivo->getNombreCanal(3),
                 'color_canal_1' => $dispositivo->color_canal_1,
                 'color_canal_2' => $dispositivo->color_canal_2,
                 'color_canal_3' => $dispositivo->color_canal_3,
+                'tipo_canal_1' => $dispositivo->tipo_canal_1,
+                'tipo_canal_2' => $dispositivo->tipo_canal_2,
+                'tipo_canal_3' => $dispositivo->tipo_canal_3,
             ] : null,
             'dispositivos' => $dispositivos->all(),
             'datos' => $datos,
@@ -314,6 +320,9 @@ class InformeEnergeticoService
                 $datosAgrupados[$key]['generacion_kwh'] += $potenciaGeneracion * $factor;
                 $datosAgrupados[$key]['importacion_kwh'] += $potenciaImportacion * $factor;
                 $datosAgrupados[$key]['exportacion_kwh'] += $potenciaExportacion * $factor;
+                $datosAgrupados[$key]['consumo_canal_1_kwh'] += $this->resolveRedChannelConsumptionW($dispositivo, $lecturaActual, 1) * $factor;
+                $datosAgrupados[$key]['consumo_canal_2_kwh'] += $this->resolveRedChannelConsumptionW($dispositivo, $lecturaActual, 2) * $factor;
+                $datosAgrupados[$key]['consumo_canal_3_kwh'] += $this->resolveRedChannelConsumptionW($dispositivo, $lecturaActual, 3) * $factor;
             }
         }
 
@@ -322,6 +331,9 @@ class InformeEnergeticoService
             $dato['generacion_kwh'] = round($dato['generacion_kwh'], 3);
             $dato['importacion_kwh'] = round($dato['importacion_kwh'], 3);
             $dato['exportacion_kwh'] = round($dato['exportacion_kwh'], 3);
+            $dato['consumo_canal_1_kwh'] = round($dato['consumo_canal_1_kwh'], 3);
+            $dato['consumo_canal_2_kwh'] = round($dato['consumo_canal_2_kwh'], 3);
+            $dato['consumo_canal_3_kwh'] = round($dato['consumo_canal_3_kwh'], 3);
             $dato['potencia_promedio_kw'] = $dato['conteo_potencia'] > 0
                 ? round($dato['suma_potencia_kw'] / $dato['conteo_potencia'], 3)
                 : 0;
@@ -386,6 +398,9 @@ class InformeEnergeticoService
             'generacion_kwh' => 0,
             'importacion_kwh' => 0,
             'exportacion_kwh' => 0,
+            'consumo_canal_1_kwh' => 0,
+            'consumo_canal_2_kwh' => 0,
+            'consumo_canal_3_kwh' => 0,
             'suma_potencia_kw' => 0,
             'conteo_potencia' => 0,
             'potencia_promedio_kw' => 0,
@@ -434,6 +449,31 @@ class InformeEnergeticoService
         }
 
         return max($potenciasCanales);
+    }
+
+    private function resolveRedChannelConsumptionW(Dispositivo $dispositivo, Lectura $lectura, int $canal): float
+    {
+        if (! $dispositivo->esCanalRedElectrica($canal)) {
+            return 0.0;
+        }
+
+        $potencia = $this->resolveChannelPowerW($lectura, $canal);
+
+        if ($potencia === null || $potencia <= 0) {
+            return 0.0;
+        }
+
+        return $potencia;
+    }
+
+    private function resolveChannelPowerW(Lectura $lectura, int $canal): ?float
+    {
+        return match ($canal) {
+            1 => $lectura->potencia_canal_1_w !== null ? (float) $lectura->potencia_canal_1_w : null,
+            2 => $lectura->potencia_canal_2_w !== null ? (float) $lectura->potencia_canal_2_w : null,
+            3 => $lectura->potencia_canal_3_w !== null ? (float) $lectura->potencia_canal_3_w : null,
+            default => null,
+        };
     }
 
     private function resolveGroupingDate(Carbon $fecha, string $intervalo): Carbon

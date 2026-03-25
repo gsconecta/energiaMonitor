@@ -41,9 +41,15 @@ interface Dispositivo {
     nombre: string;
     tiene_fotovoltaica?: boolean;
     num_fases?: number;
+    nombre_canal_1?: string;
+    nombre_canal_2?: string;
+    nombre_canal_3?: string;
     color_canal_1?: string;
     color_canal_2?: string;
     color_canal_3?: string;
+    tipo_canal_1?: string | null;
+    tipo_canal_2?: string | null;
+    tipo_canal_3?: string | null;
 }
 
 interface DataPoint {
@@ -52,6 +58,9 @@ interface DataPoint {
     generacion_kwh: number;
     importacion_kwh: number;
     exportacion_kwh: number;
+    consumo_canal_1_kwh?: number;
+    consumo_canal_2_kwh?: number;
+    consumo_canal_3_kwh?: number;
     potencia_promedio_kw?: number;
     potencia_maxima_kw?: number;
     voltaje_red_electrica?: number;
@@ -92,6 +101,15 @@ interface FullscreenChartCardProps {
     title: string;
     defaultHeightClassName: string;
     children: ReactNode;
+}
+
+type ChannelConsumptionKey = 'consumo_canal_1_kwh' | 'consumo_canal_2_kwh' | 'consumo_canal_3_kwh';
+
+interface RedChannelConfig {
+    key: ChannelConsumptionKey;
+    nombre: string;
+    color: string;
+    tipo?: string | null;
 }
 
 function FullscreenChartCard({ title, defaultHeightClassName, children }: FullscreenChartCardProps) {
@@ -272,6 +290,29 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
             : date.toLocaleDateString();
     });
 
+    const canalesRed: RedChannelConfig[] = dispositivo
+        ? [
+            {
+                key: 'consumo_canal_1_kwh',
+                nombre: dispositivo.nombre_canal_1 ?? 'Canal 1',
+                color: dispositivo.color_canal_1 ?? '#3B82F6',
+                tipo: dispositivo.tipo_canal_1,
+            },
+            {
+                key: 'consumo_canal_2_kwh',
+                nombre: dispositivo.nombre_canal_2 ?? 'Canal 2',
+                color: dispositivo.color_canal_2 ?? '#F59E0B',
+                tipo: dispositivo.tipo_canal_2,
+            },
+            {
+                key: 'consumo_canal_3_kwh',
+                nombre: dispositivo.nombre_canal_3 ?? 'Canal 3',
+                color: dispositivo.color_canal_3 ?? '#A855F7',
+                tipo: dispositivo.tipo_canal_3,
+            },
+        ].filter((canal) => canal.tipo === 'red_electrica')
+        : [];
+
     const chartData = {
         labels,
         datasets,
@@ -295,6 +336,46 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
                 title: {
                     display: true,
                     text: 'Energía (kWh)',
+                },
+            },
+        },
+    };
+
+    const consumoPorCanalChartData = {
+        labels,
+        datasets: canalesRed.map((canal) => ({
+            label: `${canal.nombre} (kWh)`,
+            data: datos.map((dato) => dato[canal.key] ?? 0),
+            backgroundColor: canal.color,
+            borderColor: canal.color,
+            borderWidth: 1,
+        })),
+    };
+
+    const consumoPorCanalChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top' as const,
+            },
+            title: {
+                display: true,
+                text: `Consumo por canal (${filtros.intervalo})`,
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context: { dataset: { label?: string }; parsed: { y: number } }) =>
+                        `${context.dataset.label}: ${context.parsed.y.toFixed(3)} kWh`,
+                },
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Consumo (kWh)',
                 },
             },
         },
@@ -606,6 +687,14 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
                         </div>
                     </FullscreenChartCard>
 
+                    {canalesRed.length > 0 && (
+                        <FullscreenChartCard title="Consumo por Canales" defaultHeightClassName="h-[500px]">
+                            <div className="h-full">
+                                <Bar options={consumoPorCanalChartOptions} data={consumoPorCanalChartData} />
+                            </div>
+                        </FullscreenChartCard>
+                    )}
+
                     <Card className="flex h-[500px] flex-col">
                         <CardHeader className="pb-0">
                             <CardTitle>Voltaje Promedio</CardTitle>
@@ -641,15 +730,18 @@ export default function InformesIndex({ dispositivo, dispositivos, datos, metric
                             <CardTitle>Potencia Reactiva Promedio</CardTitle>
                         </CardHeader>
                         <CardContent className="relative flex-1 p-4">
-                            <PotenciaReactivaChart
-                                datos={datos as any}
-                                num_fases={dispositivo?.num_fases || 3}
-                                colores_canales={[
-                                    dispositivo?.color_canal_1 || '#3B82F6',
-                                    dispositivo?.color_canal_2 || '#F59E0B',
-                                    dispositivo?.color_canal_3 || '#A855F7',
-                                ]}
-                            />
+                            <div className="absolute inset-4 top-2">
+                                <PotenciaReactivaChart
+                                    datos={datos as any}
+                                    ocultarFiltros={true}
+                                    num_fases={dispositivo?.num_fases || 3}
+                                    colores_canales={[
+                                        dispositivo?.color_canal_1 || '#3B82F6',
+                                        dispositivo?.color_canal_2 || '#F59E0B',
+                                        dispositivo?.color_canal_3 || '#A855F7',
+                                    ]}
+                                />
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
