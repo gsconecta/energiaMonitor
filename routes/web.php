@@ -72,6 +72,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.usuarios.index');
     Route::put('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'update'])
         ->name('admin.usuarios.update');
+    Route::put('/admin/usuarios/{user}/password', [\App\Http\Controllers\Admin\UserAdminController::class, 'updatePassword'])
+        ->name('admin.usuarios.password.update');
     Route::delete('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'destroy'])
         ->name('admin.usuarios.destroy');
     Route::post('/admin/usuarios/{user}/organizaciones', [\App\Http\Controllers\Admin\UserAdminController::class, 'addOrganizacion'])

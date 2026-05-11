@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Organizacion;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class UserAdminController extends Controller
@@ -56,6 +59,7 @@ class UserAdminController extends Controller
         return Inertia::render('Admin/Usuarios/Index', [
             'usuarios' => $usuarios,
             'organizaciones' => $organizaciones,
+            'can_update_passwords' => auth()->user()->esAdmin(),
             'filtros' => [
                 'busqueda' => $request->busqueda ?? '',
                 'rol_global' => $request->rol_global ?? '',
@@ -78,6 +82,23 @@ class UserAdminController extends Controller
         $user->update($validated);
 
         return back()->with('success', 'Usuario actualizado correctamente.');
+    }
+
+    public function updatePassword(Request $request, User $user): RedirectResponse
+    {
+        if (!auth()->user()->esAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with('success', 'Contraseña actualizada correctamente.');
     }
 
     public function destroy(User $user)
