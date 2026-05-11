@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AemetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -10,23 +11,24 @@ class LocationController extends Controller
 {
     /**
      * Buscar lugares usando Google Places API
-     * 
+     *
      * GET /api/location/search?query=...
      */
     public function search(Request $request)
     {
         $query = $request->get('query');
-        
-        if (!$query || strlen($query) < 3) {
+
+        if (! $query || strlen($query) < 3) {
             return response()->json([]);
         }
 
         $apiKey = config('services.google.places_api_key');
-        
-        if (!$apiKey) {
+
+        if (! $apiKey) {
             Log::warning('Google Places API key no configurada');
+
             return response()->json([
-                'error' => 'Google Places API key no configurada. Por favor, configura GOOGLE_PLACES_API_KEY en tu archivo .env'
+                'error' => 'Google Places API key no configurada. Por favor, configura GOOGLE_PLACES_API_KEY en tu archivo .env',
             ], 500);
         }
 
@@ -34,8 +36,8 @@ class LocationController extends Controller
         if (config('app.debug')) {
             Log::debug('Google Places API - Iniciando búsqueda', [
                 'query' => $query,
-                'api_key_prefix' => substr($apiKey, 0, 10) . '...',
-                'request_url' => $request->fullUrl()
+                'api_key_prefix' => substr($apiKey, 0, 10).'...',
+                'request_url' => $request->fullUrl(),
             ]);
         }
 
@@ -50,15 +52,16 @@ class LocationController extends Controller
                 // Removido 'types' para permitir búsquedas más amplias
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $responseBody = $response->body();
                 Log::error('Error en Google Places API - HTTP Error', [
                     'status' => $response->status(),
                     'body' => $responseBody,
-                    'query' => $query
+                    'query' => $query,
                 ]);
+
                 return response()->json([
-                    'error' => 'Error al buscar lugares. HTTP Status: ' . $response->status()
+                    'error' => 'Error al buscar lugares. HTTP Status: '.$response->status(),
                 ], 500);
             }
 
@@ -69,29 +72,29 @@ class LocationController extends Controller
                 Log::debug('Google Places API - Respuesta recibida', [
                     'status' => $data['status'] ?? 'unknown',
                     'predictions_count' => count($data['predictions'] ?? []),
-                    'query' => $query
+                    'query' => $query,
                 ]);
             }
 
             // Manejar diferentes estados de respuesta de Google Places API
             if ($data['status'] !== 'OK' && $data['status'] !== 'ZERO_RESULTS') {
-                $errorMessage = match($data['status']) {
+                $errorMessage = match ($data['status']) {
                     'REQUEST_DENIED' => 'Acceso denegado. Verifica que la API key tenga los permisos necesarios y que las restricciones de URL incluyan tu dominio.',
                     'INVALID_REQUEST' => 'Solicitud inválida. Verifica los parámetros de la petición.',
                     'OVER_QUERY_LIMIT' => 'Se ha excedido el límite de consultas de la API.',
                     'UNKNOWN_ERROR' => 'Error desconocido en Google Places API.',
-                    default => 'Error en Google Places API: ' . $data['status']
+                    default => 'Error en Google Places API: '.$data['status']
                 };
 
                 Log::error('Google Places API status no OK', [
                     'status' => $data['status'],
                     'error_message' => $data['error_message'] ?? null,
-                    'data' => $data
+                    'data' => $data,
                 ]);
 
                 return response()->json([
                     'error' => $errorMessage,
-                    'status' => $data['status']
+                    'status' => $data['status'],
                 ], 500);
             }
 
@@ -102,9 +105,10 @@ class LocationController extends Controller
                 if (config('app.debug')) {
                     Log::debug('Google Places API - Sin resultados', [
                         'query' => $query,
-                        'status' => $data['status'] ?? 'unknown'
+                        'status' => $data['status'] ?? 'unknown',
                     ]);
                 }
+
                 return response()->json([]);
             }
 
@@ -124,7 +128,7 @@ class LocationController extends Controller
                     if (isset($details['result'])) {
                         $result = $details['result'];
                         $location = $result['geometry']['location'] ?? null;
-                        
+
                         if ($location) {
                             $results[] = [
                                 'place_id' => $prediction['place_id'],
@@ -144,12 +148,32 @@ class LocationController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Error al procesar la búsqueda: ' . $e->getMessage()
+                'error' => 'Error al procesar la búsqueda: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Obtener el codigo de municipio AEMET desde coordenadas.
+     *
+     * GET /api/location/aemet-code?lat=...&lng=...
+     */
+    public function aemetCode(Request $request, AemetService $aemetService)
+    {
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        return response()->json([
+            'codigo_municipio_aemet' => $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
+                (float) $validated['lat'],
+                (float) $validated['lng'],
+            ),
+        ]);
     }
 }

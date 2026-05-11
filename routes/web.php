@@ -52,6 +52,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/api/location/search', [LocationController::class, 'search'])
         ->name('location.search');
+    Route::get('/api/location/aemet-code', [LocationController::class, 'aemetCode'])
+        ->name('location.aemet-code');
 
     Route::get('/admin/control-panel', [ControlPanelController::class, 'index'])
         ->name('admin.control-panel');

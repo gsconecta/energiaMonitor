@@ -1,22 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import { Search, Copy, Check, Navigation } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import L from 'leaflet';
+import { Check, Copy, Navigation, Search } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 
 // Fix para iconos de Leaflet en producción
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (
+    L.Icon.Default.prototype as typeof L.Icon.Default.prototype & {
+        _getIconUrl?: unknown;
+    }
+)._getIconUrl;
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    iconRetinaUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
 interface LocationPickerProps {
     latitud: string;
     longitud: string;
     onLocationChange: (lat: string, lng: string) => void;
+    onAemetCodeResolved?: (codigo: string) => void;
 }
 
 interface PlaceSuggestion {
@@ -27,10 +35,20 @@ interface PlaceSuggestion {
     lng: number;
 }
 
+interface AemetCodeResponse {
+    codigo_municipio_aemet?: string | null;
+}
+
 // Componente para actualizar el centro del mapa cuando cambian las coordenadas
-function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number }) {
+function MapUpdater({
+    center,
+    zoom,
+}: {
+    center: [number, number];
+    zoom?: number;
+}) {
     const map = useMap();
-    
+
     useEffect(() => {
         if (zoom !== undefined) {
             map.setView(center, zoom);
@@ -38,11 +56,16 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom?: number 
             map.setView(center, map.getZoom());
         }
     }, [center, zoom, map]);
-    
+
     return null;
 }
 
-export default function LocationPicker({ latitud, longitud, onLocationChange }: LocationPickerProps) {
+export default function LocationPicker({
+    latitud,
+    longitud,
+    onLocationChange,
+    onAemetCodeResolved,
+}: LocationPickerProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -51,15 +74,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
 
-    // Debug: Log cuando cambian las sugerencias
-    useEffect(() => {
-        console.log('Suggestions actualizadas:', suggestions.length, suggestions);
-    }, [suggestions]);
-
     // Coordenadas actuales como números
     const currentLat = latitud ? parseFloat(latitud) : null;
     const currentLng = longitud ? parseFloat(longitud) : null;
-    
+
     // Inicializar searchQuery si hay coordenadas pero no hay texto de búsqueda
     useEffect(() => {
         if (currentLat && currentLng && !searchQuery) {
@@ -69,9 +87,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
     }, [currentLat, currentLng, searchQuery]);
 
     // Centro del mapa: coordenadas actuales o España por defecto
-    const mapCenter: [number, number] = currentLat && currentLng
-        ? [currentLat, currentLng]
-        : [40.4168, -3.7038]; // Madrid, España
+    const mapCenter: [number, number] =
+        currentLat && currentLng
+            ? [currentLat, currentLng]
+            : [40.4168, -3.7038]; // Madrid, España
 
     // Búsqueda con debounce
     const handleSearch = useCallback(async (query: string) => {
@@ -83,28 +102,32 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
 
         setIsSearching(true);
         setSearchError(null);
-        
+
         try {
-            const response = await fetch(`/api/location/search?query=${encodeURIComponent(query)}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
+            const response = await fetch(
+                `/api/location/search?query=${encodeURIComponent(query)}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
                 },
-            });
+            );
 
             const data = await response.json();
 
             if (!response.ok) {
                 // Si hay un error en la respuesta JSON
-                const errorMessage = data.error || `Error ${response.status}: ${response.statusText}`;
+                const errorMessage =
+                    data.error ||
+                    `Error ${response.status}: ${response.statusText}`;
                 setSearchError(errorMessage);
                 setSuggestions([]);
                 console.error('Error en la búsqueda:', errorMessage);
                 return;
             }
-            
+
             if (Array.isArray(data)) {
-                console.log('Sugerencias recibidas:', data.length, data);
                 setSuggestions(data);
                 setSearchError(null);
             } else if (data.error) {
@@ -117,7 +140,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
                 setSearchError(null);
             }
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error al buscar lugares';
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Error al buscar lugares';
             setSearchError(errorMessage);
             setSuggestions([]);
             console.error('Error al buscar lugares:', error);
@@ -150,18 +176,58 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
             const target = event.target as HTMLElement;
             const inputElement = target.closest('input');
             const suggestionsElement = suggestionsRef.current;
-            
-            if (suggestionsElement && !suggestionsElement.contains(target) && !inputElement) {
+
+            if (
+                suggestionsElement &&
+                !suggestionsElement.contains(target) &&
+                !inputElement
+            ) {
                 setSuggestions([]);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const resolveAemetCode = useCallback(
+        async (lat: number, lng: number) => {
+            if (!onAemetCodeResolved) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/location/aemet-code?lat=${encodeURIComponent(lat.toString())}&lng=${encodeURIComponent(lng.toString())}`,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                const data = (await response.json()) as AemetCodeResponse;
+
+                if (!response.ok) {
+                    console.warn('No se pudo resolver el codigo AEMET:', data);
+                    return;
+                }
+
+                if (data.codigo_municipio_aemet) {
+                    onAemetCodeResolved(String(data.codigo_municipio_aemet));
+                }
+            } catch (error) {
+                console.warn('Error al resolver el codigo AEMET:', error);
+            }
+        },
+        [onAemetCodeResolved],
+    );
 
     const handleSelectSuggestion = (suggestion: PlaceSuggestion) => {
         onLocationChange(suggestion.lat.toString(), suggestion.lng.toString());
+        void resolveAemetCode(suggestion.lat, suggestion.lng);
         setSearchQuery(suggestion.formatted_address);
         setSuggestions([]);
         setSearchError(null);
@@ -185,8 +251,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
             },
             (error) => {
                 console.error('Error en geolocalización:', error);
-                alert('No se pudo obtener tu ubicación. Por favor, selecciona manualmente en el mapa.');
-            }
+                alert(
+                    'No se pudo obtener tu ubicación. Por favor, selecciona manualmente en el mapa.',
+                );
+            },
         );
     };
 
@@ -203,38 +271,44 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
         <div className="space-y-4">
             {/* Campo de búsqueda */}
             <div className="relative z-[9999]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar ciudad, dirección o lugar..."
-                    className="pl-10 relative"
+                    className="relative pl-10"
                 />
                 {isSearching && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="absolute top-1/2 right-3 -translate-y-1/2">
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
                     </div>
                 )}
-                
+
                 {/* Lista de sugerencias */}
                 {(suggestions.length > 0 || searchError) && (
                     <div
                         ref={suggestionsRef}
-                        className="absolute z-[9999] top-full mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 max-h-60 overflow-y-auto"
+                        className="absolute top-full z-[9999] mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
                         style={{ top: '100%' }}
                     >
                         {searchError ? (
                             <div className="px-4 py-3 text-sm text-red-600 dark:text-red-400">
-                                <div className="font-medium">Error en la búsqueda</div>
-                                <div className="text-xs mt-1">{searchError}</div>
+                                <div className="font-medium">
+                                    Error en la búsqueda
+                                </div>
+                                <div className="mt-1 text-xs">
+                                    {searchError}
+                                </div>
                             </div>
                         ) : (
                             suggestions.map((suggestion) => (
                                 <button
                                     key={suggestion.place_id}
                                     type="button"
-                                    onClick={() => handleSelectSuggestion(suggestion)}
+                                    onClick={() =>
+                                        handleSelectSuggestion(suggestion)
+                                    }
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
                                     <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -251,7 +325,7 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
             </div>
 
             {/* Mapa */}
-            <div className="h-[400px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 relative z-0">
+            <div className="relative z-0 h-[400px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
                 <MapContainer
                     center={mapCenter}
                     zoom={currentLat && currentLng ? 13 : 6}
@@ -262,7 +336,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    <MapUpdater center={mapCenter} zoom={currentLat && currentLng ? 13 : 6} />
+                    <MapUpdater
+                        center={mapCenter}
+                        zoom={currentLat && currentLng ? 13 : 6}
+                    />
                     {currentLat && currentLng && (
                         <Marker
                             position={[currentLat, currentLng]}
@@ -271,7 +348,10 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
                                 dragend: (e) => {
                                     const marker = e.target;
                                     const position = marker.getLatLng();
-                                    onLocationChange(position.lat.toString(), position.lng.toString());
+                                    onLocationChange(
+                                        position.lat.toString(),
+                                        position.lng.toString(),
+                                    );
                                 },
                             }}
                         />
@@ -283,14 +363,19 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {/* Coordenadas */}
                 <div className="flex-1 rounded-md bg-gray-50 p-3 dark:bg-gray-800">
-                    <div className="text-xs text-gray-600 dark:text-gray-400">Coordenadas seleccionadas:</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                        Coordenadas seleccionadas:
+                    </div>
                     <div className="mt-1 font-mono text-sm text-gray-900 dark:text-gray-100">
                         {currentLat && currentLng ? (
                             <>
-                                Lat: {currentLat.toFixed(6)}, Lng: {currentLng.toFixed(6)}
+                                Lat: {currentLat.toFixed(6)}, Lng:{' '}
+                                {currentLng.toFixed(6)}
                             </>
                         ) : (
-                            <span className="text-gray-400">No seleccionado</span>
+                            <span className="text-gray-400">
+                                No seleccionado
+                            </span>
                         )}
                     </div>
                 </div>
@@ -318,12 +403,16 @@ export default function LocationPicker({ latitud, longitud, onLocationChange }: 
                             {copied ? (
                                 <>
                                     <Check className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Copiado</span>
+                                    <span className="hidden sm:inline">
+                                        Copiado
+                                    </span>
                                 </>
                             ) : (
                                 <>
                                     <Copy className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Copiar</span>
+                                    <span className="hidden sm:inline">
+                                        Copiar
+                                    </span>
                                 </>
                             )}
                         </Button>
