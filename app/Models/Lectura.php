@@ -134,12 +134,7 @@ class Lectura extends Model
 
     public function obtenerPotenciaPorTipoCanal(string $tipo): ?float
     {
-        $potencias = $this->obtenerValoresPorTipoCanal($tipo, fn (int $canal) => match ($canal) {
-            1 => $this->potencia_canal_1_w,
-            2 => $this->potencia_canal_2_w,
-            3 => $this->potencia_canal_3_w,
-            default => null,
-        });
+        $potencias = $this->obtenerValoresPorTipoCanal($tipo, fn (int $canal) => $this->obtenerPotenciaCanalCorregida($canal));
 
         if ($potencias === []) {
             return null;
@@ -197,15 +192,13 @@ class Lectura extends Model
      * Ecuación: FV - C + RED - Exp = 0
      *
      * Donde:
-     * - FV = Fase monitorizada de Fotovoltaica (SIEMPRE se invierte el signo)
-     *   * Si el valor original es negativo → está inyectando a la casa → FV positivo
-     *   * Si el valor original es positivo → está consumiendo de la casa → FV negativo
+     * - FV = Fase monitorizada de Fotovoltaica con sentido configurado por canal
      * - C = Consumo casa (lo que calculamos)
-     * - RED = Fase monitorizada Red Eléctrica
+     * - RED = Fase monitorizada Red Eléctrica con sentido configurado por canal
      *   * Si es positivo = consumo de red (RED)
      *   * Si es negativo = exportación (Exp)
      *
-     * Fórmula resultante: C = FV_corregido + RED
+     * Fórmula resultante: C = FV + RED
      *
      * @return float|null Consumo en W, o null si no se pueden identificar los canales
      */
@@ -219,14 +212,11 @@ class Lectura extends Model
             return null;
         }
 
-        // FV: SIEMPRE invertir el signo del canal fotovoltaica
-        // Si es negativo → inyecta a casa → FV positivo en la ecuación
-        // Si es positivo → consume de casa → FV negativo en la ecuación
-        $fvCorregido = $potenciaFV !== null ? -$potenciaFV : 0;
+        $fvCorregido = $potenciaFV ?? 0;
 
-        // RED: usar el valor tal cual (positivo = consumo, negativo = exportación)
+        // RED: usar el valor corregido por canal (positivo = consumo, negativo = exportación)
         // Ecuación: FV - C + RED - Exp = 0
-        // Despejando: C = FV_corregido + RED
+        // Despejando: C = FV + RED
         return $fvCorregido + $potenciaRED;
     }
 
@@ -250,10 +240,9 @@ class Lectura extends Model
     }
 
     /**
-     * Obtener potencia fotovoltaica corregida (SIEMPRE invierte el signo)
-     * Según la ecuación de balance: el canal fotovoltaica siempre se invierte
+     * Obtener potencia fotovoltaica corregida segun la configuracion de sentido del canal.
      *
-     * @return float|null Potencia en W (signo invertido respecto al valor original)
+     * @return float|null Potencia en W con el sentido configurado
      */
     public function obtenerPotenciaFotovoltaica(): ?float
     {
@@ -263,10 +252,7 @@ class Lectura extends Model
             return null;
         }
 
-        // SIEMPRE invertir el signo del canal fotovoltaica
-        // Si es negativo → inyecta a casa → retornar positivo
-        // Si es positivo → consume de casa → retornar negativo
-        return -$potencia;
+        return $potencia;
     }
 
     public function obtenerPotenciaRedElectrica(): ?float
@@ -384,6 +370,31 @@ class Lectura extends Model
         }
 
         return $valores;
+    }
+
+    /**
+     * Obtener potencia activa de un canal con la inversion de sentido configurada.
+     */
+    public function obtenerPotenciaCanalCorregida(int $canal): ?float
+    {
+        $potencia = match ($canal) {
+            1 => $this->potencia_canal_1_w,
+            2 => $this->potencia_canal_2_w,
+            3 => $this->potencia_canal_3_w,
+            default => null,
+        };
+
+        if ($potencia === null) {
+            return null;
+        }
+
+        $dispositivo = $this->dispositivo;
+
+        if ($dispositivo && $dispositivo->invierteSentidoCanal($canal)) {
+            return -((float) $potencia);
+        }
+
+        return (float) $potencia;
     }
 
     /**

@@ -62,6 +62,7 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($d) {
                 $ultimaLectura = $d->ultimaLectura();
+                $ultimaLectura?->setRelation('dispositivo', $d);
 
                 return [
                     'id' => $d->id,
@@ -88,9 +89,9 @@ class DashboardController extends Controller
                         'fecha_lectura' => $ultimaLectura->fecha_lectura->toISOString(),
                         'fecha_lectura_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
                         'potencia_total_w' => $ultimaLectura->potencia_total_w,
-                        'potencia_canal_1_w' => $ultimaLectura->potencia_canal_1_w,
-                        'potencia_canal_2_w' => $ultimaLectura->potencia_canal_2_w,
-                        'potencia_canal_3_w' => $ultimaLectura->potencia_canal_3_w,
+                        'potencia_canal_1_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(1),
+                        'potencia_canal_2_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(2),
+                        'potencia_canal_3_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(3),
                         'voltaje_canal_1' => $ultimaLectura->voltaje_canal_1,
                         'voltaje_canal_2' => $ultimaLectura->voltaje_canal_2,
                         'voltaje_canal_3' => $ultimaLectura->voltaje_canal_3,
@@ -143,9 +144,9 @@ class DashboardController extends Controller
                 'fecha' => $lectura->fecha_lectura->toISOString(),
                 'produccion_fotovoltaica_kw' => round(($lectura->obtenerPotenciaFotovoltaica() ?? 0) / 1000, 2),
                 'red_electrica_kw' => round(($lectura->obtenerPotenciaRedElectrica() ?? 0) / 1000, 2),
-                'fase_1_kw' => round(($lectura->potencia_canal_1_w ?? 0) / 1000, 2),
-                'fase_2_kw' => round(($lectura->potencia_canal_2_w ?? 0) / 1000, 2),
-                'fase_3_kw' => round(($lectura->potencia_canal_3_w ?? 0) / 1000, 2),
+                'fase_1_kw' => round(($lectura->obtenerPotenciaCanalCorregida(1) ?? 0) / 1000, 2),
+                'fase_2_kw' => round(($lectura->obtenerPotenciaCanalCorregida(2) ?? 0) / 1000, 2),
+                'fase_3_kw' => round(($lectura->obtenerPotenciaCanalCorregida(3) ?? 0) / 1000, 2),
                 'q1_var' => $lectura->reactiva_canal_1_var ?? 0,
                 'q2_var' => $lectura->reactiva_canal_2_var ?? 0,
                 'q3_var' => $lectura->reactiva_canal_3_var ?? 0,

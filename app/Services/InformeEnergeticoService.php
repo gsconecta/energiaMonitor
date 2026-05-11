@@ -211,6 +211,7 @@ class InformeEnergeticoService
             ->orderBy('fecha_lectura', 'asc')
             ->get([
                 'id',
+                'dispositivo_id',
                 'fecha_lectura',
                 'potencia_canal_1_w',
                 'potencia_canal_2_w',
@@ -434,9 +435,9 @@ class InformeEnergeticoService
         $potenciasCanales = array_map(
             static fn (float|int $potencia) => (float) $potencia,
             array_values(array_filter([
-                $lectura->potencia_canal_1_w,
-                $lectura->potencia_canal_2_w,
-                $lectura->potencia_canal_3_w,
+                $lectura->obtenerPotenciaCanalCorregida(1),
+                $lectura->obtenerPotenciaCanalCorregida(2),
+                $lectura->obtenerPotenciaCanalCorregida(3),
             ], static fn ($potencia) => $potencia !== null))
         );
 
@@ -469,9 +470,7 @@ class InformeEnergeticoService
     private function resolveChannelPowerW(Lectura $lectura, int $canal): ?float
     {
         return match ($canal) {
-            1 => $lectura->potencia_canal_1_w !== null ? (float) $lectura->potencia_canal_1_w : null,
-            2 => $lectura->potencia_canal_2_w !== null ? (float) $lectura->potencia_canal_2_w : null,
-            3 => $lectura->potencia_canal_3_w !== null ? (float) $lectura->potencia_canal_3_w : null,
+            1, 2, 3 => $lectura->obtenerPotenciaCanalCorregida($canal),
             default => null,
         };
     }

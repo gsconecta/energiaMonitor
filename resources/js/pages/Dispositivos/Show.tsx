@@ -3,18 +3,18 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import {
-    Pencil,
-    Trash2,
+    Activity,
+    BarChart3,
     Building2,
     MapPin,
-    Zap,
-    RefreshCw,
+    Pencil,
     Power,
-    Activity,
-    Wifi,
+    RefreshCw,
     Server,
     Settings,
-    BarChart3,
+    Trash2,
+    Wifi,
+    Zap,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -48,7 +48,6 @@ interface UltimaLectura {
     energia_total_kwh: number;
 }
 
-
 interface Dispositivo {
     id: number;
     device_id: string;
@@ -64,6 +63,9 @@ interface Dispositivo {
     tipo_canal_1: string | null;
     tipo_canal_2: string | null;
     tipo_canal_3: string | null;
+    invertir_sentido_canal_1: boolean;
+    invertir_sentido_canal_2: boolean;
+    invertir_sentido_canal_3: boolean;
     modelo: string | null;
     ip_local: string | null;
     firmware: string | null;
@@ -112,7 +114,11 @@ export default function DispositivosShow({
         tipo_canal_2: dispositivo.tipo_canal_2 ?? null,
         tipo_canal_3: dispositivo.tipo_canal_3 ?? null,
     });
-
+    const [invertirSentidoCanales, setInvertirSentidoCanales] = useState({
+        invertir_sentido_canal_1: dispositivo.invertir_sentido_canal_1,
+        invertir_sentido_canal_2: dispositivo.invertir_sentido_canal_2,
+        invertir_sentido_canal_3: dispositivo.invertir_sentido_canal_3,
+    });
 
     const handleEliminar = () => {
         if (confirm('¿Estás seguro de eliminar este dispositivo?')) {
@@ -139,14 +145,14 @@ export default function DispositivosShow({
                 onFinish: () => {
                     setSincronizando(false);
                 },
-            }
+            },
         );
     };
 
     const handleVerDashboard = () => {
         if (panel_global_mode) {
             router.post(
-                `/admin/impersonate/${dispositivo.sitio.organizacion.id}/${dispositivo.sitio.id}`
+                `/admin/impersonate/${dispositivo.sitio.organizacion.id}/${dispositivo.sitio.id}`,
             );
             return;
         }
@@ -155,29 +161,39 @@ export default function DispositivosShow({
     };
 
     const handleGuardarNombresCanales = () => {
-        router.put(`/dispositivos/${dispositivo.id}`, {
-            sitio_id: dispositivo.sitio.id,
-            device_id: dispositivo.device_id,
-            nombre: dispositivo.nombre,
-            num_fases: dispositivo.num_fases,
-            nombre_canal_1: nombresCanales.nombre_canal_1 || null,
-            nombre_canal_2: nombresCanales.nombre_canal_2 || null,
-            nombre_canal_3: nombresCanales.nombre_canal_3 || null,
-            color_canal_1: coloresCanales.color_canal_1,
-            color_canal_2: coloresCanales.color_canal_2,
-            color_canal_3: coloresCanales.color_canal_3,
-            tipo_canal_1: tiposCanales.tipo_canal_1 || null,
-            tipo_canal_2: tiposCanales.tipo_canal_2 || null,
-            tipo_canal_3: tiposCanales.tipo_canal_3 || null,
-            modelo: dispositivo.modelo,
-            ip_local: dispositivo.ip_local,
-            firmware: dispositivo.firmware,
-            activo: dispositivo.activo,
-        }, {
-            onSuccess: () => {
-                setEditandoNombres(false);
+        router.put(
+            `/dispositivos/${dispositivo.id}`,
+            {
+                sitio_id: dispositivo.sitio.id,
+                device_id: dispositivo.device_id,
+                nombre: dispositivo.nombre,
+                num_fases: dispositivo.num_fases,
+                nombre_canal_1: nombresCanales.nombre_canal_1 || null,
+                nombre_canal_2: nombresCanales.nombre_canal_2 || null,
+                nombre_canal_3: nombresCanales.nombre_canal_3 || null,
+                color_canal_1: coloresCanales.color_canal_1,
+                color_canal_2: coloresCanales.color_canal_2,
+                color_canal_3: coloresCanales.color_canal_3,
+                tipo_canal_1: tiposCanales.tipo_canal_1 || null,
+                tipo_canal_2: tiposCanales.tipo_canal_2 || null,
+                tipo_canal_3: tiposCanales.tipo_canal_3 || null,
+                invertir_sentido_canal_1:
+                    invertirSentidoCanales.invertir_sentido_canal_1,
+                invertir_sentido_canal_2:
+                    invertirSentidoCanales.invertir_sentido_canal_2,
+                invertir_sentido_canal_3:
+                    invertirSentidoCanales.invertir_sentido_canal_3,
+                modelo: dispositivo.modelo,
+                ip_local: dispositivo.ip_local,
+                firmware: dispositivo.firmware,
+                activo: dispositivo.activo,
             },
-        });
+            {
+                onSuccess: () => {
+                    setEditandoNombres(false);
+                },
+            },
+        );
     };
 
     const obtenerNombreCanal = (numero: number): string => {
@@ -192,7 +208,6 @@ export default function DispositivosShow({
                 return `Canal ${numero}`;
         }
     };
-
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -224,7 +239,7 @@ export default function DispositivosShow({
                             disabled={sincronizando}
                             className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium ${
                                 sincronizando
-                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    ? 'cursor-not-allowed bg-gray-400'
                                     : 'bg-indigo-600 hover:bg-indigo-700'
                             } text-white`}
                         >
@@ -271,7 +286,9 @@ export default function DispositivosShow({
                                             }`}
                                         />
                                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {dispositivo.esta_online ? 'En línea' : 'Desconectado'}
+                                            {dispositivo.esta_online
+                                                ? 'En línea'
+                                                : 'Desconectado'}
                                         </p>
                                     </div>
                                 </div>
@@ -318,7 +335,11 @@ export default function DispositivosShow({
                                             Potencia Actual
                                         </p>
                                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {dispositivo.ultima_lectura.potencia_total_kw} kW
+                                            {
+                                                dispositivo.ultima_lectura
+                                                    .potencia_total_kw
+                                            }{' '}
+                                            kW
                                         </p>
                                     </div>
                                 </div>
@@ -356,28 +377,36 @@ export default function DispositivosShow({
                                 {dispositivo.modelo && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Server className="h-4 w-4" />
-                                        <span className="font-medium">Modelo:</span>
+                                        <span className="font-medium">
+                                            Modelo:
+                                        </span>
                                         <span>{dispositivo.modelo}</span>
                                     </div>
                                 )}
                                 {dispositivo.num_fases && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Settings className="h-4 w-4" />
-                                        <span className="font-medium">Fases:</span>
+                                        <span className="font-medium">
+                                            Fases:
+                                        </span>
                                         <span>{dispositivo.fases_label}</span>
                                     </div>
                                 )}
                                 {dispositivo.ip_local && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Wifi className="h-4 w-4" />
-                                        <span className="font-medium">IP Local:</span>
+                                        <span className="font-medium">
+                                            IP Local:
+                                        </span>
                                         <span>{dispositivo.ip_local}</span>
                                     </div>
                                 )}
                                 {dispositivo.firmware && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Settings className="h-4 w-4" />
-                                        <span className="font-medium">Firmware:</span>
+                                        <span className="font-medium">
+                                            Firmware:
+                                        </span>
                                         <span>{dispositivo.firmware}</span>
                                     </div>
                                 )}
@@ -393,8 +422,12 @@ export default function DispositivosShow({
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <Building2 className="h-4 w-4" />
-                                    <span className="font-medium">Organización:</span>
-                                    <span>{dispositivo.sitio.organizacion.nombre}</span>
+                                    <span className="font-medium">
+                                        Organización:
+                                    </span>
+                                    <span>
+                                        {dispositivo.sitio.organizacion.nombre}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <MapPin className="h-4 w-4" />
@@ -407,7 +440,11 @@ export default function DispositivosShow({
                                 </div>
                                 {!panel_global_mode && (
                                     <button
-                                        onClick={() => router.visit(`/sitios/${dispositivo.sitio.id}`)}
+                                        onClick={() =>
+                                            router.visit(
+                                                `/sitios/${dispositivo.sitio.id}`,
+                                            )
+                                        }
                                         className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                     >
                                         Ver detalles del sitio →
@@ -445,19 +482,45 @@ export default function DispositivosShow({
                                         onClick={() => {
                                             setEditandoNombres(false);
                                             setNombresCanales({
-                                                nombre_canal_1: dispositivo.nombre_canal_1 || 'Canal 1',
-                                                nombre_canal_2: dispositivo.nombre_canal_2 || 'Canal 2',
-                                                nombre_canal_3: dispositivo.nombre_canal_3 || 'Canal 3',
+                                                nombre_canal_1:
+                                                    dispositivo.nombre_canal_1 ||
+                                                    'Canal 1',
+                                                nombre_canal_2:
+                                                    dispositivo.nombre_canal_2 ||
+                                                    'Canal 2',
+                                                nombre_canal_3:
+                                                    dispositivo.nombre_canal_3 ||
+                                                    'Canal 3',
                                             });
                                             setColoresCanales({
-                                                color_canal_1: dispositivo.color_canal_1 ?? '#ef4444',
-                                                color_canal_2: dispositivo.color_canal_2 ?? '#22c55e',
-                                                color_canal_3: dispositivo.color_canal_3 ?? '#eab308',
+                                                color_canal_1:
+                                                    dispositivo.color_canal_1 ??
+                                                    '#ef4444',
+                                                color_canal_2:
+                                                    dispositivo.color_canal_2 ??
+                                                    '#22c55e',
+                                                color_canal_3:
+                                                    dispositivo.color_canal_3 ??
+                                                    '#eab308',
                                             });
                                             setTiposCanales({
-                                                tipo_canal_1: dispositivo.tipo_canal_1 ?? null,
-                                                tipo_canal_2: dispositivo.tipo_canal_2 ?? null,
-                                                tipo_canal_3: dispositivo.tipo_canal_3 ?? null,
+                                                tipo_canal_1:
+                                                    dispositivo.tipo_canal_1 ??
+                                                    null,
+                                                tipo_canal_2:
+                                                    dispositivo.tipo_canal_2 ??
+                                                    null,
+                                                tipo_canal_3:
+                                                    dispositivo.tipo_canal_3 ??
+                                                    null,
+                                            });
+                                            setInvertirSentidoCanales({
+                                                invertir_sentido_canal_1:
+                                                    dispositivo.invertir_sentido_canal_1,
+                                                invertir_sentido_canal_2:
+                                                    dispositivo.invertir_sentido_canal_2,
+                                                invertir_sentido_canal_3:
+                                                    dispositivo.invertir_sentido_canal_3,
                                             });
                                         }}
                                         className="inline-flex items-center gap-2 rounded-md bg-gray-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
@@ -468,258 +531,417 @@ export default function DispositivosShow({
                             )}
                         </div>
                         <div className="grid gap-4 sm:grid-cols-3">
-                            {dispositivo.num_fases && dispositivo.num_fases >= 1 && (
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Canal 1
-                                    </label>
-                                    {editandoNombres ? (
-                                        <div className="space-y-2">
-                                            <input
-                                                type="text"
-                                                value={nombresCanales.nombre_canal_1}
-                                                onChange={(e) =>
-                                                    setNombresCanales({
-                                                        ...nombresCanales,
-                                                        nombre_canal_1: e.target.value,
-                                                    })
-                                                }
-                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                placeholder="Ej: Producción Solar"
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                    Color:
-                                                </label>
+                            {dispositivo.num_fases &&
+                                dispositivo.num_fases >= 1 && (
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Canal 1
+                                        </label>
+                                        {editandoNombres ? (
+                                            <div className="space-y-2">
                                                 <input
-                                                    type="color"
-                                                    value={coloresCanales.color_canal_1}
-                                                    onChange={(e) =>
-                                                        setColoresCanales({
-                                                            ...coloresCanales,
-                                                            color_canal_1: e.target.value,
-                                                        })
+                                                    type="text"
+                                                    value={
+                                                        nombresCanales.nombre_canal_1
                                                     }
-                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                    Tipo:
-                                                </label>
-                                                <select
-                                                    value={tiposCanales.tipo_canal_1 || ''}
                                                     onChange={(e) =>
-                                                        setTiposCanales({
-                                                            ...tiposCanales,
-                                                            tipo_canal_1: e.target.value || null,
+                                                        setNombresCanales({
+                                                            ...nombresCanales,
+                                                            nombre_canal_1:
+                                                                e.target.value,
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                {obtenerNombreCanal(1)}
-                                            </p>
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <div
-                                                    className="h-4 w-4 rounded"
-                                                    style={{ backgroundColor: coloresCanales.color_canal_1 }}
+                                                    placeholder="Ej: Producción Solar"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {coloresCanales.color_canal_1}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                        Color:
+                                                    </label>
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            coloresCanales.color_canal_1
+                                                        }
+                                                        onChange={(e) =>
+                                                            setColoresCanales({
+                                                                ...coloresCanales,
+                                                                color_canal_1:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                        Tipo:
+                                                    </label>
+                                                    <select
+                                                        value={
+                                                            tiposCanales.tipo_canal_1 ||
+                                                            ''
+                                                        }
+                                                        onChange={(e) =>
+                                                            setTiposCanales({
+                                                                ...tiposCanales,
+                                                                tipo_canal_1:
+                                                                    e.target
+                                                                        .value ||
+                                                                    null,
+                                                            })
+                                                        }
+                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                    >
+                                                        <option value="">
+                                                            Seleccionar tipo
+                                                        </option>
+                                                        <option value="fotovoltaica">
+                                                            Fotovoltaica
+                                                        </option>
+                                                        <option value="red_electrica">
+                                                            Red Eléctrica
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            invertirSentidoCanales.invertir_sentido_canal_1
+                                                        }
+                                                        onChange={(e) =>
+                                                            setInvertirSentidoCanales(
+                                                                {
+                                                                    ...invertirSentidoCanales,
+                                                                    invertir_sentido_canal_1:
+                                                                        e.target
+                                                                            .checked,
+                                                                },
+                                                            )
+                                                        }
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span>
+                                                        Invertir sentido
+                                                    </span>
+                                                </label>
                                             </div>
-                                            {tiposCanales.tipo_canal_1 && (
-                                                <div className="mt-1">
-                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                        tiposCanales.tipo_canal_1 === 'fotovoltaica'
-                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    }`}>
-                                                        {tiposCanales.tipo_canal_1 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                        ) : (
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                    {obtenerNombreCanal(1)}
+                                                </p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <div
+                                                        className="h-4 w-4 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                coloresCanales.color_canal_1,
+                                                        }}
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {
+                                                            coloresCanales.color_canal_1
+                                                        }
                                                     </span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {dispositivo.num_fases && dispositivo.num_fases >= 2 && (
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Canal 2
-                                    </label>
-                                    {editandoNombres ? (
-                                        <div className="space-y-2">
-                                            <input
-                                                type="text"
-                                                value={nombresCanales.nombre_canal_2}
-                                                onChange={(e) =>
-                                                    setNombresCanales({
-                                                        ...nombresCanales,
-                                                        nombre_canal_2: e.target.value,
-                                                    })
-                                                }
-                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                placeholder="Ej: Consumo General"
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                    Color:
-                                                </label>
-                                                <input
-                                                    type="color"
-                                                    value={coloresCanales.color_canal_2}
-                                                    onChange={(e) =>
-                                                        setColoresCanales({
-                                                            ...coloresCanales,
-                                                            color_canal_2: e.target.value,
-                                                        })
-                                                    }
-                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                />
+                                                {tiposCanales.tipo_canal_1 && (
+                                                    <div className="mt-1">
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                                tiposCanales.tipo_canal_1 ===
+                                                                'fotovoltaica'
+                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                            }`}
+                                                        >
+                                                            {tiposCanales.tipo_canal_1 ===
+                                                            'fotovoltaica'
+                                                                ? 'Fotovoltaica'
+                                                                : 'Red Eléctrica'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                    Tipo:
-                                                </label>
-                                                <select
-                                                    value={tiposCanales.tipo_canal_2 || ''}
+                                        )}
+                                    </div>
+                                )}
+                            {dispositivo.num_fases &&
+                                dispositivo.num_fases >= 2 && (
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Canal 2
+                                        </label>
+                                        {editandoNombres ? (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="text"
+                                                    value={
+                                                        nombresCanales.nombre_canal_2
+                                                    }
                                                     onChange={(e) =>
-                                                        setTiposCanales({
-                                                            ...tiposCanales,
-                                                            tipo_canal_2: e.target.value || null,
+                                                        setNombresCanales({
+                                                            ...nombresCanales,
+                                                            nombre_canal_2:
+                                                                e.target.value,
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                {obtenerNombreCanal(2)}
-                                            </p>
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <div
-                                                    className="h-4 w-4 rounded"
-                                                    style={{ backgroundColor: coloresCanales.color_canal_2 }}
+                                                    placeholder="Ej: Consumo General"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {coloresCanales.color_canal_2}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                        Color:
+                                                    </label>
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            coloresCanales.color_canal_2
+                                                        }
+                                                        onChange={(e) =>
+                                                            setColoresCanales({
+                                                                ...coloresCanales,
+                                                                color_canal_2:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                        Tipo:
+                                                    </label>
+                                                    <select
+                                                        value={
+                                                            tiposCanales.tipo_canal_2 ||
+                                                            ''
+                                                        }
+                                                        onChange={(e) =>
+                                                            setTiposCanales({
+                                                                ...tiposCanales,
+                                                                tipo_canal_2:
+                                                                    e.target
+                                                                        .value ||
+                                                                    null,
+                                                            })
+                                                        }
+                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                    >
+                                                        <option value="">
+                                                            Seleccionar tipo
+                                                        </option>
+                                                        <option value="fotovoltaica">
+                                                            Fotovoltaica
+                                                        </option>
+                                                        <option value="red_electrica">
+                                                            Red Eléctrica
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            invertirSentidoCanales.invertir_sentido_canal_2
+                                                        }
+                                                        onChange={(e) =>
+                                                            setInvertirSentidoCanales(
+                                                                {
+                                                                    ...invertirSentidoCanales,
+                                                                    invertir_sentido_canal_2:
+                                                                        e.target
+                                                                            .checked,
+                                                                },
+                                                            )
+                                                        }
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span>
+                                                        Invertir sentido
+                                                    </span>
+                                                </label>
                                             </div>
-                                            {tiposCanales.tipo_canal_2 && (
-                                                <div className="mt-1">
-                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                        tiposCanales.tipo_canal_2 === 'fotovoltaica'
-                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    }`}>
-                                                        {tiposCanales.tipo_canal_2 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                        ) : (
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                    {obtenerNombreCanal(2)}
+                                                </p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <div
+                                                        className="h-4 w-4 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                coloresCanales.color_canal_2,
+                                                        }}
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {
+                                                            coloresCanales.color_canal_2
+                                                        }
                                                     </span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            {dispositivo.num_fases && dispositivo.num_fases >= 3 && (
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Canal 3
-                                    </label>
-                                    {editandoNombres ? (
-                                        <div className="space-y-2">
-                                            <input
-                                                type="text"
-                                                value={nombresCanales.nombre_canal_3}
-                                                onChange={(e) =>
-                                                    setNombresCanales({
-                                                        ...nombresCanales,
-                                                        nombre_canal_3: e.target.value,
-                                                    })
-                                                }
-                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                placeholder="Ej: Red Eléctrica"
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                    Color:
-                                                </label>
-                                                <input
-                                                    type="color"
-                                                    value={coloresCanales.color_canal_3}
-                                                    onChange={(e) =>
-                                                        setColoresCanales({
-                                                            ...coloresCanales,
-                                                            color_canal_3: e.target.value,
-                                                        })
-                                                    }
-                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                />
+                                                {tiposCanales.tipo_canal_2 && (
+                                                    <div className="mt-1">
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                                tiposCanales.tipo_canal_2 ===
+                                                                'fotovoltaica'
+                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                            }`}
+                                                        >
+                                                            {tiposCanales.tipo_canal_2 ===
+                                                            'fotovoltaica'
+                                                                ? 'Fotovoltaica'
+                                                                : 'Red Eléctrica'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div>
-                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                    Tipo:
-                                                </label>
-                                                <select
-                                                    value={tiposCanales.tipo_canal_3 || ''}
+                                        )}
+                                    </div>
+                                )}
+                            {dispositivo.num_fases &&
+                                dispositivo.num_fases >= 3 && (
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Canal 3
+                                        </label>
+                                        {editandoNombres ? (
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="text"
+                                                    value={
+                                                        nombresCanales.nombre_canal_3
+                                                    }
                                                     onChange={(e) =>
-                                                        setTiposCanales({
-                                                            ...tiposCanales,
-                                                            tipo_canal_3: e.target.value || null,
+                                                        setNombresCanales({
+                                                            ...nombresCanales,
+                                                            nombre_canal_3:
+                                                                e.target.value,
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                >
-                                                    <option value="">Seleccionar tipo</option>
-                                                    <option value="fotovoltaica">Fotovoltaica</option>
-                                                    <option value="red_electrica">Red Eléctrica</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                {obtenerNombreCanal(3)}
-                                            </p>
-                                            <div className="mt-1 flex items-center gap-2">
-                                                <div
-                                                    className="h-4 w-4 rounded"
-                                                    style={{ backgroundColor: coloresCanales.color_canal_3 }}
+                                                    placeholder="Ej: Red Eléctrica"
                                                 />
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {coloresCanales.color_canal_3}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                        Color:
+                                                    </label>
+                                                    <input
+                                                        type="color"
+                                                        value={
+                                                            coloresCanales.color_canal_3
+                                                        }
+                                                        onChange={(e) =>
+                                                            setColoresCanales({
+                                                                ...coloresCanales,
+                                                                color_canal_3:
+                                                                    e.target
+                                                                        .value,
+                                                            })
+                                                        }
+                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                        Tipo:
+                                                    </label>
+                                                    <select
+                                                        value={
+                                                            tiposCanales.tipo_canal_3 ||
+                                                            ''
+                                                        }
+                                                        onChange={(e) =>
+                                                            setTiposCanales({
+                                                                ...tiposCanales,
+                                                                tipo_canal_3:
+                                                                    e.target
+                                                                        .value ||
+                                                                    null,
+                                                            })
+                                                        }
+                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                    >
+                                                        <option value="">
+                                                            Seleccionar tipo
+                                                        </option>
+                                                        <option value="fotovoltaica">
+                                                            Fotovoltaica
+                                                        </option>
+                                                        <option value="red_electrica">
+                                                            Red Eléctrica
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            invertirSentidoCanales.invertir_sentido_canal_3
+                                                        }
+                                                        onChange={(e) =>
+                                                            setInvertirSentidoCanales(
+                                                                {
+                                                                    ...invertirSentidoCanales,
+                                                                    invertir_sentido_canal_3:
+                                                                        e.target
+                                                                            .checked,
+                                                                },
+                                                            )
+                                                        }
+                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span>
+                                                        Invertir sentido
+                                                    </span>
+                                                </label>
                                             </div>
-                                            {tiposCanales.tipo_canal_3 && (
-                                                <div className="mt-1">
-                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                        tiposCanales.tipo_canal_3 === 'fotovoltaica'
-                                                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    }`}>
-                                                        {tiposCanales.tipo_canal_3 === 'fotovoltaica' ? 'Fotovoltaica' : 'Red Eléctrica'}
+                                        ) : (
+                                            <div>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                    {obtenerNombreCanal(3)}
+                                                </p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <div
+                                                        className="h-4 w-4 rounded"
+                                                        style={{
+                                                            backgroundColor:
+                                                                coloresCanales.color_canal_3,
+                                                        }}
+                                                    />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {
+                                                            coloresCanales.color_canal_3
+                                                        }
                                                     </span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                                {tiposCanales.tipo_canal_3 && (
+                                                    <div className="mt-1">
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                                tiposCanales.tipo_canal_3 ===
+                                                                'fotovoltaica'
+                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                            }`}
+                                                        >
+                                                            {tiposCanales.tipo_canal_3 ===
+                                                            'fotovoltaica'
+                                                                ? 'Fotovoltaica'
+                                                                : 'Red Eléctrica'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                         </div>
                     </div>
                 </div>
@@ -737,16 +959,15 @@ export default function DispositivosShow({
                                         Fecha
                                     </p>
                                     <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        {new Date(dispositivo.ultima_lectura.fecha).toLocaleString(
-                                            'es-ES',
-                                            {
-                                                day: '2-digit',
-                                                month: '2-digit',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            }
-                                        )}
+                                        {new Date(
+                                            dispositivo.ultima_lectura.fecha,
+                                        ).toLocaleString('es-ES', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}
                                     </p>
                                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                         {dispositivo.ultima_lectura.fecha_human}
@@ -757,7 +978,11 @@ export default function DispositivosShow({
                                         Potencia Total
                                     </p>
                                     <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                        {dispositivo.ultima_lectura.potencia_total_kw} kW
+                                        {
+                                            dispositivo.ultima_lectura
+                                                .potencia_total_kw
+                                        }{' '}
+                                        kW
                                     </p>
                                 </div>
                                 <div>
@@ -765,7 +990,11 @@ export default function DispositivosShow({
                                         Energía Total
                                     </p>
                                     <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                        {dispositivo.ultima_lectura.energia_total_kwh} kWh
+                                        {
+                                            dispositivo.ultima_lectura
+                                                .energia_total_kwh
+                                        }{' '}
+                                        kWh
                                     </p>
                                 </div>
                                 <div>
@@ -781,7 +1010,9 @@ export default function DispositivosShow({
                                             }`}
                                         />
                                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {dispositivo.esta_online ? 'En línea' : 'Desconectado'}
+                                            {dispositivo.esta_online
+                                                ? 'En línea'
+                                                : 'Desconectado'}
                                         </p>
                                     </div>
                                 </div>
@@ -811,23 +1042,38 @@ export default function DispositivosShow({
                                         Generación Fotovoltaica
                                     </p>
                                     <p className="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                                        {metricas_energia.generacion_fotovoltaica_kw} kW
+                                        {
+                                            metricas_energia.generacion_fotovoltaica_kw
+                                        }{' '}
+                                        kW
                                     </p>
                                 </div>
-                                <div className={`rounded-lg p-4 ${
-                                    metricas_energia.exportacion_neta_kw >= 0
-                                        ? 'bg-green-50 dark:bg-green-900/20'
-                                        : 'bg-red-50 dark:bg-red-900/20'
-                                }`}>
+                                <div
+                                    className={`rounded-lg p-4 ${
+                                        metricas_energia.exportacion_neta_kw >=
+                                        0
+                                            ? 'bg-green-50 dark:bg-green-900/20'
+                                            : 'bg-red-50 dark:bg-red-900/20'
+                                    }`}
+                                >
                                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                        {metricas_energia.exportacion_neta_kw >= 0 ? 'Exportación Neta' : 'Importación Neta'}
+                                        {metricas_energia.exportacion_neta_kw >=
+                                        0
+                                            ? 'Exportación Neta'
+                                            : 'Importación Neta'}
                                     </p>
-                                    <p className={`mt-1 text-2xl font-bold ${
-                                        metricas_energia.exportacion_neta_kw >= 0
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'
-                                    }`}>
-                                        {Math.abs(metricas_energia.exportacion_neta_kw)} kW
+                                    <p
+                                        className={`mt-1 text-2xl font-bold ${
+                                            metricas_energia.exportacion_neta_kw >=
+                                            0
+                                                ? 'text-green-600 dark:text-green-400'
+                                                : 'text-red-600 dark:text-red-400'
+                                        }`}
+                                    >
+                                        {Math.abs(
+                                            metricas_energia.exportacion_neta_kw,
+                                        )}{' '}
+                                        kW
                                     </p>
                                 </div>
                                 {metricas_energia.carga_baterias_kw > 0 && (
@@ -836,7 +1082,8 @@ export default function DispositivosShow({
                                             Carga de Baterías
                                         </p>
                                         <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                            {metricas_energia.carga_baterias_kw} kW
+                                            {metricas_energia.carga_baterias_kw}{' '}
+                                            kW
                                         </p>
                                     </div>
                                 )}
@@ -846,7 +1093,10 @@ export default function DispositivosShow({
                                             Importación de Red
                                         </p>
                                         <p className="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">
-                                            {metricas_energia.importacion_red_kw} kW
+                                            {
+                                                metricas_energia.importacion_red_kw
+                                            }{' '}
+                                            kW
                                         </p>
                                     </div>
                                 )}
@@ -856,7 +1106,10 @@ export default function DispositivosShow({
                                             Exportación a Red
                                         </p>
                                         <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
-                                            {metricas_energia.exportacion_red_kw} kW
+                                            {
+                                                metricas_energia.exportacion_red_kw
+                                            }{' '}
+                                            kW
                                         </p>
                                     </div>
                                 )}
@@ -867,13 +1120,18 @@ export default function DispositivosShow({
                                 </h3>
                                 <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
                                     <li>
-                                        <strong>Canal Fotovoltaica:</strong> Positivo (+) = Generando energía solar | Negativo (-) = Cargando baterías
+                                        <strong>Canal Fotovoltaica:</strong>{' '}
+                                        Positivo (+) = Generando energía solar |
+                                        Negativo (-) = Cargando baterías
                                     </li>
                                     <li>
-                                        <strong>Canal Red Eléctrica:</strong> Positivo (+) = Exportando a la red | Negativo (-) = Consumiendo de la red
+                                        <strong>Canal Red Eléctrica:</strong>{' '}
+                                        Positivo (+) = Exportando a la red |
+                                        Negativo (-) = Consumiendo de la red
                                     </li>
                                     <li>
-                                        <strong>Consumo de la Casa:</strong> FV + RED (suma algebraica)
+                                        <strong>Consumo de la Casa:</strong> FV
+                                        + RED (suma algebraica)
                                     </li>
                                 </ul>
                             </div>
@@ -881,22 +1139,26 @@ export default function DispositivosShow({
                     </div>
                 )}
 
-
                 {/* Configuración */}
-                {dispositivo.configuracion && Object.keys(dispositivo.configuracion).length > 0 && (
-                    <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
-                        <div className="p-6">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                Configuración
-                            </h2>
-                            <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
-                                <pre className="overflow-x-auto text-xs text-gray-700 dark:text-gray-300">
-                                    {JSON.stringify(dispositivo.configuracion, null, 2)}
-                                </pre>
+                {dispositivo.configuracion &&
+                    Object.keys(dispositivo.configuracion).length > 0 && (
+                        <div className="overflow-hidden rounded-xl border border-sidebar-border/70 bg-white shadow dark:border-sidebar-border dark:bg-gray-800">
+                            <div className="p-6">
+                                <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    Configuración
+                                </h2>
+                                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                                    <pre className="overflow-x-auto text-xs text-gray-700 dark:text-gray-300">
+                                        {JSON.stringify(
+                                            dispositivo.configuracion,
+                                            null,
+                                            2,
+                                        )}
+                                    </pre>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
             </div>
         </AppLayout>
     );

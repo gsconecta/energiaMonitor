@@ -29,6 +29,9 @@ class Dispositivo extends Model
         'tipo_canal_1',
         'tipo_canal_2',
         'tipo_canal_3',
+        'invertir_sentido_canal_1',
+        'invertir_sentido_canal_2',
+        'invertir_sentido_canal_3',
         'modelo',
         'ip_local',
         'firmware',
@@ -40,6 +43,9 @@ class Dispositivo extends Model
         'activo' => 'boolean',
         'num_fases' => 'integer',
         'configuracion' => 'array',
+        'invertir_sentido_canal_1' => 'boolean',
+        'invertir_sentido_canal_2' => 'boolean',
+        'invertir_sentido_canal_3' => 'boolean',
     ];
 
     // Relaciones
@@ -318,6 +324,19 @@ class Dispositivo extends Model
             2 => $this->tipo_canal_2,
             3 => $this->tipo_canal_3,
             default => null,
+        };
+    }
+
+    /**
+     * Verificar si el sentido de potencia de un canal debe invertirse.
+     */
+    public function invierteSentidoCanal(int $numero): bool
+    {
+        return match ($numero) {
+            1 => (bool) $this->invertir_sentido_canal_1,
+            2 => (bool) $this->invertir_sentido_canal_2,
+            3 => (bool) $this->invertir_sentido_canal_3,
+            default => false,
         };
     }
 
