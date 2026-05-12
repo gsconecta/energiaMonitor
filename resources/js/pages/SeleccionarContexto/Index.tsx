@@ -203,17 +203,13 @@ export default function SeleccionarContexto() {
     );
     const sitiosDisponibles = organizacionSeleccionadaObj?.sitios || [];
 
-    const seleccionarContexto = () => {
-        if (!organizacionSeleccionada || !sitioSeleccionado) {
-            return;
-        }
-
+    const postContexto = (organizacionId: number, sitioId: number) => {
         setProcesando(true);
         router.post(
             '/seleccionar-contexto',
             {
-                organizacion_id: organizacionSeleccionada,
-                sitio_id: sitioSeleccionado,
+                organizacion_id: organizacionId,
+                sitio_id: sitioId,
             },
             {
                 preserveScroll: true,
@@ -227,6 +223,30 @@ export default function SeleccionarContexto() {
                 },
             },
         );
+    };
+
+    const seleccionarContexto = () => {
+        if (!organizacionSeleccionada || !sitioSeleccionado) {
+            return;
+        }
+
+        postContexto(organizacionSeleccionada, sitioSeleccionado);
+    };
+
+    const seleccionarOrganizacion = (organizacion: Organizacion) => {
+        setOrganizacionSeleccionada(organizacion.id);
+        setMostrarFormularioSitio(false);
+
+        if (organizacion.sitios.length === 1) {
+            const sitioUnico = organizacion.sitios[0];
+            setSitioSeleccionado(sitioUnico.id);
+            setMostrarListaOrganizaciones(false);
+            postContexto(organizacion.id, sitioUnico.id);
+            return;
+        }
+
+        setSitioSeleccionado(null);
+        setMostrarListaOrganizaciones(false);
     };
 
     const crearOrganizacion = (e: React.FormEvent) => {
@@ -272,9 +292,13 @@ export default function SeleccionarContexto() {
 
     const entrarPanelControl = () => {
         setEntrandoPanel(true);
-        router.post('/seleccionar-contexto/entrar-panel', {}, {
-            onFinish: () => setEntrandoPanel(false),
-        });
+        router.post(
+            '/seleccionar-contexto/entrar-panel',
+            {},
+            {
+                onFinish: () => setEntrandoPanel(false),
+            },
+        );
     };
 
     const wizardOrganizacion = (
@@ -393,17 +417,11 @@ export default function SeleccionarContexto() {
                                             return (
                                                 <button
                                                     key={organizacion.id}
-                                                    onClick={() => {
-                                                        setOrganizacionSeleccionada(
-                                                            organizacion.id,
-                                                        );
-                                                        setSitioSeleccionado(
-                                                            null,
-                                                        ); // Reset sitio cuando cambia organización
-                                                        setMostrarListaOrganizaciones(
-                                                            false,
-                                                        );
-                                                    }}
+                                                    onClick={() =>
+                                                        seleccionarOrganizacion(
+                                                            organizacion,
+                                                        )
+                                                    }
                                                     className={`relative flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
                                                         isActive
                                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'

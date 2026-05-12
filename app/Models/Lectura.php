@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Events\DashboardLecturaActualizada;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Lectura extends Model
 {
     use HasFactory;
+
+    protected $dispatchesEvents = [
+        'created' => DashboardLecturaActualizada::class,
+    ];
 
     protected $fillable = [
         'dispositivo_id',

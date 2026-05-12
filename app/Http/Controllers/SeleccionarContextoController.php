@@ -56,7 +56,7 @@ class SeleccionarContextoController extends Controller
     {
         $validated = $request->validate([
             'organizacion_id' => 'required|exists:organizaciones,id',
-            'sitio_id' => 'required|exists:sitios,id',
+            'sitio_id' => 'nullable|exists:sitios,id',
         ]);
 
         $user = auth()->user();
@@ -69,11 +69,32 @@ class SeleccionarContextoController extends Controller
             ]);
         }
 
+        if (! empty($validated['sitio_id'])) {
+            $sitio = Sitio::findOrFail($validated['sitio_id']);
+        } else {
+            $sitiosActivos = $organizacion->sitios()->activos()->get();
+
+            if ($sitiosActivos->count() !== 1) {
+                return back()->withErrors([
+                    'sitio_id' => $sitiosActivos->isEmpty()
+                        ? 'La organizacion seleccionada no tiene sitios activos'
+                        : 'Selecciona un sitio para esta organizacion',
+                ]);
+            }
+
+            $sitio = $sitiosActivos->first();
+        }
+
         // Verificar que el sitio pertenece a la organización
-        $sitio = Sitio::findOrFail($validated['sitio_id']);
         if ($sitio->organizacion_id !== $organizacion->id) {
             return back()->withErrors([
                 'sitio_id' => 'El sitio no pertenece a la organización seleccionada',
+            ]);
+        }
+
+        if (! $sitio->activa) {
+            return back()->withErrors([
+                'sitio_id' => 'El sitio seleccionado no esta activo',
             ]);
         }
 

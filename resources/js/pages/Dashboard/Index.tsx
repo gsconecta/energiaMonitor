@@ -1,9 +1,3 @@
-import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/react';
-import { Calendar, Building2, MapPin, RefreshCw, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import {
     Select,
     SelectContent,
@@ -11,8 +5,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import DashboardResidencial from './DashboardResidencial';
+import AppLayout from '@/layouts/app-layout';
+import { dashboard } from '@/routes';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, usePage } from '@inertiajs/react';
+import { useEcho } from '@laravel/echo-react';
+import { Building2, MapPin, RefreshCw, Zap } from 'lucide-react';
 import DashboardIndustrial from './DashboardIndustrial';
+import DashboardResidencial from './DashboardResidencial';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -107,7 +107,6 @@ interface Dispositivo {
     } | null;
 }
 
-
 interface SharedProps {
     organizacion_actual?: {
         id: number;
@@ -151,14 +150,65 @@ interface DatosMeteorologicos {
     fecha_actualizacion: string | null;
 }
 
+interface VerificacionMeteorologica {
+    perfil_residencial: boolean;
+    requiere_configuracion: boolean;
+    campos_faltantes: string[];
+    sitio_id: number | null;
+    sitio_nombre: string | null;
+    edit_url: string | null;
+}
+
 interface Props {
     dispositivo?: Dispositivo;
     dispositivos: Dispositivo[];
     metricas?: Metricas;
     datos_grafica?: DatosGrafica[];
     datos_meteorologicos?: DatosMeteorologicos | null;
+    verificacion_meteorologica?: VerificacionMeteorologica | null;
     periodo: string;
     sinDispositivos: boolean;
+}
+
+type DashboardLecturaActualizadaEvent = {
+    lectura_id: number;
+    dispositivo_id: number;
+    sitio_id: number;
+    fecha_lectura: string;
+};
+
+function ConnectionStatusIndicator({
+    estadoConexion,
+}: {
+    estadoConexion?: 'online' | 'offline';
+}) {
+    const isOnline = estadoConexion === 'online';
+
+    return (
+        <div className="inline-flex items-center gap-2">
+            <div className="relative flex h-3 w-3">
+                <span
+                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
+                        isOnline ? 'bg-green-400' : 'bg-red-400'
+                    }`}
+                />
+                <span
+                    className={`relative inline-flex h-3 w-3 rounded-full ${
+                        isOnline ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                />
+            </div>
+            <span
+                className={`text-xs font-medium sm:text-sm ${
+                    isOnline
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                }`}
+            >
+                {isOnline ? 'En línea' : 'Desconectado'}
+            </span>
+        </div>
+    );
 }
 
 export default function Dashboard({
@@ -167,6 +217,7 @@ export default function Dashboard({
     metricas,
     datos_grafica,
     datos_meteorologicos,
+    verificacion_meteorologica,
     periodo,
     sinDispositivos,
 }: Props) {
@@ -174,89 +225,76 @@ export default function Dashboard({
     const pageProps = page.props as Partial<SharedProps>;
     const organizacionActual = pageProps.organizacion_actual;
     const sitioActual = pageProps.sitio_actual;
-    const [mostrarRangoPersonalizado, setMostrarRangoPersonalizado] = useState(false);
-    const [fechaDesde, setFechaDesde] = useState('');
-    const [fechaHasta, setFechaHasta] = useState('');
 
     // Determinar el perfil de la organización activa
     const tipoPerfil = organizacionActual?.tipo_perfil || 'industrial';
     const esResidencial = tipoPerfil === 'residencial';
+    const dashboardRealtimeChannel = sitioActual
+        ? `dashboard.site.${sitioActual.id}`
+        : 'dashboard.site.none';
 
+    useEcho<DashboardLecturaActualizadaEvent>(
+        dashboardRealtimeChannel,
+        '.lectura.actualizada',
+        (event) => {
+            if (!sitioActual || event.sitio_id !== sitioActual.id) {
+                return;
+            }
+
+            router.reload({
+                only: [
+                    'dispositivo',
+                    'dispositivos',
+                    'metricas',
+                    'datos_grafica',
+                    'datos_meteorologicos',
+                    'verificacion_meteorologica',
+                    'sinDispositivos',
+                ],
+            });
+        },
+        [sitioActual?.id],
+    );
 
     const handleDispositivoChange = (dispositivoId: string) => {
-        const params: any = { dispositivo_id: dispositivoId };
+        const params: Record<string, string> = {
+            dispositivo_id: dispositivoId,
+        };
 
         // Mantener el período actual si existe
         if (periodo) {
             params.periodo = periodo;
         }
 
-        // Si hay rango personalizado, mantener las fechas
-        if (mostrarRangoPersonalizado && fechaDesde && fechaHasta) {
-            params.periodo = 'personalizado';
-            params.fecha_desde = fechaDesde;
-            params.fecha_hasta = fechaHasta;
-        }
-
         router.get(dashboard().url, params);
     };
-
-    const handlePeriodoChange = (nuevoPeriodo: string) => {
-        if (nuevoPeriodo === 'personalizado') {
-            setMostrarRangoPersonalizado(true);
-            return;
-        }
-
-        setMostrarRangoPersonalizado(false);
-        router.get(dashboard().url, {
-            dispositivo_id: dispositivo?.id,
-            periodo: nuevoPeriodo,
-        });
-    };
-
-    const handleAplicarRangoPersonalizado = () => {
-        if (!fechaDesde || !fechaHasta) {
-            alert('Por favor selecciona ambas fechas');
-            return;
-        }
-
-        if (new Date(fechaDesde) > new Date(fechaHasta)) {
-            alert('La fecha de inicio debe ser anterior a la fecha de fin');
-            return;
-        }
-
-        router.get(dashboard().url, {
-            dispositivo_id: dispositivo?.id,
-            periodo: 'personalizado',
-            fecha_desde: fechaDesde,
-            fecha_hasta: fechaHasta,
-        });
-    };
-
 
     if (sinDispositivos) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Dashboard" />
                 <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                            No hay dispositivos configurados
-                        </h2>
-                        <p className="mt-2 text-gray-600 dark:text-gray-400">
-                            Configura un dispositivo para comenzar a monitorizar
-                        </p>
-                        {organizacionActual && sitioActual && (
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {organizacionActual.nombre} - {sitioActual.nombre}
+                    <div className="w-full max-w-2xl space-y-4 px-4">
+                        <div className="text-center">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                No hay dispositivos configurados
+                            </h2>
+                            <p className="mt-2 text-gray-600 dark:text-gray-400">
+                                Configura un dispositivo para comenzar a
+                                monitorizar
                             </p>
-                        )}
+                            {organizacionActual && sitioActual && (
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    {organizacionActual.nombre} -{' '}
+                                    {sitioActual.nombre}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </AppLayout>
         );
     }
-
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -275,6 +313,9 @@ export default function Dashboard({
                             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {sitioActual.nombre}
                             </span>
+                            <ConnectionStatusIndicator
+                                estadoConexion={metricas?.estado_conexion}
+                            />
                         </div>
                         <button
                             onClick={() => {
@@ -290,55 +331,35 @@ export default function Dashboard({
                 )}
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex items-center gap-2 mx-2 mb-2">
-                        <div className="relative flex h-3 w-3">
-                            <span
-                                className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${metricas?.estado_conexion === 'online'
-                                    ? 'bg-green-400'
-                                    : 'bg-red-400'
-                                    }`}
-                            />
-                            <span
-                                className={`relative inline-flex h-3 w-3 rounded-full ${metricas?.estado_conexion === 'online'
-                                    ? 'bg-green-500'
-                                    : 'bg-red-500'
-                                    }`}
-                            />
-                        </div>
-                        <span
-                            className={`text-xs font-medium sm:text-sm ${metricas?.estado_conexion === 'online'
-                                ? 'text-green-600 dark:text-green-400'
-                                : 'text-red-600 dark:text-red-400'
-                                }`}
-                        >
-                            {metricas?.estado_conexion === 'online' ? 'En línea' : 'Desconectado'}
-                        </span>
-                    </div>
-
-                    <div className="flex-1 space-y-0 mx-2 mb-2">
+                    <div className="mx-2 mb-2 flex-1 space-y-0">
                         {/* Selector de Dispositivos */}
-                        {dispositivos && dispositivos.length > 1 && dispositivo && (
-                            <div className="flex items-center gap-2">
-                                <Select
-                                    value={dispositivo.id.toString()}
-                                    onValueChange={handleDispositivoChange}
-                                >
-                                    <SelectTrigger className="w-[250px] h-9">
-                                        <div className="flex items-center gap-2">
-                                            <Zap className="h-4 w-4 text-blue-500" />
-                                            <SelectValue placeholder="Seleccionar dispositivo..." />
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dispositivos.map((d) => (
-                                            <SelectItem key={d.id} value={d.id.toString()}>
-                                                {d.nombre}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        {dispositivos &&
+                            dispositivos.length > 1 &&
+                            dispositivo && (
+                                <div className="flex items-center gap-2">
+                                    <Select
+                                        value={dispositivo.id.toString()}
+                                        onValueChange={handleDispositivoChange}
+                                    >
+                                        <SelectTrigger className="h-9 w-[250px]">
+                                            <div className="flex items-center gap-2">
+                                                <Zap className="h-4 w-4 text-blue-500" />
+                                                <SelectValue placeholder="Seleccionar dispositivo..." />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {dispositivos.map((d) => (
+                                                <SelectItem
+                                                    key={d.id}
+                                                    value={d.id.toString()}
+                                                >
+                                                    {d.nombre}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                     </div>
                 </div>
 
@@ -349,6 +370,9 @@ export default function Dashboard({
                             metricas={metricas}
                             datos_grafica={datos_grafica}
                             datos_meteorologicos={datos_meteorologicos}
+                            verificacion_meteorologica={
+                                verificacion_meteorologica
+                            }
                             dispositivo={dispositivo}
                             dispositivos={dispositivos}
                         />
@@ -361,6 +385,6 @@ export default function Dashboard({
                     )}
                 </div>
             </div>
-        </AppLayout >
+        </AppLayout>
     );
 }

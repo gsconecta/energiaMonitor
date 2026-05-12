@@ -57,6 +57,36 @@ class Sitio extends Model
         return $query->where('organizacion_id', $organizacionId);
     }
 
+    public function tieneCoordenadasMeteorologicas(): bool
+    {
+        return $this->latitud !== null && $this->longitud !== null;
+    }
+
+    public function tieneCodigoMunicipioAemet(): bool
+    {
+        return filled($this->codigo_municipio_aemet);
+    }
+
+    public function tieneConfiguracionMeteorologica(): bool
+    {
+        return $this->tieneCodigoMunicipioAemet();
+    }
+
+    public function camposConfiguracionMeteorologicaFaltantes(): array
+    {
+        if ($this->tieneConfiguracionMeteorologica()) {
+            return [];
+        }
+
+        $camposFaltantes = [];
+
+        if (! $this->tieneCodigoMunicipioAemet()) {
+            $camposFaltantes[] = 'codigo_municipio_aemet';
+        }
+
+        return $camposFaltantes;
+    }
+
     // Métodos útiles (mantener de Nave)
     public function ultimaLectura()
     {

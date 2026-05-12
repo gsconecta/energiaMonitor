@@ -47,6 +47,7 @@ class DashboardController extends Controller
         $periodo = $request->get('periodo', 'hoy');
         $fechaDesde = $request->get('fecha_desde');
         $fechaHasta = $request->get('fecha_hasta');
+        $verificacionMeteorologica = $this->obtenerVerificacionMeteorologica($organizacionActual, $sitioActual);
 
         // Función helper para crear la query base de dispositivos
         $crearQueryDispositivos = function () use ($sitioActualId) {
@@ -124,6 +125,7 @@ class DashboardController extends Controller
             return Inertia::render('Dashboard/Index', [
                 'sinDispositivos' => true,
                 'dispositivos' => [],
+                'verificacion_meteorologica' => $verificacionMeteorologica,
             ]);
         }
 
@@ -165,9 +167,9 @@ class DashboardController extends Controller
             ];
         })->values();
 
-        // Obtener datos meteorológicos si el sitio tiene coordenadas o código AEMET manual
+        // Obtener datos meteorológicos si el sitio tiene código AEMET manual
         $datosMeteorologicos = null;
-        if ($sitioActual && (($sitioActual->latitud && $sitioActual->longitud) || $sitioActual->codigo_municipio_aemet)) {
+        if ($sitioActual && $sitioActual->tieneConfiguracionMeteorologica()) {
             try {
                 // Usar PVGIS solo para radiación solar (más preciso)
                 // AEMET para el resto de datos del día actual (temperatura, viento, estado del cielo, salida/puesta del sol)
@@ -177,7 +179,7 @@ class DashboardController extends Controller
                 $datosMeteorologicos = [];
 
                 // Obtener radiación solar desde PVGIS (solo este dato)
-                if ($sitioActual->latitud && $sitioActual->longitud) {
+                if ($sitioActual->tieneCoordenadasMeteorologicas()) {
                     $datosPvgis = $pvgisService->obtenerDatosRadiacion(
                         $sitioActual->latitud,
                         $sitioActual->longitud
@@ -192,7 +194,7 @@ class DashboardController extends Controller
                 $codigoMunicipio = $sitioActual->codigo_municipio_aemet;
                 $codigoFuente = 'manual';
 
-                if (! $codigoMunicipio && $sitioActual->latitud && $sitioActual->longitud) {
+                if (! $codigoMunicipio && $sitioActual->tieneCoordenadasMeteorologicas()) {
                     $codigoMunicipio = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                         $sitioActual->latitud,
                         $sitioActual->longitud
@@ -204,7 +206,7 @@ class DashboardController extends Controller
                     $datosAemet = $aemetService->obtenerPrediccionMunicipio($codigoMunicipio);
 
                     // Si el código manual no funciona y hay coordenadas, intentar con el código calculado
-                    if (! $datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->latitud && $sitioActual->longitud) {
+                    if (! $datosAemet && $sitioActual->codigo_municipio_aemet && $sitioActual->tieneCoordenadasMeteorologicas()) {
                         $codigoCalculado = $aemetService->obtenerCodigoMunicipioDesdeCoordenadas(
                             $sitioActual->latitud,
                             $sitioActual->longitud
@@ -231,13 +233,13 @@ class DashboardController extends Controller
                     // Si AEMET no tiene salida/puesta del sol, calcular desde coordenadas
                     if (
                         (! isset($datosMeteorologicos['salida_sol']) || $datosMeteorologicos['salida_sol'] === null)
-                        && $sitioActual->latitud && $sitioActual->longitud
+                        && $sitioActual->tieneCoordenadasMeteorologicas()
                     ) {
                         $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
                         $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
                         $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
                     }
-                } elseif ($sitioActual->latitud && $sitioActual->longitud) {
+                } elseif ($sitioActual->tieneCoordenadasMeteorologicas()) {
                     // Si no hay código de municipio, al menos calcular salida/puesta del sol desde coordenadas
                     $sol = $this->calcularSalidaPuestaSol($sitioActual->latitud, $sitioActual->longitud);
                     $datosMeteorologicos['salida_sol'] = $sol['salida'] ?? null;
@@ -304,9 +306,25 @@ class DashboardController extends Controller
             'metricas' => $metricas,
             'datos_grafica' => $datosGrafica,
             'datos_meteorologicos' => $datosMeteorologicos,
+            'verificacion_meteorologica' => $verificacionMeteorologica,
             'periodo' => $periodo,
             'sinDispositivos' => false,
         ]);
+    }
+
+    private function obtenerVerificacionMeteorologica(Organizacion $organizacion, ?Sitio $sitio): array
+    {
+        $esResidencial = $organizacion->tipo_perfil === 'residencial';
+        $requiereConfiguracion = $esResidencial && $sitio && ! $sitio->tieneConfiguracionMeteorologica();
+
+        return [
+            'perfil_residencial' => $esResidencial,
+            'requiere_configuracion' => (bool) $requiereConfiguracion,
+            'campos_faltantes' => $requiereConfiguracion ? $sitio->camposConfiguracionMeteorologicaFaltantes() : [],
+            'sitio_id' => $sitio?->id,
+            'sitio_nombre' => $sitio?->nombre,
+            'edit_url' => $sitio ? route('sitios.edit', $sitio) : null,
+        ];
     }
 
     private function obtenerLecturas($dispositivo, $periodo, $fechaDesde = null, $fechaHasta = null)
