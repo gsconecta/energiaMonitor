@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sitio;
 use App\Models\Organizacion;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -129,7 +130,7 @@ class SitiosController extends Controller
     {
         $this->authorize('view', $sitio);
 
-        $sitio->load(['organizacion', 'dispositivos']);
+        $sitio->load(['organizacion', 'dispositivos.ultimaLecturaRelacion']);
 
         return Inertia::render('Sitios/Show', [
             'sitio' => [
@@ -145,14 +146,69 @@ class SitiosController extends Controller
                     'id' => $sitio->organizacion->id,
                     'nombre' => $sitio->organizacion->nombre,
                 ],
-                'dispositivos' => $sitio->dispositivos->map(fn($d) => [
-                    'id' => $d->id,
-                    'nombre' => $d->nombre,
-                    'tipo' => $d->tipo,
-                    'activo' => $d->activo,
-                ]),
+                'dispositivos' => $sitio->dispositivos->map(function ($d) {
+                    $ultimaLectura = $d->ultimaLecturaRelacion;
+                    $ultimaLectura?->setRelation('dispositivo', $d);
+
+                    return [
+                        'id' => $d->id,
+                        'nombre' => $d->nombre,
+                        'device_id' => $d->device_id,
+                        'activo' => $d->activo,
+                        'num_fases' => $d->num_fases,
+                        'nombre_canal_1' => $d->nombre_canal_1,
+                        'nombre_canal_2' => $d->nombre_canal_2,
+                        'nombre_canal_3' => $d->nombre_canal_3,
+                        'tipo_canal_1' => $d->tipo_canal_1,
+                        'tipo_canal_2' => $d->tipo_canal_2,
+                        'tipo_canal_3' => $d->tipo_canal_3,
+                        'color_canal_1' => $d->color_canal_1,
+                        'color_canal_2' => $d->color_canal_2,
+                        'color_canal_3' => $d->color_canal_3,
+                        'tiene_fotovoltaica' => $d->tieneFotovoltaica(),
+                        'estado_conexion' => $this->dispositivoEstaOnline($ultimaLectura?->fecha_lectura) ? 'online' : 'offline',
+                        'ultima_lectura' => $ultimaLectura ? [
+                            'fecha_lectura' => $ultimaLectura->fecha_lectura->toISOString(),
+                            'fecha_lectura_human' => $this->formatearEdadUltimaLectura($ultimaLectura->fecha_lectura),
+                            'potencia_total_w' => $ultimaLectura->potencia_total_w,
+                            'potencia_canal_1_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(1),
+                            'potencia_canal_2_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(2),
+                            'potencia_canal_3_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(3),
+                            'voltaje_canal_1' => $ultimaLectura->voltaje_canal_1,
+                            'voltaje_canal_2' => $ultimaLectura->voltaje_canal_2,
+                            'voltaje_canal_3' => $ultimaLectura->voltaje_canal_3,
+                            'energia_canal_1_kwh' => $ultimaLectura->energia_canal_1_kwh,
+                            'energia_canal_2_kwh' => $ultimaLectura->energia_canal_2_kwh,
+                            'energia_canal_3_kwh' => $ultimaLectura->energia_canal_3_kwh,
+                        ] : null,
+                    ];
+                }),
             ],
         ]);
+    }
+
+    private function dispositivoEstaOnline(?CarbonInterface $fechaLectura): bool
+    {
+        if (! $fechaLectura) {
+            return false;
+        }
+
+        return $fechaLectura->diffInMinutes(now()) < \App\Models\Dispositivo::ONLINE_THRESHOLD_MINUTES;
+    }
+
+    private function formatearEdadUltimaLectura(?CarbonInterface $fechaLectura): ?string
+    {
+        if (! $fechaLectura) {
+            return null;
+        }
+
+        $ahora = now();
+
+        if ($fechaLectura->greaterThan($ahora) || $fechaLectura->diffInSeconds($ahora) < 60) {
+            return 'hace menos de 1 minuto';
+        }
+
+        return $fechaLectura->diffForHumans($ahora);
     }
 
     /**

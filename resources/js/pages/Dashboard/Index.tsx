@@ -442,7 +442,6 @@ export default function Dashboard({
                                 verificacion_meteorologica
                             }
                             dispositivo={dispositivo}
-                            dispositivos={dispositivos}
                             periodoLabel={periodo_label}
                         />
                     ) : (
