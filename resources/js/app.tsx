@@ -1,11 +1,13 @@
 import 'leaflet/dist/leaflet.css';
 import '../css/app.css';
+import './register-service-worker';
 
 import { createInertiaApp } from '@inertiajs/react';
 import { configureEcho } from '@laravel/echo-react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { Toaster } from 'sonner';
+import InstallAppBanner from './components/install-app-banner';
 import { initializeTheme } from './hooks/use-appearance';
 
 configureEcho({
@@ -27,6 +29,7 @@ createInertiaApp({
         root.render(
             <>
                 <App {...props} />
+                <InstallAppBanner />
                 <Toaster />
             </>,
         );
