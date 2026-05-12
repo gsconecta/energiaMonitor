@@ -56,6 +56,7 @@ interface Metricas {
     carga_baterias_kwh: number;
     importacion_red_kwh: number;
     exportacion_red_kwh: number;
+    independencia_energetica_pct: number;
     estado_conexion: 'online' | 'offline';
     wifi_conectado: boolean;
     wifi_rssi: number | null;
@@ -168,6 +169,7 @@ interface Props {
     datos_meteorologicos?: DatosMeteorologicos | null;
     verificacion_meteorologica?: VerificacionMeteorologica | null;
     periodo: string;
+    periodo_label?: string;
     sinDispositivos: boolean;
 }
 
@@ -253,6 +255,7 @@ export default function Dashboard({
     datos_meteorologicos,
     verificacion_meteorologica,
     periodo,
+    periodo_label,
     sinDispositivos,
 }: Props) {
     const page = usePage();
@@ -285,6 +288,7 @@ export default function Dashboard({
                     'datos_grafica',
                     'datos_meteorologicos',
                     'verificacion_meteorologica',
+                    'periodo_label',
                     'sinDispositivos',
                 ],
             });
@@ -439,6 +443,7 @@ export default function Dashboard({
                             }
                             dispositivo={dispositivo}
                             dispositivos={dispositivos}
+                            periodoLabel={periodo_label}
                         />
                     ) : (
                         <DashboardIndustrial

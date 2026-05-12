@@ -47,6 +47,7 @@ class DashboardController extends Controller
         $periodo = $request->get('periodo', 'hoy');
         $fechaDesde = $request->get('fecha_desde');
         $fechaHasta = $request->get('fecha_hasta');
+        $periodoLabel = $this->resolverPeriodoLabel($periodo, $fechaDesde, $fechaHasta);
         $verificacionMeteorologica = $this->obtenerVerificacionMeteorologica($organizacionActual, $sitioActual);
 
         // Función helper para crear la query base de dispositivos
@@ -88,7 +89,7 @@ class DashboardController extends Controller
                     ],
                     'ultima_lectura' => $ultimaLectura ? [
                         'fecha_lectura' => $ultimaLectura->fecha_lectura->toISOString(),
-                        'fecha_lectura_human' => $ultimaLectura->fecha_lectura->diffForHumans(),
+                        'fecha_lectura_human' => $this->formatearEdadUltimaLectura($ultimaLectura->fecha_lectura),
                         'potencia_total_w' => $ultimaLectura->potencia_total_w,
                         'potencia_canal_1_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(1),
                         'potencia_canal_2_w' => $ultimaLectura->obtenerPotenciaCanalCorregida(2),
@@ -126,6 +127,8 @@ class DashboardController extends Controller
                 'sinDispositivos' => true,
                 'dispositivos' => [],
                 'verificacion_meteorologica' => $verificacionMeteorologica,
+                'periodo' => $periodo,
+                'periodo_label' => $periodoLabel,
             ]);
         }
 
@@ -302,8 +305,42 @@ class DashboardController extends Controller
             'datos_meteorologicos' => $datosMeteorologicos,
             'verificacion_meteorologica' => $verificacionMeteorologica,
             'periodo' => $periodo,
+            'periodo_label' => $periodoLabel,
             'sinDispositivos' => false,
         ]);
+    }
+
+    private function resolverPeriodoLabel(?string $periodo, ?string $fechaDesde = null, ?string $fechaHasta = null): string
+    {
+        if ($fechaDesde && $fechaHasta) {
+            $desde = \Carbon\Carbon::parse($fechaDesde)->format('d/m/Y');
+            $hasta = \Carbon\Carbon::parse($fechaHasta)->format('d/m/Y');
+
+            return $desde === $hasta ? $desde : "{$desde} - {$hasta}";
+        }
+
+        return match ($periodo) {
+            'hoy' => 'Hoy',
+            'ayer' => 'Ayer',
+            'semana' => 'Esta semana',
+            'mes' => 'Este mes',
+            default => 'Periodo',
+        };
+    }
+
+    private function formatearEdadUltimaLectura(?\Carbon\CarbonInterface $fechaLectura): ?string
+    {
+        if (! $fechaLectura) {
+            return null;
+        }
+
+        $ahora = now();
+
+        if ($fechaLectura->greaterThan($ahora) || $fechaLectura->diffInSeconds($ahora) < 60) {
+            return 'hace menos de 1 minuto';
+        }
+
+        return $fechaLectura->diffForHumans($ahora);
     }
 
     private function obtenerVerificacionMeteorologica(Organizacion $organizacion, ?Sitio $sitio): array
@@ -380,6 +417,7 @@ class DashboardController extends Controller
                 'carga_baterias_kwh' => 0,
                 'importacion_red_kwh' => 0,
                 'exportacion_red_kwh' => 0,
+                'independencia_energetica_pct' => 0,
                 'estado_conexion' => 'offline',
                 'wifi_conectado' => false,
                 'wifi_rssi' => null,
@@ -472,8 +510,45 @@ class DashboardController extends Controller
             }
         }
 
-        // Consumo de casa = Generación FV + Importación Red - Exportación
-        $energiaConsumoCasa = max(0, $energiaFotovoltaica + $energiaRed - $energiaRetornada);
+        $energiaIntegrada = $dispositivo->calcularEnergiaAcumulada($lecturas);
+        $generacionFotovoltaicaIntegrada = $energiaIntegrada['generacion_fotovoltaica_kwh'] ?? 0;
+        $importacionRedIntegrada = $energiaIntegrada['importacion_red_kwh'] ?? 0;
+        $exportacionRedIntegrada = $energiaIntegrada['exportacion_red_kwh'] ?? 0;
+        $consumoCasaIntegrado = $energiaIntegrada['consumo_casa_kwh'] ?? 0;
+
+        $usarFlujosIntegrados = $dispositivo->tieneFotovoltaica()
+            && $generacionFotovoltaicaIntegrada > 0
+            && ($energiaFotovoltaica <= 0 || $energiaRetornada > $generacionFotovoltaicaIntegrada);
+
+        if ($usarFlujosIntegrados) {
+            $energiaFotovoltaica = $generacionFotovoltaicaIntegrada;
+            $energiaRed = $importacionRedIntegrada;
+            $energiaRetornada = $exportacionRedIntegrada;
+            $energiaConsumoCasa = $consumoCasaIntegrado;
+        } else {
+            if ($energiaFotovoltaica <= 0 && $generacionFotovoltaicaIntegrada > 0) {
+                $energiaFotovoltaica = $generacionFotovoltaicaIntegrada;
+            }
+
+            if ($energiaRed <= 0 && $importacionRedIntegrada > 0) {
+                $energiaRed = $importacionRedIntegrada;
+            }
+
+            if ($energiaRetornada <= 0 && $exportacionRedIntegrada > 0) {
+                $energiaRetornada = $exportacionRedIntegrada;
+            }
+
+            // Consumo de casa = Generación FV + Importación Red - Exportación
+            $energiaConsumoCasa = max(0, $energiaFotovoltaica + $energiaRed - $energiaRetornada);
+        }
+
+        if ($energiaConsumoCasa <= 0 && $consumoCasaIntegrado > 0) {
+            $energiaConsumoCasa = $consumoCasaIntegrado;
+        }
+
+        $independenciaEnergetica = $energiaConsumoCasa > 0
+            ? max(0, min(100, (1 - ($energiaRed / $energiaConsumoCasa)) * 100))
+            : 0;
 
         return [
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
@@ -511,15 +586,16 @@ class DashboardController extends Controller
             'consumo_casa_kwh' => round($energiaConsumoCasa, 2),
             'exportacion_neta_kwh' => round($energiaRetornada, 2),
             'generacion_fotovoltaica_kwh' => round($energiaFotovoltaica, 2),
-            'carga_baterias_kwh' => 0, // Not implemented yet via accumulators
+            'carga_baterias_kwh' => round($energiaIntegrada['carga_baterias_kwh'] ?? 0, 2),
             'importacion_red_kwh' => round($energiaRed, 2),
             'exportacion_red_kwh' => round($energiaRetornada, 2),
+            'independencia_energetica_pct' => round($independenciaEnergetica, 1),
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
             'wifi_conectado' => $wifiConectado,
             'wifi_rssi' => $wifiRssi,
             'uptime_segundos' => $uptimeSegundos,
             'ultima_actualizacion' => $ultimaLectura->fecha_lectura?->toISOString(),
-            'ultima_actualizacion_human' => $ultimaLectura->fecha_lectura?->diffForHumans(),
+            'ultima_actualizacion_human' => $this->formatearEdadUltimaLectura($ultimaLectura->fecha_lectura),
             'numero_lecturas' => $lecturas->count(),
             'produccion_fotovoltaica_actual_kw' => round($produccionFotovoltaicaActual / 1000, 2),
             'red_electrica_actual_kw' => round($redElectricaActual / 1000, 2),

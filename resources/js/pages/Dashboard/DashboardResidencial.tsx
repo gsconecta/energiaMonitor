@@ -22,6 +22,7 @@ interface MetricasResidenciales {
     energia_retornada_kwh: number;
     red_electrica_actual_kw: number;
     exportacion_actual_kw: number;
+    independencia_energetica_pct: number;
 }
 
 interface DatosGraficaResidenciales {
@@ -87,6 +88,7 @@ interface DashboardResidencialProps {
     verificacion_meteorologica?: VerificacionMeteorologica | null;
     dispositivo?: DispositivoResidencial;
     dispositivos?: DispositivoResidencial[];
+    periodoLabel?: string;
 }
 
 const etiquetasCamposMeteorologicos: Record<string, string> = {
@@ -155,20 +157,10 @@ export default function DashboardResidencial({
     verificacion_meteorologica,
     dispositivo,
     dispositivos,
+    periodoLabel = 'Periodo',
 }: DashboardResidencialProps) {
-    // Calculamos la independencia energética (autoconsumo)
-    // Formula simple: (Generado - Exportado) / Consumo Casa
-    // O más simple si consumimos directo: 1 - (Importado / Consumo Casa)
-    const consumoCasa = metricas?.consumo_casa_kwh || 0;
-    const importacionRed = metricas?.importacion_red_kwh || 0;
-
-    let independenciaEnergética = 0;
-    if (consumoCasa > 0) {
-        independenciaEnergética = Math.max(
-            0,
-            Math.min(100, (1 - importacionRed / consumoCasa) * 100),
-        );
-    }
+    const independenciaEnergetica =
+        metricas?.independencia_energetica_pct ?? 0;
 
     return (
         <div className="flex w-full flex-col gap-4">
@@ -199,7 +191,7 @@ export default function DashboardResidencial({
                     <>
                         <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Generación Solar (Periodo)
+                                Generación Solar ({periodoLabel})
                             </p>
                             <p className="mt-2 text-2xl font-bold text-yellow-500">
                                 {metricas?.generacion_fotovoltaica_kwh || 0} kWh
@@ -207,7 +199,7 @@ export default function DashboardResidencial({
                         </div>
                         <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Energía Retornada (Periodo)
+                                Energía Retornada ({periodoLabel})
                             </p>
                             <p className="mt-2 text-2xl font-bold text-purple-500">
                                 {metricas?.energia_retornada_kwh || 0} kWh
@@ -215,17 +207,17 @@ export default function DashboardResidencial({
                         </div>
                         <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Independencia (Periodo)
+                                Independencia ({periodoLabel})
                             </p>
                             <p className="mt-2 text-2xl font-bold text-green-500">
-                                {independenciaEnergética.toFixed(1)}%
+                                {independenciaEnergetica.toFixed(1)}%
                             </p>
                         </div>
                     </>
                 ) : (
                     <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Consumo de Red (Periodo)
+                            Consumo de Red ({periodoLabel})
                         </p>
                         <p className="mt-2 text-2xl font-bold text-indigo-500">
                             {metricas?.importacion_red_kwh || 0} kWh
