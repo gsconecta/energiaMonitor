@@ -41,3 +41,18 @@ it('prioriza una experiencia de app de consumo electrico en movil', function () 
         ->and($source)->toContain('mobile-chart-panel')
         ->and($source)->toContain('Hoy');
 });
+
+it('muestra la hoja verde antes del titulo de independencia energetica', function () {
+    $source = file_get_contents(base_path('resources/js/components/FlujoEnergetico.tsx'));
+
+    $leafPosition = strpos($source, '<Leaf');
+    $titlePosition = $leafPosition === false
+        ? false
+        : strpos($source, 'Independencia Energ', $leafPosition);
+
+    expect($leafPosition)->not->toBeFalse()
+        ->and($titlePosition)->not->toBeFalse()
+        ->and($leafPosition)->toBeLessThan($titlePosition)
+        ->and($source)->toContain('text-green-500')
+        ->and($source)->toContain('dark:text-green-300');
+});

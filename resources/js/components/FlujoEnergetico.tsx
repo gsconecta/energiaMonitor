@@ -1,4 +1,4 @@
-import { HandCoins, Sun, Zap } from 'lucide-react';
+import { HandCoins, Leaf, Sun, Zap } from 'lucide-react';
 
 interface Props {
     produccionSolar: number; // kW
@@ -74,9 +74,15 @@ export default function FlujoEnergetico({
         <div className="mobile-app-section mx-auto w-full max-w-[500px] rounded-[1.75rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-sidebar-border/70 sm:p-6 dark:bg-gray-900 dark:shadow-none dark:sm:border-sidebar-border dark:sm:bg-gray-800">
             {/* Título Independencia Energética */}
             <div className="mb-4 text-center sm:mb-6">
-                <h3 className="text-xl font-bold text-green-600 sm:text-2xl dark:text-green-500">
-                    Independencia Energética{' '}
-                    {independenciaEnergetica.toFixed(0)}%
+                <h3 className="inline-flex items-center justify-center gap-2 text-xl font-bold text-green-600 sm:text-2xl dark:text-green-500">
+                    <Leaf
+                        className="h-6 w-6 shrink-0 text-green-500 sm:h-7 sm:w-7 dark:text-green-300"
+                        aria-hidden="true"
+                    />
+                    <span>
+                        Independencia Energética{' '}
+                        {independenciaEnergetica.toFixed(0)}%
+                    </span>
                 </h3>
             </div>
 
