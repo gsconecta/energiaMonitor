@@ -1,18 +1,26 @@
-import { Sun, Cloud, CloudRain, Wind, Sunrise, Sunset, CloudSun } from 'lucide-react';
+import {
+    Cloud,
+    CloudRain,
+    CloudSun,
+    Sun,
+    Sunrise,
+    Sunset,
+    Wind,
+} from 'lucide-react';
 import { useMemo } from 'react';
 
 interface DatosMeteorologicos {
-    temperatura_actual: number | null;
-    temperatura_maxima: number | null;
-    temperatura_minima: number | null;
-    viento_velocidad: number | null;
-    viento_direccion: string | null;
-    radiacion_solar: number | null;
-    salida_sol: string | null;
-    puesta_sol: string | null;
-    estado_cielo: string | null;
-    estado_cielo_codigo: string | null;
-    fecha_actualizacion: string | null;
+    temperatura_actual?: number | null;
+    temperatura_maxima?: number | null;
+    temperatura_minima?: number | null;
+    viento_velocidad?: number | null;
+    viento_direccion?: string | null;
+    radiacion_solar?: number | null;
+    salida_sol?: string | null;
+    puesta_sol?: string | null;
+    estado_cielo?: string | null;
+    estado_cielo_codigo?: string | null;
+    fecha_actualizacion?: string | null;
 }
 
 interface Props {
@@ -76,7 +84,7 @@ export default function DatosMeteorologicos({ datos }: Props) {
     const { Icon: IconoEstado, color: colorIcono } = obtenerIconoEstado;
 
     // Formatear hora (HH:mm)
-    const formatearHora = (hora: string | null): string => {
+    const formatearHora = (hora?: string | null): string => {
         if (!hora) return '--:--';
         // Si viene en formato ISO o con más información, extraer solo la hora
         const match = hora.match(/(\d{2}):(\d{2})/);
@@ -87,21 +95,22 @@ export default function DatosMeteorologicos({ datos }: Props) {
     };
 
     // Formatear dirección del viento
-    const formatearDireccionViento = (direccion: string | null): string => {
+    const formatearDireccionViento = (direccion?: string | null): string => {
         if (!direccion) return '';
         // AEMET puede devolver direcciones como "N", "NE", "E", etc.
         return direccion;
     };
 
     // Verificar si hay algún dato disponible
-    const tieneDatos = datos.temperatura_actual !== null ||
-        datos.temperatura_maxima !== null ||
-        datos.temperatura_minima !== null ||
-        datos.viento_velocidad !== null ||
-        datos.radiacion_solar !== null ||
-        datos.salida_sol !== null ||
-        datos.puesta_sol !== null ||
-        datos.estado_cielo !== null;
+    const tieneDatos =
+        datos.temperatura_actual != null ||
+        datos.temperatura_maxima != null ||
+        datos.temperatura_minima != null ||
+        datos.viento_velocidad != null ||
+        datos.radiacion_solar != null ||
+        datos.salida_sol != null ||
+        datos.puesta_sol != null ||
+        datos.estado_cielo != null;
 
     return (
         <div className="mx-auto w-full max-w-[500px] rounded-lg border border-sidebar-border/70 bg-white p-6 dark:border-sidebar-border dark:bg-gray-800">
@@ -124,8 +133,8 @@ export default function DatosMeteorologicos({ datos }: Props) {
                             {datos.estado_cielo}
                         </p>
                     )}
-                    {!datos.estado_cielo && datos.radiacion_solar !== null && (
-                        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400 italic">
+                    {!datos.estado_cielo && datos.radiacion_solar != null && (
+                        <p className="mt-3 text-xs text-gray-500 italic dark:text-gray-400">
                             Promedio histórico
                         </p>
                     )}
@@ -140,19 +149,23 @@ export default function DatosMeteorologicos({ datos }: Props) {
                         </p>
                         <div className="mt-2 flex items-center justify-center gap-2">
                             <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
-                                {datos.temperatura_actual !== null
+                                {datos.temperatura_actual != null
                                     ? `${datos.temperatura_actual}°C`
                                     : '--°C'}
                             </p>
                         </div>
-                        {(datos.temperatura_maxima !== null ||
-                            datos.temperatura_minima !== null) && (
+                        {(datos.temperatura_maxima != null ||
+                            datos.temperatura_minima != null) && (
                             <div className="mt-2 flex justify-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                                {datos.temperatura_maxima !== null && (
-                                    <span>Máx: {datos.temperatura_maxima}°C</span>
+                                {datos.temperatura_maxima != null && (
+                                    <span>
+                                        Máx: {datos.temperatura_maxima}°C
+                                    </span>
                                 )}
-                                {datos.temperatura_minima !== null && (
-                                    <span>Mín: {datos.temperatura_minima}°C</span>
+                                {datos.temperatura_minima != null && (
+                                    <span>
+                                        Mín: {datos.temperatura_minima}°C
+                                    </span>
                                 )}
                             </div>
                         )}
@@ -167,13 +180,15 @@ export default function DatosMeteorologicos({ datos }: Props) {
                             </p>
                         </div>
                         <p className="mt-2 text-xl font-bold text-gray-900 dark:text-gray-100">
-                            {datos.viento_velocidad !== null
+                            {datos.viento_velocidad != null
                                 ? `${datos.viento_velocidad} km/h`
                                 : '-- km/h'}
                         </p>
                         {datos.viento_direccion && (
                             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                {formatearDireccionViento(datos.viento_direccion)}
+                                {formatearDireccionViento(
+                                    datos.viento_direccion,
+                                )}
                             </p>
                         )}
                     </div>
@@ -187,11 +202,13 @@ export default function DatosMeteorologicos({ datos }: Props) {
                             </p>
                         </div>
                         <p className="mt-2 text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                            {datos.radiacion_solar !== null
+                            {datos.radiacion_solar != null
                                 ? `${datos.radiacion_solar}`
                                 : '--'}
                         </p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">UV Max</p>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            UV Max
+                        </p>
                     </div>
 
                     {/* Salida del sol */}

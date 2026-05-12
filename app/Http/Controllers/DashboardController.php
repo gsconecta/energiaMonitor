@@ -246,9 +246,8 @@ class DashboardController extends Controller
                     $datosMeteorologicos['puesta_sol'] = $sol['puesta'] ?? null;
                 }
 
-                // Si no hay datos de ninguna fuente, crear estructura vacía
-                if (! $datosMeteorologicos) {
-                    $datosMeteorologicos = [
+                $datosMeteorologicos = array_merge(
+                    [
                         'temperatura_actual' => null,
                         'temperatura_maxima' => null,
                         'temperatura_minima' => null,
@@ -260,16 +259,11 @@ class DashboardController extends Controller
                         'estado_cielo' => null,
                         'estado_cielo_codigo' => null,
                         'fecha_actualizacion' => now()->toISOString(),
-                    ];
-                } else {
-                    // Asegurar que todos los campos estén presentes
-                    $datosMeteorologicos['temperatura_maxima'] = $datosMeteorologicos['temperatura_maxima'] ?? null;
-                    $datosMeteorologicos['temperatura_minima'] = $datosMeteorologicos['temperatura_minima'] ?? null;
-                    $datosMeteorologicos['viento_direccion'] = $datosMeteorologicos['viento_direccion'] ?? null;
-                    $datosMeteorologicos['estado_cielo'] = $datosMeteorologicos['estado_cielo'] ?? null;
-                    $datosMeteorologicos['estado_cielo_codigo'] = $datosMeteorologicos['estado_cielo_codigo'] ?? null;
-                    $datosMeteorologicos['fecha_actualizacion'] = $datosMeteorologicos['fecha_actualizacion'] ?? now()->toISOString();
-                }
+                    ],
+                    $datosMeteorologicos ?: []
+                );
+
+                $datosMeteorologicos['fecha_actualizacion'] ??= now()->toISOString();
             } catch (\Exception $e) {
                 // Silenciar errores de AEMET para no afectar el dashboard
                 \Log::warning('Error al obtener datos meteorológicos', [
