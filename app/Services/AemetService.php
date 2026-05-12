@@ -11,6 +11,19 @@ class AemetService
     private const BASE_URL = 'https://opendata.aemet.es/opendata/api';
     private const CACHE_MUNICIPIOS_TTL = 86400; // 24 horas
     private const CACHE_PREDICCION_TTL = 3600; // 1 hora
+    private const HTTP_RETRY_ATTEMPTS = 5;
+    private const HTTP_RETRY_SLEEP_MS = 500;
+
+    private function aemetHttp()
+    {
+        return Http::withOptions([
+            'curl' => [
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            ],
+        ])
+            ->retry(self::HTTP_RETRY_ATTEMPTS, self::HTTP_RETRY_SLEEP_MS)
+            ->timeout(30);
+    }
 
     /**
      * Obtiene información del municipio desde coordenadas usando Nominatim (OpenStreetMap)
@@ -305,7 +318,7 @@ class AemetService
                 }
 
                 // Usar el endpoint de predicción horaria que incluye datos de salida/puesta del sol
-                $response = Http::timeout(30)
+                $response = $this->aemetHttp()
                     ->get(self::BASE_URL . "/prediccion/especifica/municipio/horaria/{$codigoMunicipio}", [
                         'api_key' => $apiKey,
                     ]);
@@ -325,7 +338,7 @@ class AemetService
                 }
 
                 // Segunda petición: obtener los datos reales
-                $datosResponse = Http::timeout(30)->get($data['datos']);
+                $datosResponse = $this->aemetHttp()->get($data['datos']);
 
                 if (!$datosResponse->successful()) {
                     Log::warning('Error al obtener datos de predicción horaria AEMET', [
@@ -469,7 +482,7 @@ class AemetService
     {
         try {
             // Primera petición: obtener URL de los datos
-            $response = Http::timeout(30)
+            $response = $this->aemetHttp()
                 ->get(self::BASE_URL . "/prediccion/especifica/municipio/diaria/{$codigoMunicipio}", [
                     'api_key' => $apiKey,
                 ]);
@@ -522,7 +535,7 @@ class AemetService
             }
 
             // Segunda petición: obtener los datos reales
-            $datosResponse = Http::timeout(30)->get($data['datos']);
+            $datosResponse = $this->aemetHttp()->get($data['datos']);
 
             if (!$datosResponse->successful()) {
                 Log::error('Error al obtener datos de AEMET', [
@@ -594,7 +607,7 @@ class AemetService
                 ]);
 
                 // Primera petición: obtener URL de los datos
-                $response = Http::timeout(30)
+                $response = $this->aemetHttp()
                     ->get(self::BASE_URL . '/maestro/municipios', [
                         'api_key' => $apiKey,
                     ]);
@@ -621,7 +634,7 @@ class AemetService
                 }
 
                 // Segunda petición: obtener los datos reales
-                $datosResponse = Http::timeout(30)->get($data['datos']);
+                $datosResponse = $this->aemetHttp()->get($data['datos']);
 
                 if (!$datosResponse->successful()) {
                     Log::error('Error al obtener datos del catálogo AEMET', [

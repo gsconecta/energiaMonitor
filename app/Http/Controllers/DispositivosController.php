@@ -351,10 +351,10 @@ class DispositivosController extends Controller
                 '--dispositivo' => $dispositivo->id,
             ]);
 
-            return redirect()->route('dispositivos.index')
+            return redirect()->back()
                 ->with('success', 'Dispositivo sincronizado correctamente');
         } catch (\Exception $e) {
-            return redirect()->route('dispositivos.index')
+            return redirect()->back()
                 ->with('error', 'Error al sincronizar el dispositivo: '.$e->getMessage());
         }
     }

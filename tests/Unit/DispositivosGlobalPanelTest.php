@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\DashboardLecturaActualizada;
 use App\Models\Dispositivo;
 use App\Models\Lectura;
 use App\Models\Organizacion;
@@ -7,6 +8,7 @@ use App\Models\Sitio;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -90,6 +92,8 @@ beforeEach(function () {
         $table->decimal('potencia_total_w', 10, 2)->nullable();
         $table->timestamps();
     });
+
+    Event::fake([DashboardLecturaActualizada::class]);
 });
 
 afterEach(function () {
@@ -279,6 +283,7 @@ it('allows updating and syncing any device in global panel mode', function () {
         ->with('shelly:obtener-lecturas', ['--dispositivo' => $dispositivo->id]);
 
     $this->actingAs($user)
+        ->from(route('dashboard'))
         ->post("/dispositivos/{$dispositivo->id}/sincronizar")
-        ->assertRedirect(route('dispositivos.index'));
+        ->assertRedirect(route('dashboard'));
 });

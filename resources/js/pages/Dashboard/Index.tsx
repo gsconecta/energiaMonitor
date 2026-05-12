@@ -11,6 +11,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { Building2, MapPin, RefreshCw, Zap } from 'lucide-react';
+import { useState } from 'react';
 import DashboardIndustrial from './DashboardIndustrial';
 import DashboardResidencial from './DashboardResidencial';
 
@@ -180,9 +181,15 @@ type DashboardLecturaActualizadaEvent = {
 function ConnectionStatusIndicator({
     estadoConexion,
     ultimaActualizacionHuman,
+    onLecturaManual,
+    puedeRealizarLecturaManual = false,
+    sincronizandoLecturaManual = false,
 }: {
     estadoConexion?: 'online' | 'offline';
     ultimaActualizacionHuman?: string | null;
+    onLecturaManual?: () => void;
+    puedeRealizarLecturaManual?: boolean;
+    sincronizandoLecturaManual?: boolean;
 }) {
     const isOnline = estadoConexion === 'online';
 
@@ -214,6 +221,26 @@ function ConnectionStatusIndicator({
                     · {ultimaActualizacionHuman}
                 </span>
             )}
+            {puedeRealizarLecturaManual && (
+                <button
+                    type="button"
+                    onClick={onLecturaManual}
+                    disabled={sincronizandoLecturaManual}
+                    className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                        sincronizandoLecturaManual
+                            ? 'cursor-not-allowed text-gray-400'
+                            : 'text-indigo-600'
+                    }`}
+                    title="Realizar lectura manual"
+                    aria-label="Realizar lectura manual"
+                >
+                    <RefreshCw
+                        className={`h-3.5 w-3.5 ${
+                            sincronizandoLecturaManual ? 'animate-spin' : ''
+                        }`}
+                    />
+                </button>
+            )}
         </div>
     );
 }
@@ -232,6 +259,8 @@ export default function Dashboard({
     const pageProps = page.props as Partial<SharedProps>;
     const organizacionActual = pageProps.organizacion_actual;
     const sitioActual = pageProps.sitio_actual;
+    const [sincronizandoLecturaManual, setSincronizandoLecturaManual] =
+        useState(false);
 
     // Determinar el perfil de la organización activa
     const tipoPerfil = organizacionActual?.tipo_perfil || 'industrial';
@@ -274,6 +303,24 @@ export default function Dashboard({
         }
 
         router.get(dashboard().url, params);
+    };
+
+    const handleLecturaManual = () => {
+        if (!dispositivo || sincronizandoLecturaManual) {
+            return;
+        }
+
+        setSincronizandoLecturaManual(true);
+        router.post(
+            `/dispositivos/${dispositivo.id}/sincronizar`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setSincronizandoLecturaManual(false);
+                },
+            },
+        );
     };
 
     if (sinDispositivos) {
@@ -324,6 +371,13 @@ export default function Dashboard({
                                 estadoConexion={metricas?.estado_conexion}
                                 ultimaActualizacionHuman={
                                     metricas?.ultima_actualizacion_human
+                                }
+                                onLecturaManual={handleLecturaManual}
+                                puedeRealizarLecturaManual={Boolean(
+                                    dispositivo,
+                                )}
+                                sincronizandoLecturaManual={
+                                    sincronizandoLecturaManual
                                 }
                             />
                         </div>

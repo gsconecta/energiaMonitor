@@ -10,6 +10,12 @@ it('renders the connection status in the dashboard context row', function () {
         ->toContain('ultimaActualizacionHuman')
         ->toContain('metricas?.ultima_actualizacion_human')
         ->toContain('{ultimaActualizacionHuman && (')
+        ->toContain('onLecturaManual={handleLecturaManual}')
+        ->toContain('sincronizandoLecturaManual={')
+        ->toContain('disabled={sincronizandoLecturaManual}')
+        ->toContain('title="Realizar lectura manual"')
+        ->toContain('aria-label="Realizar lectura manual"')
+        ->toContain('`/dispositivos/${dispositivo.id}/sincronizar`')
         ->not->toContain('<div className="mx-2 mb-2 flex items-center gap-2">');
 });
 
