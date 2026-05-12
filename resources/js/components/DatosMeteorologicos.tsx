@@ -113,9 +113,9 @@ export default function DatosMeteorologicos({ datos }: Props) {
         datos.estado_cielo != null;
 
     return (
-        <div className="mx-auto w-full max-w-[500px] rounded-lg border border-sidebar-border/70 bg-white p-6 dark:border-sidebar-border dark:bg-gray-800">
+        <div className="mobile-app-section mx-auto w-full max-w-[500px] rounded-[1.75rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-sidebar-border/70 sm:p-6 dark:bg-gray-900 dark:shadow-none dark:sm:border-sidebar-border dark:sm:bg-gray-800">
             {/* Título */}
-            <div className="mb-6 text-center">
+            <div className="mb-4 text-center sm:mb-6">
                 {!tieneDatos && (
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                         No hay datos disponibles para este municipio
@@ -124,10 +124,12 @@ export default function DatosMeteorologicos({ datos }: Props) {
             </div>
 
             {/* Contenedor principal */}
-            <div className="relative flex min-h-[450px] flex-col items-center justify-between py-4">
+            <div className="relative flex min-h-[360px] flex-col items-center justify-between py-3 sm:min-h-[450px] sm:py-4">
                 {/* Icono de estado del cielo grande en el centro superior */}
-                <div className="mb-8 flex flex-col items-center">
-                    <IconoEstado className={`h-24 w-24 ${colorIcono}`} />
+                <div className="mb-6 flex flex-col items-center sm:mb-8">
+                    <IconoEstado
+                        className={`h-16 w-16 sm:h-24 sm:w-24 ${colorIcono}`}
+                    />
                     {datos.estado_cielo && (
                         <p className="mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
                             {datos.estado_cielo}
@@ -141,14 +143,14 @@ export default function DatosMeteorologicos({ datos }: Props) {
                 </div>
 
                 {/* Grid de datos meteorológicos */}
-                <div className="grid w-full grid-cols-2 gap-4">
+                <div className="grid w-full grid-cols-2 gap-3 sm:gap-4">
                     {/* Temperatura actual - destacada */}
-                    <div className="col-span-2 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                    <div className="col-span-2 rounded-2xl bg-blue-50 p-4 sm:rounded-lg dark:bg-blue-900/20">
                         <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-400">
                             Temperatura
                         </p>
                         <div className="mt-2 flex items-center justify-center gap-2">
-                            <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                            <p className="text-3xl font-bold text-blue-600 sm:text-4xl dark:text-blue-400">
                                 {datos.temperatura_actual != null
                                     ? `${datos.temperatura_actual}°C`
                                     : '--°C'}
@@ -172,14 +174,14 @@ export default function DatosMeteorologicos({ datos }: Props) {
                     </div>
 
                     {/* Viento */}
-                    <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <div className="rounded-2xl bg-gray-50 p-3 sm:rounded-lg sm:p-4 dark:bg-gray-800/70">
                         <div className="flex items-center gap-2">
                             <Wind className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 Viento
                             </p>
                         </div>
-                        <p className="mt-2 text-xl font-bold text-gray-900 dark:text-gray-100">
+                        <p className="mt-2 text-lg font-bold text-gray-900 sm:text-xl dark:text-gray-100">
                             {datos.viento_velocidad != null
                                 ? `${datos.viento_velocidad} km/h`
                                 : '-- km/h'}
@@ -194,14 +196,14 @@ export default function DatosMeteorologicos({ datos }: Props) {
                     </div>
 
                     {/* Radiación solar */}
-                    <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                    <div className="rounded-2xl bg-yellow-50 p-3 sm:rounded-lg sm:p-4 dark:bg-yellow-900/20">
                         <div className="flex items-center gap-2">
                             <Sun className="h-5 w-5 text-yellow-500" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 Radiación
                             </p>
                         </div>
-                        <p className="mt-2 text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                        <p className="mt-2 text-lg font-bold text-yellow-600 sm:text-xl dark:text-yellow-400">
                             {datos.radiacion_solar != null
                                 ? `${datos.radiacion_solar}`
                                 : '--'}
@@ -212,27 +214,27 @@ export default function DatosMeteorologicos({ datos }: Props) {
                     </div>
 
                     {/* Salida del sol */}
-                    <div className="rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
+                    <div className="rounded-2xl bg-orange-50 p-3 sm:rounded-lg sm:p-4 dark:bg-orange-900/20">
                         <div className="flex items-center gap-2">
                             <Sunrise className="h-5 w-5 text-orange-500" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 Salida
                             </p>
                         </div>
-                        <p className="mt-2 text-xl font-bold text-orange-600 dark:text-orange-400">
+                        <p className="mt-2 text-lg font-bold text-orange-600 sm:text-xl dark:text-orange-400">
                             {formatearHora(datos.salida_sol)}
                         </p>
                     </div>
 
                     {/* Puesta del sol */}
-                    <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
+                    <div className="rounded-2xl bg-purple-50 p-3 sm:rounded-lg sm:p-4 dark:bg-purple-900/20">
                         <div className="flex items-center gap-2">
                             <Sunset className="h-5 w-5 text-purple-500" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 Puesta
                             </p>
                         </div>
-                        <p className="mt-2 text-xl font-bold text-purple-600 dark:text-purple-400">
+                        <p className="mt-2 text-lg font-bold text-purple-600 sm:text-xl dark:text-purple-400">
                             {formatearHora(datos.puesta_sol)}
                         </p>
                     </div>

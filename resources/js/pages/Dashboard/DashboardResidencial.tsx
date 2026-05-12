@@ -4,7 +4,16 @@ import FlujoEnergetico from '@/components/FlujoEnergetico';
 import ProduccionFotovoltaicaChart from '@/components/ProduccionFotovoltaicaChart';
 import { Button } from '@/components/ui/button';
 import { Link } from '@inertiajs/react';
-import { Activity, ArrowRight, CloudSun } from 'lucide-react';
+import {
+    Activity,
+    ArrowRight,
+    CloudSun,
+    HandCoins,
+    Leaf,
+    Sun,
+    Zap,
+    type LucideIcon,
+} from 'lucide-react';
 
 interface VerificacionMeteorologica {
     requiere_configuracion: boolean;
@@ -97,6 +106,231 @@ const etiquetasCamposMeteorologicos: Record<string, string> = {
     codigo_municipio_aemet: 'Código Municipio AEMET',
 };
 
+const metricToneClasses = {
+    solar: {
+        icon: 'text-yellow-500 dark:text-yellow-300',
+        value: 'text-yellow-500 dark:text-yellow-300',
+    },
+    home: {
+        icon: 'text-gray-900 dark:text-gray-100',
+        value: 'text-gray-900 dark:text-gray-100',
+    },
+    export: {
+        icon: 'text-green-500 dark:text-green-300',
+        value: 'text-green-500 dark:text-green-300',
+    },
+    independence: {
+        icon: 'text-green-500 dark:text-green-300',
+        value: 'text-green-500 dark:text-green-300',
+    },
+    grid: {
+        icon: 'text-indigo-500 dark:text-indigo-300',
+        value: 'text-indigo-500 dark:text-indigo-300',
+    },
+};
+
+type MetricTone = keyof typeof metricToneClasses;
+
+function formatDashboardNumber(value: number, maximumFractionDigits = 2) {
+    return value.toLocaleString('es-ES', { maximumFractionDigits });
+}
+
+function MetricCard({
+    label,
+    value,
+    unit,
+    icon: Icon,
+    imageSrc,
+    tone,
+}: {
+    label: string;
+    value: string | number;
+    unit: string;
+    icon?: LucideIcon;
+    imageSrc?: string;
+    tone: MetricTone;
+}) {
+    const classes = metricToneClasses[tone];
+
+    return (
+        <div
+            className="min-h-[112px] w-full max-w-[170px] p-2"
+            aria-label={label}
+            title={label}
+        >
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                <span
+                    className={`inline-flex shrink-0 items-center justify-center ${classes.icon}`}
+                >
+                    {imageSrc ? (
+                        <img
+                            src={imageSrc}
+                            alt=""
+                            className="h-14 w-14 object-contain"
+                            aria-hidden="true"
+                        />
+                    ) : (
+                        Icon && (
+                            <Icon className="h-14 w-14" aria-hidden="true" />
+                        )
+                    )}
+                </span>
+                <span className="sr-only">{label}</span>
+                <p
+                    className={`min-w-0 text-3xl font-bold tabular-nums ${classes.value}`}
+                >
+                    {value}
+                    <span className="ml-1 text-base font-semibold text-gray-500 dark:text-gray-400">
+                        {unit}
+                    </span>
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function MobileEnergyStat({
+    label,
+    value,
+    unit,
+    icon: Icon,
+    tone,
+}: {
+    label: string;
+    value: string | number;
+    unit: string;
+    icon: LucideIcon;
+    tone: MetricTone;
+}) {
+    const classes = metricToneClasses[tone];
+
+    return (
+        <div className="rounded-2xl bg-slate-50 p-3 dark:bg-gray-800/70">
+            <Icon
+                className={`mb-3 h-7 w-7 ${classes.icon}`}
+                aria-hidden="true"
+            />
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {label}
+            </p>
+            <p
+                className={`mt-1 text-lg font-bold tabular-nums ${classes.value}`}
+            >
+                {value}
+                <span className="ml-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {unit}
+                </span>
+            </p>
+        </div>
+    );
+}
+
+function MobileEnergyOverview({
+    metricas,
+    tieneFotovoltaica,
+    periodoLabel,
+    independenciaEnergetica,
+}: {
+    metricas?: MetricasResidenciales;
+    tieneFotovoltaica: boolean;
+    periodoLabel: string;
+    independenciaEnergetica: number;
+}) {
+    const consumoActual = metricas?.consumo_total_actual_kw ?? 0;
+    const produccionSolar = metricas?.produccion_fotovoltaica_actual_kw ?? 0;
+    const exportacion = metricas?.exportacion_actual_kw ?? 0;
+    const redElectrica = Math.abs(metricas?.red_electrica_actual_kw ?? 0);
+    const periodoMovil = periodoLabel === 'Periodo' ? 'Hoy' : periodoLabel;
+
+    return (
+        <section
+            className="rounded-[2rem] bg-white p-5 text-gray-950 shadow-sm shadow-slate-200/60 sm:hidden dark:bg-gray-900 dark:text-gray-50 dark:shadow-none"
+            aria-label="Resumen de consumo eléctrico"
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        Consumo ahora
+                    </p>
+                    <div className="mt-3 flex items-end gap-3">
+                        <img
+                            src="/house-icon.svg"
+                            alt=""
+                            className="h-14 w-14 object-contain"
+                            aria-hidden="true"
+                        />
+                        <p className="text-5xl leading-none font-black text-gray-950 tabular-nums dark:text-gray-50">
+                            {formatDashboardNumber(consumoActual)}
+                            <span className="ml-1 align-baseline text-base font-bold text-gray-500 dark:text-gray-400">
+                                kW
+                            </span>
+                        </p>
+                    </div>
+                </div>
+                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    {periodoMovil}
+                </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2">
+                {tieneFotovoltaica ? (
+                    <>
+                        <MobileEnergyStat
+                            label="Solar"
+                            value={formatDashboardNumber(produccionSolar)}
+                            unit="kW"
+                            icon={Sun}
+                            tone="solar"
+                        />
+                        <MobileEnergyStat
+                            label={exportacion > 0 ? 'Exporta' : 'Red'}
+                            value={formatDashboardNumber(
+                                exportacion > 0 ? exportacion : redElectrica,
+                            )}
+                            unit="kW"
+                            icon={exportacion > 0 ? HandCoins : Zap}
+                            tone={exportacion > 0 ? 'export' : 'grid'}
+                        />
+                        <MobileEnergyStat
+                            label="Auto"
+                            value={independenciaEnergetica.toFixed(0)}
+                            unit="%"
+                            icon={Leaf}
+                            tone="independence"
+                        />
+                    </>
+                ) : (
+                    <>
+                        <MobileEnergyStat
+                            label="Red"
+                            value={formatDashboardNumber(redElectrica)}
+                            unit="kW"
+                            icon={Zap}
+                            tone="grid"
+                        />
+                        <MobileEnergyStat
+                            label="Hoy"
+                            value={formatDashboardNumber(
+                                metricas?.importacion_red_kwh ?? 0,
+                            )}
+                            unit="kWh"
+                            icon={Activity}
+                            tone="home"
+                        />
+                        <MobileEnergyStat
+                            label="Casa"
+                            value={formatDashboardNumber(consumoActual)}
+                            unit="kW"
+                            icon={Zap}
+                            tone="home"
+                        />
+                    </>
+                )}
+            </div>
+        </section>
+    );
+}
+
 function WidgetMeteorologicoPendiente({
     verificacion,
 }: {
@@ -112,8 +346,8 @@ function WidgetMeteorologicoPendiente({
     const nombreSitio = verificacion.sitio_nombre ?? 'el sitio activo';
 
     return (
-        <div className="mx-auto w-full max-w-[500px] rounded-lg border border-amber-200 bg-white p-6 shadow-sm dark:border-amber-900/70 dark:bg-gray-800">
-            <div className="flex min-h-[450px] flex-col items-center justify-center gap-5 text-center">
+        <div className="mobile-app-section mx-auto w-full max-w-[500px] rounded-[1.75rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-amber-200 sm:p-6 dark:bg-gray-900 dark:shadow-none dark:sm:border-amber-900/70 dark:sm:bg-gray-800">
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-5 text-center sm:min-h-[450px]">
                 <div className="rounded-full bg-amber-100 p-4 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300">
                     <CloudSun className="h-12 w-12" />
                 </div>
@@ -159,78 +393,76 @@ export default function DashboardResidencial({
     dispositivos,
     periodoLabel = 'Periodo',
 }: DashboardResidencialProps) {
-    const independenciaEnergetica =
-        metricas?.independencia_energetica_pct ?? 0;
+    const independenciaEnergetica = metricas?.independencia_energetica_pct ?? 0;
+    const tieneFotovoltaica = dispositivo?.tiene_fotovoltaica ?? false;
 
     return (
-        <div className="flex w-full flex-col gap-4">
+        <div className="-mx-4 flex w-[calc(100%+2rem)] flex-col gap-4 bg-slate-50 px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:mx-0 sm:w-full sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 dark:bg-gray-950">
+            <MobileEnergyOverview
+                metricas={metricas}
+                tieneFotovoltaica={tieneFotovoltaica}
+                periodoLabel={periodoLabel}
+                independenciaEnergetica={independenciaEnergetica}
+            />
+
             {/* Fila de KPIs rápidos */}
-            <div
-                className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-1 md:grid-cols-2'}`}
-            >
-                {dispositivo?.tiene_fotovoltaica && (
-                    <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Generación Solar
-                        </p>
-                        <p className="mt-2 text-2xl font-bold text-yellow-500">
-                            {metricas?.produccion_fotovoltaica_actual_kw || 0}{' '}
-                            kW
-                        </p>
-                    </div>
+            <div className="hidden grid-cols-[repeat(auto-fit,minmax(146px,170px))] justify-center gap-3 sm:grid">
+                {tieneFotovoltaica && (
+                    <MetricCard
+                        label="Generación Solar"
+                        value={metricas?.produccion_fotovoltaica_actual_kw || 0}
+                        unit="kW"
+                        icon={Sun}
+                        tone="solar"
+                    />
                 )}
-                <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Consumo Casa
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-blue-500">
-                        {metricas?.consumo_total_actual_kw || 0} kW
-                    </p>
-                </div>
-                {dispositivo?.tiene_fotovoltaica ? (
+                <MetricCard
+                    label="Consumo Casa"
+                    value={metricas?.consumo_total_actual_kw || 0}
+                    unit="kW"
+                    imageSrc="/house-icon.svg"
+                    tone="home"
+                />
+                {tieneFotovoltaica ? (
                     <>
-                        <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Generación Solar ({periodoLabel})
-                            </p>
-                            <p className="mt-2 text-2xl font-bold text-yellow-500">
-                                {metricas?.generacion_fotovoltaica_kwh || 0} kWh
-                            </p>
-                        </div>
-                        <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Energía Retornada ({periodoLabel})
-                            </p>
-                            <p className="mt-2 text-2xl font-bold text-purple-500">
-                                {metricas?.energia_retornada_kwh || 0} kWh
-                            </p>
-                        </div>
-                        <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Independencia ({periodoLabel})
-                            </p>
-                            <p className="mt-2 text-2xl font-bold text-green-500">
-                                {independenciaEnergetica.toFixed(1)}%
-                            </p>
-                        </div>
+                        <MetricCard
+                            label={`Generación Solar (${periodoLabel})`}
+                            value={metricas?.generacion_fotovoltaica_kwh || 0}
+                            unit="kWh"
+                            icon={Sun}
+                            tone="solar"
+                        />
+                        <MetricCard
+                            label={`Energía Retornada (${periodoLabel})`}
+                            value={metricas?.energia_retornada_kwh || 0}
+                            unit="kWh"
+                            icon={HandCoins}
+                            tone="export"
+                        />
+                        <MetricCard
+                            label={`Independencia (${periodoLabel})`}
+                            value={independenciaEnergetica.toFixed(1)}
+                            unit="%"
+                            icon={Leaf}
+                            tone="independence"
+                        />
                     </>
                 ) : (
-                    <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                            Consumo de Red ({periodoLabel})
-                        </p>
-                        <p className="mt-2 text-2xl font-bold text-indigo-500">
-                            {metricas?.importacion_red_kwh || 0} kWh
-                        </p>
-                    </div>
+                    <MetricCard
+                        label={`Consumo de Red (${periodoLabel})`}
+                        value={metricas?.importacion_red_kwh || 0}
+                        unit="kWh"
+                        icon={Zap}
+                        tone="grid"
+                    />
                 )}
             </div>
 
             {/* Componentes Flujo Energético y Datos Meteorológicos */}
             <div
-                className={`grid gap-4 ${dispositivo?.tiene_fotovoltaica ? 'sm:grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}
+                className={`mobile-app-section grid gap-3 sm:gap-4 ${tieneFotovoltaica ? 'sm:grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}
             >
-                {metricas && dispositivo?.tiene_fotovoltaica && (
+                {metricas && tieneFotovoltaica && (
                     <FlujoEnergetico
                         produccionSolar={
                             metricas.produccion_fotovoltaica_actual_kw || 0
@@ -251,21 +483,19 @@ export default function DashboardResidencial({
 
             {/* Contenedor de Gráficas */}
             <div
-                className={`grid grid-cols-1 gap-4 ${dispositivo?.tiene_fotovoltaica ? 'lg:grid-cols-2 lg:gap-6' : ''}`}
+                className={`grid grid-cols-1 gap-3 sm:gap-4 ${tieneFotovoltaica ? 'lg:grid-cols-2 lg:gap-6' : ''}`}
             >
                 {datos_grafica && datos_grafica.length > 0 && (
                     <>
-                        <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                {dispositivo?.tiene_fotovoltaica
+                        <div className="mobile-chart-panel w-full rounded-[1.5rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-sm dark:bg-gray-900 dark:shadow-none dark:sm:border-gray-800">
+                            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
+                                {tieneFotovoltaica
                                     ? 'Balance Energético'
                                     : 'Evolución de Consumo Eléctrico'}
                             </h2>
                             <BalanceEnergeticoChart
                                 datos={datos_grafica}
-                                tiene_fotovoltaica={
-                                    dispositivo?.tiene_fotovoltaica ?? true
-                                }
+                                tiene_fotovoltaica={tieneFotovoltaica}
                                 num_fases={dispositivo?.num_fases ?? 1}
                                 colores_canales={[
                                     dispositivo?.color_canal_1 || null,
@@ -274,9 +504,9 @@ export default function DashboardResidencial({
                                 ]}
                             />
                         </div>
-                        {dispositivo?.tiene_fotovoltaica && (
-                            <div className="w-full rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                                <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {tieneFotovoltaica && (
+                            <div className="mobile-chart-panel w-full rounded-[1.5rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-sm dark:bg-gray-900 dark:shadow-none dark:sm:border-gray-800">
+                                <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg dark:text-gray-100">
                                     Producción Fotovoltaica
                                 </h2>
                                 <ProduccionFotovoltaicaChart
@@ -290,15 +520,15 @@ export default function DashboardResidencial({
 
             {/* Contenedor de Canales de Dispositivos del Sitio */}
             {dispositivos && dispositivos.length > 0 && (
-                <div className="mt-6 flex flex-col gap-4">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="mobile-app-section mt-2 flex flex-col gap-3 sm:mt-6 sm:gap-4">
+                    <h2 className="px-1 text-base font-semibold text-gray-900 sm:px-0 sm:text-lg dark:text-gray-100">
                         Estado de los Dispositivos del Sitio
                     </h2>
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2 xl:grid-cols-3">
                         {dispositivos.map((d) => (
                             <div
                                 key={d.id}
-                                className="rounded-lg border bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                                className="rounded-[1.5rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-gray-200 sm:shadow-sm dark:bg-gray-900 dark:shadow-none dark:sm:border-gray-800"
                             >
                                 <div className="mb-4 flex items-center justify-between border-b pb-2 dark:border-gray-800">
                                     <div>
@@ -358,7 +588,7 @@ export default function DashboardResidencial({
                                         return (
                                             <div
                                                 key={canalNum}
-                                                className="flex flex-col gap-1 rounded-md bg-gray-50 p-3 dark:bg-gray-800/50"
+                                                className="flex flex-col gap-1 rounded-2xl bg-gray-50 p-3 sm:rounded-md dark:bg-gray-800/70"
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <span className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">

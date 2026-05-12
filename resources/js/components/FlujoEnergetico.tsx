@@ -1,4 +1,4 @@
-import { Sun, Zap, HandCoins } from 'lucide-react';
+import { HandCoins, Sun, Zap } from 'lucide-react';
 
 interface Props {
     produccionSolar: number; // kW
@@ -46,10 +46,7 @@ export default function FlujoEnergetico({
     const grosor = 20;
 
     // Calcular el arco (de izquierda a derecha, curvándose hacia abajo)
-    const calcularArco = (
-        porcentaje: number,
-        offset: number = 0
-    ): string => {
+    const calcularArco = (porcentaje: number, offset: number = 0): string => {
         // El arco va de 180° (izquierda) hacia 0° (derecha), curvándose hacia abajo
         // En coordenadas SVG: 0° = derecha, 90° = abajo, 180° = izquierda
         // Usamos dirección horaria (sweep-flag = 1) para que se curve hacia abajo
@@ -74,23 +71,23 @@ export default function FlujoEnergetico({
     };
 
     return (
-        <div className="mx-auto w-full max-w-[500px] rounded-lg border border-sidebar-border/70 bg-white p-6 dark:border-sidebar-border dark:bg-gray-800">
+        <div className="mobile-app-section mx-auto w-full max-w-[500px] rounded-[1.75rem] bg-white p-4 shadow-sm shadow-slate-200/60 sm:rounded-lg sm:border sm:border-sidebar-border/70 sm:p-6 dark:bg-gray-900 dark:shadow-none dark:sm:border-sidebar-border dark:sm:bg-gray-800">
             {/* Título Independencia Energética */}
-            <div className="mb-6 text-center">
-                <h3 className="text-2xl font-bold text-green-600 dark:text-green-500">
-                    Independencia Energética {independenciaEnergetica.toFixed(0)}%
+            <div className="mb-4 text-center sm:mb-6">
+                <h3 className="text-xl font-bold text-green-600 sm:text-2xl dark:text-green-500">
+                    Independencia Energética{' '}
+                    {independenciaEnergetica.toFixed(0)}%
                 </h3>
             </div>
 
             {/* Contenedor principal con posición relativa */}
-            <div className="relative flex min-h-[450px] flex-col items-center justify-between py-4">
+            <div className="relative flex min-h-[330px] flex-col items-center justify-between py-3 sm:min-h-[450px] sm:py-4">
                 {/* Arco semicircular */}
-                <div className="absolute top-4 left-1/2 -translate-x-1/2" style={{ width: '400px', height: '200px' }}>
+                <div className="absolute top-5 left-1/2 h-[150px] w-[min(100%,320px)] -translate-x-1/2 sm:top-4 sm:h-[200px] sm:w-[400px]">
                     <svg
-                        width="400"
-                        height="200"
                         viewBox="0 0 400 200"
-                        className="overflow-visible"
+                        className="h-full w-full overflow-visible"
+                        preserveAspectRatio="xMidYMid meet"
                     >
                         {/* Arco amarillo (producción solar) - desde la izquierda */}
                         {porcentajeSolar > 0 && (
@@ -99,7 +96,9 @@ export default function FlujoEnergetico({
                                 stroke="rgb(251, 191, 36)"
                                 strokeWidth={grosor}
                                 fill="none"
-                                strokeLinecap={porcentajeRed > 0 ? "butt" : "round"}
+                                strokeLinecap={
+                                    porcentajeRed > 0 ? 'butt' : 'round'
+                                }
                                 strokeLinejoin="round"
                             />
                         )}
@@ -108,7 +107,7 @@ export default function FlujoEnergetico({
                             <path
                                 d={calcularArco(
                                     porcentajeRed,
-                                    (Math.PI * porcentajeSolar) / 100
+                                    (Math.PI * porcentajeSolar) / 100,
                                 )}
                                 stroke="rgb(59, 130, 246)"
                                 strokeWidth={grosor}
@@ -121,17 +120,17 @@ export default function FlujoEnergetico({
                 </div>
 
                 {/* Contenedor horizontal para iconos laterales */}
-                <div className="relative z-10 mt-40 flex w-full items-center justify-between px-8">
+                <div className="relative z-10 mt-32 flex w-full items-center justify-between px-1 sm:mt-40 sm:px-8">
                     {/* Lado izquierdo - Producción Solar */}
                     <div className="flex flex-col items-center">
                         <div className="mb-3 flex flex-col items-center">
-                            <Sun className="h-14 w-14 text-yellow-500" />
-                            <div className="mt-3 h-1.5 w-32 bg-yellow-500"></div>
+                            <Sun className="h-10 w-10 text-yellow-500 sm:h-14 sm:w-14" />
+                            <div className="mt-2 h-1.5 w-20 bg-yellow-500 sm:mt-3 sm:w-32"></div>
                         </div>
-                        <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        <p className="mb-1 text-center text-xs font-medium text-gray-600 sm:text-sm dark:text-gray-400">
                             Producción Solar
                         </p>
-                        <p className="text-2xl font-bold text-yellow-500">
+                        <p className="text-lg font-bold text-yellow-500 sm:text-2xl">
                             {formatearValor(produccionSolar)}
                         </p>
                     </div>
@@ -141,7 +140,7 @@ export default function FlujoEnergetico({
                         <img
                             src="/house-icon.svg"
                             alt="Casa"
-                            className="h-24 w-24 drop-shadow-lg"
+                            className="h-16 w-16 drop-shadow-lg sm:h-24 sm:w-24"
                         />
                     </div>
 
@@ -150,26 +149,26 @@ export default function FlujoEnergetico({
                         {estaExportando ? (
                             <>
                                 <div className="mb-3 flex flex-col items-center">
-                                    <HandCoins className="h-14 w-14 text-green-500" />
-                                    <div className="mt-3 h-1.5 w-32 bg-green-500"></div>
+                                    <HandCoins className="h-10 w-10 text-green-500 sm:h-14 sm:w-14" />
+                                    <div className="mt-2 h-1.5 w-20 bg-green-500 sm:mt-3 sm:w-32"></div>
                                 </div>
-                                <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                <p className="mb-1 text-center text-xs font-medium text-gray-600 sm:text-sm dark:text-gray-400">
                                     Exportación
                                 </p>
-                                <p className="text-2xl font-bold text-green-500">
+                                <p className="text-lg font-bold text-green-500 sm:text-2xl">
                                     {formatearValor(exportacion)}
                                 </p>
                             </>
                         ) : (
                             <>
                                 <div className="mb-3 flex flex-col items-center">
-                                    <Zap className="h-14 w-14 text-blue-500" />
-                                    <div className="mt-3 h-1.5 w-32 bg-blue-500"></div>
+                                    <Zap className="h-10 w-10 text-blue-500 sm:h-14 sm:w-14" />
+                                    <div className="mt-2 h-1.5 w-20 bg-blue-500 sm:mt-3 sm:w-32"></div>
                                 </div>
-                                <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                <p className="mb-1 text-center text-xs font-medium text-gray-600 sm:text-sm dark:text-gray-400">
                                     Red Eléctrica
                                 </p>
-                                <p className="text-2xl font-bold text-blue-500">
+                                <p className="text-lg font-bold text-blue-500 sm:text-2xl">
                                     {formatearValor(Math.abs(redElectrica))}
                                 </p>
                             </>
@@ -178,11 +177,11 @@ export default function FlujoEnergetico({
                 </div>
 
                 {/* Consumo Total debajo de la casa */}
-                <div className="mt-6 flex flex-col items-center">
-                    <p className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                <div className="mt-5 flex flex-col items-center sm:mt-6">
+                    <p className="text-3xl font-bold text-gray-900 sm:text-4xl dark:text-gray-100">
                         {formatearValor(consumoTotal)}
                     </p>
-                    <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+                    <p className="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base dark:text-gray-400">
                         Consumo
                     </p>
                 </div>
