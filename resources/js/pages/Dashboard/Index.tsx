@@ -59,7 +59,7 @@ interface Metricas {
     wifi_conectado: boolean;
     wifi_rssi: number | null;
     uptime_segundos: number | null;
-    ultima_actualizacion_human: string;
+    ultima_actualizacion_human: string | null;
     numero_lecturas: number;
     produccion_fotovoltaica_actual_kw: number;
     red_electrica_actual_kw: number;
@@ -179,8 +179,10 @@ type DashboardLecturaActualizadaEvent = {
 
 function ConnectionStatusIndicator({
     estadoConexion,
+    ultimaActualizacionHuman,
 }: {
     estadoConexion?: 'online' | 'offline';
+    ultimaActualizacionHuman?: string | null;
 }) {
     const isOnline = estadoConexion === 'online';
 
@@ -207,6 +209,11 @@ function ConnectionStatusIndicator({
             >
                 {isOnline ? 'En línea' : 'Desconectado'}
             </span>
+            {ultimaActualizacionHuman && (
+                <span className="text-xs text-gray-500 sm:text-sm dark:text-gray-400">
+                    · {ultimaActualizacionHuman}
+                </span>
+            )}
         </div>
     );
 }
@@ -315,6 +322,9 @@ export default function Dashboard({
                             </span>
                             <ConnectionStatusIndicator
                                 estadoConexion={metricas?.estado_conexion}
+                                ultimaActualizacionHuman={
+                                    metricas?.ultima_actualizacion_human
+                                }
                             />
                         </div>
                         <button

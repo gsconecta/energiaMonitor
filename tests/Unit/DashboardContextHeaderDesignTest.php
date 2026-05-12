@@ -7,6 +7,9 @@ it('renders the connection status in the dashboard context row', function () {
         ->toContain('function ConnectionStatusIndicator')
         ->toContain('<ConnectionStatusIndicator')
         ->toContain('estadoConexion={metricas?.estado_conexion}')
+        ->toContain('ultimaActualizacionHuman')
+        ->toContain('metricas?.ultima_actualizacion_human')
+        ->toContain('{ultimaActualizacionHuman && (')
         ->not->toContain('<div className="mx-2 mb-2 flex items-center gap-2">');
 });
 
