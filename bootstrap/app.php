@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // CP1 (172.16.1.5) hace de proxy inverso y termina el TLS.
+        // Sin esto Laravel genera URLs http:// y el navegador bloquea los assets.
+        $middleware->trustProxies(at: ['172.16.1.5']);
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
