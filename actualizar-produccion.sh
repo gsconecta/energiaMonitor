@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-PROJECT_PATH="/home/cloudmallorca-monitor/htdocs/energiaMonitor"
+PROJECT_PATH="/var/www/energiaMonitor"
 APP_DOWN=0
 
 BRANCH=""
