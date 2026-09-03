@@ -184,9 +184,11 @@ Cambiar de modelo en edición está permitido; la validación completa se aplica
 
 | código | fabricante / nombre | familia | driver | canales | modo por defecto | configurable | magnitudes |
 |---|---|---|---|---|---|---|---|
-| `shelly-3em` | Shelly / Shelly 3EM (SHEM-3) | EM Gen1 | shelly_cloud | 3 | fases | sí | potencia_activa, potencia_reactiva, tension, corriente, factor_potencia, energia_activa_importada, energia_activa_exportada |
-| `shelly-pro-3em` | Shelly / Shelly Pro 3EM | Pro EM | shelly_cloud | 3 | fases | sí | potencia_activa, potencia_reactiva, potencia_aparente, tension, corriente, corriente_neutro, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada |
-| `shelly-pro-em-50` | Shelly / Shelly Pro EM 50 | Pro EM | shelly_cloud | 2 | circuitos | no | potencia_activa, potencia_aparente, tension, corriente, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada |
+| `shelly-3em` | Shelly / 3EM (SHEM-3) | EM Gen1 | shelly_cloud | 3 | fases | sí | potencia_activa, potencia_reactiva, tension, corriente, factor_potencia, energia_activa_importada, energia_activa_exportada |
+| `shelly-pro-3em` | Shelly / Pro 3EM | Pro EM | shelly_cloud | 3 | fases | sí | potencia_activa, potencia_reactiva, potencia_aparente, tension, corriente, corriente_neutro, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada |
+| `shelly-pro-em-50` | Shelly / Pro EM 50 | Pro EM | shelly_cloud | 2 | circuitos | no | potencia_activa, potencia_aparente, tension, corriente, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada |
+
+`nombre` no repite el fabricante: `nombreCompleto()` los une («Shelly Pro 3EM») y es lo que ven listados, fichas y logs.
 | `circutor-cvm-mini-mc-itf-bacnet-c2` | Circutor / CVM-MINI-MC-ITF-BACnet-C2 | CVM-MINI | bacnet_ip | 3 | fases | no | tension, corriente, corriente_neutro, potencia_activa, potencia_reactiva, potencia_aparente, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada, energia_reactiva, thd |
 | `circutor-cvm-e3-mini-mc-wieth` | Circutor / CVM-E3-MINI-MC-WiEth | CVM-E3-MINI | modbus_tcp | 3 | fases | no | tension, corriente, potencia_activa, potencia_reactiva, potencia_aparente, factor_potencia, frecuencia, energia_activa_importada, energia_activa_exportada, energia_reactiva, thd |
 
