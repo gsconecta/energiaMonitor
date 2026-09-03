@@ -69,9 +69,9 @@ function dispositivoShellyDePrueba(array $organizacion = []): Dispositivo
     ]);
 }
 
-function respuestaShelly(string $fixture): array
+function respuestaShelly(string $fixture): string
 {
-    return json_decode(file_get_contents(base_path("tests/Fixtures/shelly/{$fixture}.json")), true);
+    return file_get_contents(base_path("tests/Fixtures/shelly/{$fixture}.json"));
 }
 
 it('normaliza el formato trifásico em:0', function () {
