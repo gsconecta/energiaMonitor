@@ -10,6 +10,9 @@ class Lectura extends Model
 {
     use HasFactory;
 
+    /** Tope de canales que cabe en las columnas `*_canal_1..3` de `lecturas`. */
+    public const MAX_CANALES = 3;
+
     protected $dispatchesEvents = [
         'created' => DashboardLecturaActualizada::class,
     ];

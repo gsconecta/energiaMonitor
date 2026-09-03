@@ -5,50 +5,14 @@ use App\Models\Organizacion;
 use App\Models\Sitio;
 use App\Services\Lectores\LecturaNoDisponible;
 use App\Services\Lectores\ShellyCloudLector;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
+use Tests\Support\EsquemaDispositivos;
 use Tests\TestCase;
 
 uses(TestCase::class);
 
-beforeEach(function () {
-    Schema::dropIfExists('dispositivos');
-    Schema::dropIfExists('sitios');
-    Schema::dropIfExists('organizaciones');
-
-    Schema::create('organizaciones', function (Blueprint $table) {
-        $table->id();
-        $table->string('nombre');
-        $table->boolean('activa')->default(true);
-        $table->text('shelly_api_key')->nullable();
-        $table->string('shelly_server')->nullable();
-        $table->unsignedBigInteger('credencial_shelly_id')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('sitios', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('organizacion_id');
-        $table->string('nombre');
-        $table->boolean('activa')->default(true);
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('dispositivos', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('sitio_id');
-        $table->string('device_id')->unique();
-        $table->string('nombre');
-        $table->boolean('activo')->default(true);
-        $table->unsignedTinyInteger('num_fases')->nullable();
-        $table->json('configuracion')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-});
+beforeEach(fn () => EsquemaDispositivos::crear());
+afterEach(fn () => EsquemaDispositivos::eliminar());
 
 function dispositivoShellyDePrueba(array $organizacion = []): Dispositivo
 {
