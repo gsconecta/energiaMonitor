@@ -1,3 +1,4 @@
+import { canalDisponible, nombreCanalPropuesto } from '@/lib/canales-dispositivo';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
@@ -106,10 +107,14 @@ export default function DispositivosShow({
     const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
+    // Vacío, no el nombre propuesto: un campo que el usuario no toca debe enviarse como null (ver
+    // handleGuardarNombresCanales) para que el backend lo siga proponiendo. La propuesta se
+    // muestra como placeholder al editar y como texto al mostrar (ver obtenerNombreCanal), nunca
+    // se precarga en el propio input.
     const [nombresCanales, setNombresCanales] = useState({
-        nombre_canal_1: dispositivo.nombre_canal_1 ?? 'Canal 1',
-        nombre_canal_2: dispositivo.nombre_canal_2 ?? 'Canal 2',
-        nombre_canal_3: dispositivo.nombre_canal_3 ?? 'Canal 3',
+        nombre_canal_1: dispositivo.nombre_canal_1 ?? '',
+        nombre_canal_2: dispositivo.nombre_canal_2 ?? '',
+        nombre_canal_3: dispositivo.nombre_canal_3 ?? '',
     });
     const [coloresCanales, setColoresCanales] = useState({
         color_canal_1: dispositivo.color_canal_1 ?? '#ef4444',
@@ -172,13 +177,9 @@ export default function DispositivosShow({
     };
 
     const handleGuardarNombresCanales = () => {
-        // Un canal está disponible cuando su número no supera el num_canales del modelo:
-        // los que sobran se anulan explícitamente (el servidor los rechaza si llegan con
-        // datos). No se manda `conexion`: este panel no la gestiona, y el servidor conserva
-        // la ya guardada cuando la clave no está presente en la petición.
-        const canalDisponible = (canal: number) =>
-            canal <= dispositivo.num_canales;
-
+        // No se manda `conexion`: este panel no la gestiona, y el servidor conserva la ya
+        // guardada cuando la clave no está presente en la petición. Los canales que sobran del
+        // modelo se anulan explícitamente (el servidor los rechaza si llegan con datos).
         router.put(
             `/dispositivos/${dispositivo.id}`,
             {
@@ -189,32 +190,32 @@ export default function DispositivosShow({
                 modo_canales: dispositivo.modo_canales,
                 num_fases: dispositivo.num_fases,
                 nombre_canal_1: nombresCanales.nombre_canal_1 || null,
-                nombre_canal_2: canalDisponible(2)
+                nombre_canal_2: canalDisponible(2, dispositivo.num_canales)
                     ? nombresCanales.nombre_canal_2 || null
                     : null,
-                nombre_canal_3: canalDisponible(3)
+                nombre_canal_3: canalDisponible(3, dispositivo.num_canales)
                     ? nombresCanales.nombre_canal_3 || null
                     : null,
                 color_canal_1: coloresCanales.color_canal_1,
-                color_canal_2: canalDisponible(2)
+                color_canal_2: canalDisponible(2, dispositivo.num_canales)
                     ? coloresCanales.color_canal_2
                     : null,
-                color_canal_3: canalDisponible(3)
+                color_canal_3: canalDisponible(3, dispositivo.num_canales)
                     ? coloresCanales.color_canal_3
                     : null,
                 tipo_canal_1: tiposCanales.tipo_canal_1 || null,
-                tipo_canal_2: canalDisponible(2)
+                tipo_canal_2: canalDisponible(2, dispositivo.num_canales)
                     ? tiposCanales.tipo_canal_2 || null
                     : null,
-                tipo_canal_3: canalDisponible(3)
+                tipo_canal_3: canalDisponible(3, dispositivo.num_canales)
                     ? tiposCanales.tipo_canal_3 || null
                     : null,
                 invertir_sentido_canal_1:
                     invertirSentidoCanales.invertir_sentido_canal_1,
-                invertir_sentido_canal_2: canalDisponible(2)
+                invertir_sentido_canal_2: canalDisponible(2, dispositivo.num_canales)
                     ? invertirSentidoCanales.invertir_sentido_canal_2
                     : false,
-                invertir_sentido_canal_3: canalDisponible(3)
+                invertir_sentido_canal_3: canalDisponible(3, dispositivo.num_canales)
                     ? invertirSentidoCanales.invertir_sentido_canal_3
                     : false,
                 ip_local: dispositivo.ip_local,
@@ -232,17 +233,23 @@ export default function DispositivosShow({
         );
     };
 
+    // Si el campo está vacío (no tocado) se muestra la propuesta del backend, nunca un literal
+    // guardado: ver el comentario junto a la inicialización de nombresCanales más arriba.
     const obtenerNombreCanal = (numero: number): string => {
-        switch (numero) {
-            case 1:
-                return nombresCanales.nombre_canal_1;
-            case 2:
-                return nombresCanales.nombre_canal_2;
-            case 3:
-                return nombresCanales.nombre_canal_3;
-            default:
-                return `Canal ${numero}`;
-        }
+        const nombreEditado = (() => {
+            switch (numero) {
+                case 1:
+                    return nombresCanales.nombre_canal_1;
+                case 2:
+                    return nombresCanales.nombre_canal_2;
+                case 3:
+                    return nombresCanales.nombre_canal_3;
+                default:
+                    return '';
+            }
+        })();
+
+        return nombreEditado || nombreCanalPropuesto(numero, dispositivo.modo_canales);
     };
 
     return (
@@ -565,14 +572,14 @@ export default function DispositivosShow({
                                             setEditandoNombres(false);
                                             setNombresCanales({
                                                 nombre_canal_1:
-                                                    dispositivo.nombre_canal_1 ||
-                                                    'Canal 1',
+                                                    dispositivo.nombre_canal_1 ??
+                                                    '',
                                                 nombre_canal_2:
-                                                    dispositivo.nombre_canal_2 ||
-                                                    'Canal 2',
+                                                    dispositivo.nombre_canal_2 ??
+                                                    '',
                                                 nombre_canal_3:
-                                                    dispositivo.nombre_canal_3 ||
-                                                    'Canal 3',
+                                                    dispositivo.nombre_canal_3 ??
+                                                    '',
                                             });
                                             setColoresCanales({
                                                 color_canal_1:
@@ -624,8 +631,7 @@ export default function DispositivosShow({
                                 </div>
                             )}
                         <div className="grid gap-4 sm:grid-cols-3">
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 1 && (
+                            {dispositivo.num_canales >= 1 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 1
@@ -645,7 +651,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Producción Solar"
+                                                    placeholder={nombreCanalPropuesto(1, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">
@@ -761,8 +767,7 @@ export default function DispositivosShow({
                                         )}
                                     </div>
                                 )}
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 2 && (
+                            {dispositivo.num_canales >= 2 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 2
@@ -782,7 +787,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Consumo General"
+                                                    placeholder={nombreCanalPropuesto(2, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">
@@ -898,8 +903,7 @@ export default function DispositivosShow({
                                         )}
                                     </div>
                                 )}
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 3 && (
+                            {dispositivo.num_canales >= 3 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 3
@@ -919,7 +923,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Red Eléctrica"
+                                                    placeholder={nombreCanalPropuesto(3, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">

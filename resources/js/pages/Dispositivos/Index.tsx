@@ -2,6 +2,7 @@ import CamposConexion, {
     conexionPorDefecto,
     type CampoConexion,
 } from '@/components/dispositivos/campos-conexion';
+import { canalDisponible } from '@/lib/canales-dispositivo';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -210,9 +211,6 @@ export default function DispositivosIndex({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Un canal está disponible cuando su número no supera el num_canales del modelo elegido.
-        const canalDisponible = (canal: number) => canal <= numCanales;
-
         // Preparar datos para envío, convirtiendo strings vacíos a null. Los canales que el
         // modelo no admite se anulan explícitamente (incluidos los colores, que siempre traen
         // un valor por defecto): el servidor los rechaza si llegan con datos.
@@ -223,25 +221,25 @@ export default function DispositivosIndex({
                 : null,
             num_fases: formData.num_fases || null,
             nombre_canal_1: formData.nombre_canal_1 || null,
-            nombre_canal_2: canalDisponible(2)
+            nombre_canal_2: canalDisponible(2, numCanales)
                 ? formData.nombre_canal_2 || null
                 : null,
-            nombre_canal_3: canalDisponible(3)
+            nombre_canal_3: canalDisponible(3, numCanales)
                 ? formData.nombre_canal_3 || null
                 : null,
-            color_canal_2: canalDisponible(2) ? formData.color_canal_2 : null,
-            color_canal_3: canalDisponible(3) ? formData.color_canal_3 : null,
+            color_canal_2: canalDisponible(2, numCanales) ? formData.color_canal_2 : null,
+            color_canal_3: canalDisponible(3, numCanales) ? formData.color_canal_3 : null,
             tipo_canal_1: formData.tipo_canal_1 || null,
-            tipo_canal_2: canalDisponible(2)
+            tipo_canal_2: canalDisponible(2, numCanales)
                 ? formData.tipo_canal_2 || null
                 : null,
-            tipo_canal_3: canalDisponible(3)
+            tipo_canal_3: canalDisponible(3, numCanales)
                 ? formData.tipo_canal_3 || null
                 : null,
-            invertir_sentido_canal_2: canalDisponible(2)
+            invertir_sentido_canal_2: canalDisponible(2, numCanales)
                 ? formData.invertir_sentido_canal_2
                 : false,
-            invertir_sentido_canal_3: canalDisponible(3)
+            invertir_sentido_canal_3: canalDisponible(3, numCanales)
                 ? formData.invertir_sentido_canal_3
                 : false,
         };

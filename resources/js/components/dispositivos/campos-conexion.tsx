@@ -7,6 +7,8 @@ export interface CampoConexion {
     tipo: 'texto' | 'entero';
     requerido: boolean;
     default: number | string | null;
+    /** Reglas de validación Laravel (p.ej. `['required', 'integer', 'between:1,247']`), informativas: no se aplican en el cliente. */
+    reglas: string[];
 }
 
 interface Props {

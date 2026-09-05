@@ -1,3 +1,4 @@
+import { type CampoConexion } from '@/components/dispositivos/campos-conexion';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -5,14 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { router, useForm } from '@inertiajs/react';
-
-export interface CampoConexion {
-    nombre: string;
-    etiqueta: string;
-    tipo: 'texto' | 'entero';
-    requerido: boolean;
-    default: number | string | null;
-}
 
 export interface OpcionDriver {
     value: string;
