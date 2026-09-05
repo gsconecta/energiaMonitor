@@ -116,6 +116,32 @@ it('devuelve fallo cuando todo son errores', function () {
         ->and(Lectura::count())->toBe(0);
 });
 
+it('cuando todos los dispositivos se omiten la ejecución completa es éxito', function () {
+    dispositivoDePrueba($this, 'cvm1', 'circutor-cvm-mini-mc-itf-bacnet-c2');
+    dispositivoDePrueba($this, 'cvm2', 'circutor-cvm-e3-mini-mc-wieth');
+
+    $codigo = Artisan::call('lecturas:obtener');
+
+    expect($codigo)->toBe(0)
+        ->and(Lectura::count())->toBe(0)
+        ->and(Artisan::output())->toContain('Omitidos (sin lector)');
+});
+
+it('una excepción inesperada cuenta como error, se registra y el bucle continúa', function () {
+    dispositivoDePrueba($this, 'roto', 'shelly-3em');
+    dispositivoDePrueba($this, 'sano', 'shelly-3em');
+    app()->instance(ShellyCloudLector::class, new LectorFalso([
+        'roto' => new RuntimeException('fallo inesperado'),
+        'sano' => lecturaDePrueba(),
+    ]));
+
+    $codigo = Artisan::call('lecturas:obtener');
+
+    expect($codigo)->toBe(0)
+        ->and(Lectura::count())->toBe(1)
+        ->and(Artisan::output())->toContain('fallo inesperado');
+});
+
 it('con --dispositivo devuelve fallo si el modelo no tiene lector', function () {
     $cvm = dispositivoDePrueba($this, 'cvm', 'circutor-cvm-e3-mini-mc-wieth');
 

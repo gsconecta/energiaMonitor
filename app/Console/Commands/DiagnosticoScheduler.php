@@ -177,7 +177,7 @@ class DiagnosticoScheduler extends Command
             $this->line('   💡 Puedes probarlo con: php artisan lecturas:obtener');
         } else {
             $this->error('   ❌ Comando lecturas:obtener no encontrado');
-            $this->line('   📝 Verifica app/Console/Commands/ObtenerLecturasShelly.php');
+            $this->line('   📝 Verifica app/Console/Commands/ObtenerLecturas.php');
         }
         
         $this->newLine();
@@ -191,7 +191,7 @@ class DiagnosticoScheduler extends Command
             return isset($commands[$command]);
         } catch (\Exception $e) {
             // Si falla, intentar verificar si el archivo del comando existe
-            $commandFile = app_path('Console/Commands/ObtenerLecturasShelly.php');
+            $commandFile = app_path('Console/Commands/ObtenerLecturas.php');
             return file_exists($commandFile);
         }
     }
