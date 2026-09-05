@@ -85,7 +85,11 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                         'id' => $dispositivo->id,
                         'device_id' => $dispositivo->device_id,
                         'nombre' => $dispositivo->nombre,
-                        'modelo' => $dispositivo->nombreModelo(),
+                        // n8n es un consumidor externo que no controlamos: mantiene el mismo valor
+                        // de siempre (el texto legado), igual que /sql-dispositivos-activos. El
+                        // nombre del catálogo (nombreModelo()) no se expone aquí para no romper su
+                        // contrato con un valor distinto al que ya procesan.
+                        'modelo' => $dispositivo->modelo_legacy,
                     ];
                 })->values()->toArray(),
             ];

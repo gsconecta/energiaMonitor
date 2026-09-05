@@ -4,13 +4,19 @@
 
 Esta consulta SQL devuelve todos los dispositivos activos con la información de su organización (API Key y servidor de Shelly).
 
+> **Nota:** la columna `dispositivos.modelo` se renombró a `modelo_legacy` al añadir el catálogo
+> de modelos de dispositivo (cada dispositivo puede colgar ahora de un `modelo_dispositivo_id`, y
+> `modelo_legacy` conserva solo el texto antiguo). Si ejecutas esta consulta directamente contra
+> MySQL desde un nodo n8n, usa `d.modelo_legacy AS modelo`: `d.modelo` ya no existe y la consulta
+> fallaría con "Unknown column".
+
 ```sql
 SELECT 
     d.id,
     d.device_id,
     d.nombre,
     d.tipo,
-    d.modelo,
+    d.modelo_legacy AS modelo,
     o.id as organizacion_id,
     o.nombre as organizacion_nombre,
     o.codigo as organizacion_codigo,
