@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\DriverDispositivo;
+use App\Enums\ModoCanales;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -20,6 +23,7 @@ class Dispositivo extends Model
         'device_id',
         'nombre',
         'num_fases',
+        'modo_canales',
         'nombre_canal_1',
         'nombre_canal_2',
         'nombre_canal_3',
@@ -32,7 +36,7 @@ class Dispositivo extends Model
         'invertir_sentido_canal_1',
         'invertir_sentido_canal_2',
         'invertir_sentido_canal_3',
-        'modelo',
+        'modelo_dispositivo_id',
         'ip_local',
         'firmware',
         'activo',
@@ -42,6 +46,7 @@ class Dispositivo extends Model
     protected $casts = [
         'activo' => 'boolean',
         'num_fases' => 'integer',
+        'modo_canales' => ModoCanales::class,
         'configuracion' => 'array',
         'invertir_sentido_canal_1' => 'boolean',
         'invertir_sentido_canal_2' => 'boolean',
@@ -52,6 +57,33 @@ class Dispositivo extends Model
     public function sitio()
     {
         return $this->belongsTo(Sitio::class);
+    }
+
+    public function modeloDispositivo(): BelongsTo
+    {
+        return $this->belongsTo(ModeloDispositivo::class);
+    }
+
+    /** Sin modelo asignado (legado) el dispositivo se trata como un Shelly Cloud. */
+    public function driver(): DriverDispositivo
+    {
+        return $this->modeloDispositivo?->driver ?? DriverDispositivo::ShellyCloud;
+    }
+
+    /** @return array<string, mixed> datos de conexión que pide el driver (vacío para Shelly Cloud) */
+    public function conexion(): array
+    {
+        return $this->configuracion['conexion'] ?? [];
+    }
+
+    public function modoCanales(): ModoCanales
+    {
+        return $this->modo_canales ?? ModoCanales::Circuitos;
+    }
+
+    public function nombreModelo(): ?string
+    {
+        return $this->modeloDispositivo?->nombreCompleto() ?? $this->modelo_legacy;
     }
 
     public function lecturas()
@@ -306,12 +338,18 @@ class Dispositivo extends Model
      */
     public function getNombreCanal(int $numero): string
     {
-        return match ($numero) {
-            1 => $this->nombre_canal_1 ?? 'Canal 1',
-            2 => $this->nombre_canal_2 ?? 'Canal 2',
-            3 => $this->nombre_canal_3 ?? 'Canal 3',
-            default => "Canal {$numero}",
+        $nombreGuardado = match ($numero) {
+            1 => $this->nombre_canal_1,
+            2 => $this->nombre_canal_2,
+            3 => $this->nombre_canal_3,
+            default => null,
         };
+
+        if ($nombreGuardado !== null && $nombreGuardado !== '') {
+            return $nombreGuardado;
+        }
+
+        return $this->modoCanales() === ModoCanales::Fases ? "L{$numero}" : "Canal {$numero}";
     }
 
     /**

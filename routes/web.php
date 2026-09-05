@@ -68,6 +68,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->names('admin.credenciales-shelly')
         ->parameters(['credenciales-shelly' => 'credencial']);
 
+    Route::resource('admin/modelos-dispositivo', \App\Http\Controllers\Admin\ModeloDispositivoController::class)
+        ->names('admin.modelos-dispositivo')
+        ->parameters(['modelos-dispositivo' => 'modelo'])
+        ->except(['show']);
+
     Route::get('/admin/usuarios', [\App\Http\Controllers\Admin\UserAdminController::class, 'index'])
         ->name('admin.usuarios.index');
     Route::put('/admin/usuarios/{user}', [\App\Http\Controllers\Admin\UserAdminController::class, 'update'])

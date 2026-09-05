@@ -170,14 +170,14 @@ class DiagnosticoScheduler extends Command
 
     private function checkCommand()
     {
-        $this->info('5️⃣  Verificando comando shelly:obtener-lecturas...');
+        $this->info('5️⃣  Verificando comando lecturas:obtener...');
         
-        if ($this->commandExists('shelly:obtener-lecturas')) {
+        if ($this->commandExists('lecturas:obtener')) {
             $this->info('   ✅ Comando encontrado');
-            $this->line('   💡 Puedes probarlo con: php artisan shelly:obtener-lecturas');
+            $this->line('   💡 Puedes probarlo con: php artisan lecturas:obtener');
         } else {
-            $this->error('   ❌ Comando shelly:obtener-lecturas no encontrado');
-            $this->line('   📝 Verifica app/Console/Commands/ObtenerLecturasShelly.php');
+            $this->error('   ❌ Comando lecturas:obtener no encontrado');
+            $this->line('   📝 Verifica app/Console/Commands/ObtenerLecturas.php');
         }
         
         $this->newLine();
@@ -191,7 +191,7 @@ class DiagnosticoScheduler extends Command
             return isset($commands[$command]);
         } catch (\Exception $e) {
             // Si falla, intentar verificar si el archivo del comando existe
-            $commandFile = app_path('Console/Commands/ObtenerLecturasShelly.php');
+            $commandFile = app_path('Console/Commands/ObtenerLecturas.php');
             return file_exists($commandFile);
         }
     }

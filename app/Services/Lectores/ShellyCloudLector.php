@@ -1,207 +1,74 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Services\Lectores;
 
-use Illuminate\Console\Command;
 use App\Models\Dispositivo;
-use App\Models\Lectura;
 use App\Models\Organizacion;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Services\EvaluadorUmbrales;
 
-class ObtenerLecturasShelly extends Command
+class ShellyCloudLector implements LectorDispositivo
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'shelly:obtener-lecturas 
-                            {--dispositivo= : ID del dispositivo específico}
-                            {--timeout=10 : Timeout para las peticiones HTTP}';
+    private const PAUSA_ENTRE_LECTURAS_MS = 1000;
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Obtiene lecturas de dispositivos Shelly desde la API Cloud y las guarda en la base de datos';
-
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function leer(Dispositivo $dispositivo, int $timeoutSegundos = 10): array
     {
-        $this->info('Obteniendo lecturas de dispositivos Shelly...');
+        $organizacion = $dispositivo->sitio?->organizacion;
 
-        $dispositivoId = $this->option('dispositivo');
-        $timeout = (int) $this->option('timeout');
-
-        // Obtener dispositivos activos
-        $query = Dispositivo::with(['sitio.organizacion.credencialShelly'])
-            ->activos()
-            ->whereHas('sitio.organizacion', function ($q) {
-                $q->where('activa', true)
-                    ->where(function ($subq) {
-                        $subq->whereNotNull('credencial_shelly_id')
-                            ->orWhereNotNull('shelly_api_key');
-                    });
-            });
-
-        if ($dispositivoId) {
-            $query->where('id', $dispositivoId);
+        if (! $organizacion instanceof Organizacion || ! $organizacion->tieneShellyApiKey() || ! $organizacion->obtenerShellyServer()) {
+            throw new LecturaNoDisponible('organización sin credencial Shelly');
         }
 
-        $dispositivos = $query->get();
-
-        if ($dispositivos->isEmpty()) {
-            $this->warn('No se encontraron dispositivos activos con credenciales de Shelly configuradas.');
-            return Command::FAILURE;
-        }
-
-        $this->info("Procesando {$dispositivos->count()} dispositivo(s)...");
-        $this->newLine();
-
-        $exitosos = 0;
-        $errores = 0;
-        $actualizados = 0;
-
-        foreach ($dispositivos as $dispositivo) {
-            try {
-                $this->line("Procesando: {$dispositivo->nombre} ({$dispositivo->device_id})");
-
-                $organizacion = $dispositivo->sitio->organizacion;
-
-                // Verificar credenciales
-                if (!$organizacion->tieneShellyApiKey() || !$organizacion->obtenerShellyServer()) {
-                    $this->warn("  ⚠️  Organización sin credenciales de Shelly configuradas");
-                    Log::channel('shelly_readings')->warning("Organización sin credenciales de Shelly configuradas para dispositivo {$dispositivo->id} ({$dispositivo->device_id})", [
-                        'organizacion_id' => $organizacion->id,
-                    ]);
-                    $errores++;
-                    continue;
-                }
-
-                // Obtener datos del dispositivo desde Shelly Cloud
-                $lectura = $this->obtenerLecturaDeShelly($dispositivo, $organizacion, $timeout);
-
-                if (!$lectura) {
-                    $this->warn("  ❌ No se pudo obtener la lectura");
-                    $errores++;
-                    continue;
-                }
-
-                // Guardar lectura en la base de datos
-                $lecturaGuardada = Lectura::create($lectura);
-
-                // Evaluar umbrales de funcionamiento
-                $evaluador = app(EvaluadorUmbrales::class);
-                $alertas = $evaluador->evaluar($lecturaGuardada, $dispositivo);
-                if (count($alertas) > 0) {
-                    $this->warn("  ⚠️  " . count($alertas) . " alerta(s) de umbral generada(s)");
-                }
-
-                // Actualizar número de fases del dispositivo
-                $numFasesAnterior = $dispositivo->num_fases;
-                $actualizado = $dispositivo->actualizarNumFasesAuto();
-
-                if ($actualizado || $dispositivo->fresh()->num_fases !== $numFasesAnterior) {
-                    $actualizados++;
-                    $this->info("  ✅ Lectura guardada - Fases: {$numFasesAnterior} → {$dispositivo->fresh()->num_fases}");
-                } else {
-                    $this->info("  ✅ Lectura guardada");
-                }
-
-                Log::channel('shelly_readings')->info("Lectura exitosa para dispositivo {$dispositivo->id} ({$dispositivo->device_id})");
-
-                $exitosos++;
-
-                // Esperar 1 segundo entre requests para no sobrecargar
-                if ($dispositivos->count() > 1) {
-                    sleep(1);
-                }
-
-            } catch (\Exception $e) {
-                $this->error("  ❌ Error: {$e->getMessage()}");
-                Log::channel('shelly_readings')->error("Error obteniendo lectura de Shelly para dispositivo {$dispositivo->id}", [
-                    'dispositivo_id' => $dispositivo->id,
-                    'device_id' => $dispositivo->device_id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                $errores++;
-            }
-        }
-
-        $this->newLine();
-        $this->info('Resumen:');
-        $this->table(
-            ['Estado', 'Cantidad'],
-            [
-                ['✅ Exitosos', $exitosos],
-                ['❌ Errores', $errores],
-                ['🔄 Fases actualizadas', $actualizados],
-            ]
-        );
-
-        return Command::SUCCESS;
-    }
-
-    /**
-     * Obtiene la lectura de un dispositivo desde la API de Shelly Cloud
-     */
-    private function obtenerLecturaDeShelly(Dispositivo $dispositivo, Organizacion $organizacion, int $timeout)
-    {
-        $shellyServer = rtrim($organizacion->obtenerShellyServer(), '/');
-        $shellyServer = preg_replace('/\/device\/status.*$/', '', $shellyServer);
-        $url = "{$shellyServer}/device/status";
-
-        $apiKey = $organizacion->obtenerShellyApiKey();
+        $url = $this->urlEstado($organizacion->obtenerShellyServer());
 
         try {
-            Log::channel('shelly_readings')->info("Intentando consultar dispositivo {$dispositivo->id} con key_len: " . strlen($apiKey ?? '') . " key_start: " . substr($apiKey ?? '', 0, 5) . "*** (Relacion ID: " . $organizacion->credencial_shelly_id . ")");
-
-            $response = Http::timeout($timeout)
-                ->get($url, [
-                    'id' => $dispositivo->device_id,
-                    'auth_key' => $apiKey,
-                ]);
-
-            if (!$response->successful()) {
-                Log::channel('shelly_readings')->warning("Error en respuesta de Shelly API para dispositivo {$dispositivo->id}", [
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ]);
-                return null;
-            }
-
-            $data = $response->json();
-
-            if (!isset($data['isok']) || !$data['isok'] || !isset($data['data'])) {
-                Log::channel('shelly_readings')->warning("Respuesta inválida de Shelly API para dispositivo {$dispositivo->id}", [
-                    'response' => $data
-                ]);
-                return null;
-            }
-
-            // Procesar la respuesta y extraer los datos
-            return $this->procesarRespuestaShelly($dispositivo->id, $data);
-
-        } catch (\Exception $e) {
-            Log::channel('shelly_readings')->error("Excepción al obtener lectura de Shelly para dispositivo {$dispositivo->id}", [
-                'error' => $e->getMessage(),
-                'url' => $url
+            $response = Http::timeout($timeoutSegundos)->get($url, [
+                'id' => $dispositivo->device_id,
+                'auth_key' => $organizacion->obtenerShellyApiKey(),
             ]);
-            return null;
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            throw new LecturaNoDisponible("sin conexión con Shelly Cloud: {$e->getMessage()}", previous: $e);
         }
+
+        if (! $response->successful()) {
+            Log::channel('shelly_readings')->warning("Error en respuesta de Shelly API para dispositivo {$dispositivo->id}", [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new LecturaNoDisponible("HTTP {$response->status()} de Shelly Cloud");
+        }
+
+        $data = $response->json();
+
+        if (! isset($data['isok']) || ! $data['isok'] || ! isset($data['data'])) {
+            Log::channel('shelly_readings')->warning("Respuesta inválida de Shelly API para dispositivo {$dispositivo->id}", [
+                'response' => $data,
+            ]);
+
+            throw new LecturaNoDisponible('respuesta inválida de Shelly Cloud (isok falso o sin data)');
+        }
+
+        return $this->procesarRespuestaShelly($dispositivo->id, $data);
+    }
+
+    public function pausaEntreLecturasMs(): int
+    {
+        return self::PAUSA_ENTRE_LECTURAS_MS;
+    }
+
+    private function urlEstado(string $shellyServer): string
+    {
+        $base = preg_replace('/\/device\/status.*$/', '', rtrim($shellyServer, '/'));
+
+        return "{$base}/device/status";
     }
 
     /**
      * Procesa la respuesta de Shelly Cloud API y extrae los datos de la lectura
      * Basado en la lógica del workflow de n8n
      */
-    private function procesarRespuestaShelly(int $dispositivoId, array $responseData): ?array
+    private function procesarRespuestaShelly(int $dispositivoId, array $responseData): array
     {
         $deviceStatus = $responseData['data']['device_status'] ?? [];
 
@@ -231,11 +98,13 @@ class ObtenerLecturasShelly extends Command
         $aparenteCanal1 = 0;
         $aparenteCanal2 = 0;
         $aparenteCanal3 = 0;
-        
+
         $numFases = null;
+        $formatoReconocido = false;
 
         // Detectar formato y extraer datos
         if (isset($deviceStatus['em:0']) && isset($deviceStatus['em:0']['a_act_power'])) {
+            $formatoReconocido = true;
             // Formato EM3 trifásico (em:0 con prefijos a_, b_, c_)
             $em0 = $deviceStatus['em:0'] ?? [];
             $emdata0 = $deviceStatus['emdata:0'] ?? [];
@@ -264,7 +133,7 @@ class ObtenerLecturasShelly extends Command
             $pfCanal1 = $em0['a_pf'] ?? 0;
             $pfCanal2 = $em0['b_pf'] ?? 0;
             $pfCanal3 = $em0['c_pf'] ?? 0;
-            
+
             $aparenteCanal1 = $em0['a_aprt_power'] ?? ($voltajeCanal1 * $corrienteCanal1);
             $aparenteCanal2 = $em0['b_aprt_power'] ?? ($voltajeCanal2 * $corrienteCanal2);
             $aparenteCanal3 = $em0['c_aprt_power'] ?? ($voltajeCanal3 * $corrienteCanal3);
@@ -272,6 +141,7 @@ class ObtenerLecturasShelly extends Command
             $numFases = 3;
 
         } elseif (isset($deviceStatus['em1:0']) || isset($deviceStatus['em1:1'])) {
+            $formatoReconocido = true;
             // Formato EM1/EM1+ (2 canales)
             $canal1 = $deviceStatus['em1:0'] ?? [];
             $canal2 = $deviceStatus['em1:1'] ?? [];
@@ -304,6 +174,7 @@ class ObtenerLecturasShelly extends Command
             $numFases = 2;
 
         } elseif (isset($deviceStatus['emeters']) && is_array($deviceStatus['emeters'])) {
+            $formatoReconocido = true;
             // Formato EM3 antiguo (emeters array)
             $canal1 = $deviceStatus['emeters'][0] ?? [];
             $canal2 = $deviceStatus['emeters'][1] ?? [];
@@ -345,6 +216,10 @@ class ObtenerLecturasShelly extends Command
             if ($numFases === 0) {
                 $numFases = null;
             }
+        }
+
+        if (! $formatoReconocido) {
+            throw new LecturaNoDisponible('formato de respuesta desconocido: no contiene em:0, em1:x ni emeters');
         }
 
         // Calcular reactiva

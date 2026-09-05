@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GuardarDispositivoRequest;
 use App\Models\Dispositivo;
+use App\Models\Lectura;
+use App\Models\ModeloDispositivo;
 use App\Models\Sitio;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class DispositivosController extends Controller
@@ -26,6 +28,7 @@ class DispositivosController extends Controller
         $query = Dispositivo::with([
             'sitio.organizacion',
             'ultimaLecturaRelacion',
+            'modeloDispositivo',
         ])->withCount('lecturas');
 
         if (! $panelGlobalMode) {
@@ -51,7 +54,13 @@ class DispositivosController extends Controller
                     'id' => $dispositivo->id,
                     'device_id' => $dispositivo->device_id,
                     'nombre' => $dispositivo->nombre,
-                    'modelo' => $dispositivo->modelo,
+                    'modelo' => $dispositivo->nombreModelo(),
+                    'modelo_dispositivo_id' => $dispositivo->modelo_dispositivo_id,
+                    'modo_canales' => $dispositivo->modoCanales()->value,
+                    'driver' => $dispositivo->driver()->value,
+                    'driver_label' => $dispositivo->driver()->label(),
+                    'driver_disponible' => $dispositivo->driver()->disponible(),
+                    'conexion' => $dispositivo->conexion(),
                     'ip_local' => $dispositivo->ip_local,
                     'firmware' => $dispositivo->firmware,
                     'activo' => $dispositivo->activo,
@@ -111,6 +120,7 @@ class DispositivosController extends Controller
         return Inertia::render('Dispositivos/Index', [
             'dispositivos' => $dispositivos,
             'sitios' => $sitios,
+            'modelos' => $this->modelosParaFormulario(),
             'panel_global_mode' => $panelGlobalMode,
         ]);
     }
@@ -120,7 +130,7 @@ class DispositivosController extends Controller
      */
     public function show(Request $request, Dispositivo $dispositivo)
     {
-        $dispositivo->load('sitio.organizacion');
+        $dispositivo->load(['sitio.organizacion', 'modeloDispositivo']);
         $this->ensureCanAccessDispositivo($request, $dispositivo);
 
         $ultimaLectura = $dispositivo->ultimaLectura();
@@ -150,7 +160,13 @@ class DispositivosController extends Controller
                 'invertir_sentido_canal_1' => (bool) $dispositivo->invertir_sentido_canal_1,
                 'invertir_sentido_canal_2' => (bool) $dispositivo->invertir_sentido_canal_2,
                 'invertir_sentido_canal_3' => (bool) $dispositivo->invertir_sentido_canal_3,
-                'modelo' => $dispositivo->modelo,
+                'modelo' => $dispositivo->nombreModelo(),
+                'modelo_dispositivo_id' => $dispositivo->modelo_dispositivo_id,
+                'num_canales' => $dispositivo->modeloDispositivo?->num_canales ?? Lectura::MAX_CANALES,
+                'modo_canales' => $dispositivo->modoCanales()->value,
+                'driver_label' => $dispositivo->driver()->label(),
+                'driver_disponible' => $dispositivo->driver()->disponible(),
+                'conexion_resumen' => $this->resumenConexion($dispositivo),
                 'ip_local' => $dispositivo->ip_local,
                 'firmware' => $dispositivo->firmware,
                 'activo' => $dispositivo->activo,
@@ -197,40 +213,15 @@ class DispositivosController extends Controller
     /**
      * Almacenar nuevo dispositivo.
      */
-    public function store(Request $request)
+    public function store(GuardarDispositivoRequest $request)
     {
-        $validated = $request->validate([
-            'sitio_id' => 'required|exists:sitios,id',
-            'device_id' => [
-                'required',
-                'string',
-                Rule::unique('dispositivos', 'device_id')->whereNull('deleted_at'),
-            ],
-            'nombre' => 'required|string|max:255',
-            'num_fases' => 'nullable|integer|in:1,2,3',
-            'nombre_canal_1' => 'nullable|string|max:255',
-            'nombre_canal_2' => 'nullable|string|max:255',
-            'nombre_canal_3' => 'nullable|string|max:255',
-            'color_canal_1' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'color_canal_2' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'color_canal_3' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'tipo_canal_1' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'tipo_canal_2' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'tipo_canal_3' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'invertir_sentido_canal_1' => 'boolean',
-            'invertir_sentido_canal_2' => 'boolean',
-            'invertir_sentido_canal_3' => 'boolean',
-            'modelo' => 'nullable|string|max:255',
-            'ip_local' => 'nullable|ip',
-            'firmware' => 'nullable|string|max:255',
-            'activo' => 'boolean',
-        ]);
+        $atributos = $request->atributosParaGuardar();
 
-        $sitio = Sitio::findOrFail($validated['sitio_id']);
+        $sitio = Sitio::findOrFail($atributos['sitio_id']);
         $this->ensureCanAccessSitio($request, $sitio);
 
         $dispositivoExistente = Dispositivo::withTrashed()
-            ->where('device_id', $validated['device_id'])
+            ->where('device_id', $atributos['device_id'])
             ->first();
 
         if ($dispositivoExistente) {
@@ -243,20 +234,7 @@ class DispositivosController extends Controller
             $dispositivoExistente->forceDelete();
         }
 
-        try {
-            Dispositivo::create($validated);
-        } catch (\Illuminate\Database\QueryException $e) {
-            if ($e->getCode() == 23000) {
-                $dispositivoExistente = Dispositivo::where('device_id', $validated['device_id'])->first();
-                if ($dispositivoExistente) {
-                    return back()->withErrors([
-                        'device_id' => 'Este dispositivo ya esta siendo usado por otra organizacion o sitio.',
-                    ])->withInput();
-                }
-            }
-
-            throw $e;
-        }
+        Dispositivo::create($atributos);
 
         return redirect()->route('dispositivos.index')
             ->with('success', 'Dispositivo creado correctamente');
@@ -265,45 +243,18 @@ class DispositivosController extends Controller
     /**
      * Actualizar dispositivo.
      */
-    public function update(Request $request, Dispositivo $dispositivo)
+    public function update(GuardarDispositivoRequest $request, Dispositivo $dispositivo)
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
 
-        $validated = $request->validate([
-            'sitio_id' => 'required|exists:sitios,id',
-            'device_id' => [
-                'required',
-                'string',
-                Rule::unique('dispositivos', 'device_id')
-                    ->ignore($dispositivo->id)
-                    ->whereNull('deleted_at'),
-            ],
-            'nombre' => 'required|string|max:255',
-            'num_fases' => 'nullable|integer|in:1,2,3',
-            'nombre_canal_1' => 'nullable|string|max:255',
-            'nombre_canal_2' => 'nullable|string|max:255',
-            'nombre_canal_3' => 'nullable|string|max:255',
-            'color_canal_1' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'color_canal_2' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'color_canal_3' => 'nullable|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
-            'tipo_canal_1' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'tipo_canal_2' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'tipo_canal_3' => 'nullable|string|in:fotovoltaica,red_electrica',
-            'invertir_sentido_canal_1' => 'boolean',
-            'invertir_sentido_canal_2' => 'boolean',
-            'invertir_sentido_canal_3' => 'boolean',
-            'modelo' => 'nullable|string|max:255',
-            'ip_local' => 'nullable|ip',
-            'firmware' => 'nullable|string|max:255',
-            'activo' => 'boolean',
-        ]);
+        $atributos = $request->atributosParaGuardar();
 
-        $sitio = Sitio::findOrFail($validated['sitio_id']);
+        $sitio = Sitio::findOrFail($atributos['sitio_id']);
         $this->ensureCanAccessSitio($request, $sitio);
 
-        $dispositivo->update($validated);
+        $dispositivo->update($atributos);
 
-        if (! isset($validated['num_fases']) || $validated['num_fases'] === null) {
+        if (($atributos['num_fases'] ?? null) === null) {
             $dispositivo->actualizarNumFasesAuto();
         }
 
@@ -347,16 +298,21 @@ class DispositivosController extends Controller
         $this->ensureCanAccessDispositivo($request, $dispositivo);
 
         try {
-            \Artisan::call('shelly:obtener-lecturas', [
+            $codigo = \Artisan::call('lecturas:obtener', [
                 '--dispositivo' => $dispositivo->id,
             ]);
-
-            return redirect()->back()
-                ->with('success', 'Dispositivo sincronizado correctamente');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error al sincronizar el dispositivo: '.$e->getMessage());
         }
+
+        if ($codigo !== \Illuminate\Console\Command::SUCCESS) {
+            return redirect()->back()
+                ->with('error', 'No se pudo sincronizar el dispositivo: '.trim(\Artisan::output()));
+        }
+
+        return redirect()->back()
+            ->with('success', 'Dispositivo sincronizado correctamente');
     }
 
     private function isGlobalPanelMode(Request $request): bool
@@ -388,5 +344,46 @@ class DispositivosController extends Controller
         $dispositivo->loadMissing('sitio');
 
         $this->ensureCanAccessSitio($request, $dispositivo->sitio);
+    }
+
+    private function modelosParaFormulario(): \Illuminate\Support\Collection
+    {
+        return ModeloDispositivo::orderBy('fabricante')->orderBy('nombre')->get()
+            ->map(fn (ModeloDispositivo $modelo) => [
+                'id' => $modelo->id,
+                'fabricante' => $modelo->fabricante,
+                'nombre' => $modelo->nombre,
+                'activo' => $modelo->activo,
+                'driver' => $modelo->driver->value,
+                'driver_label' => $modelo->driver->label(),
+                'driver_disponible' => $modelo->driver->disponible(),
+                'num_canales' => $modelo->num_canales,
+                'modo_canales_por_defecto' => $modelo->modo_canales_por_defecto->value,
+                'modo_canales_configurable' => $modelo->modo_canales_configurable,
+                'campos_conexion' => $modelo->driver->camposConexion(),
+            ]);
+    }
+
+    private function resumenConexion(Dispositivo $dispositivo): ?string
+    {
+        $conexion = $dispositivo->conexion();
+
+        if ($conexion === []) {
+            return null;
+        }
+
+        $partes = [];
+
+        if (isset($conexion['host'])) {
+            $partes[] = $conexion['host'].(isset($conexion['port']) ? ':'.$conexion['port'] : '');
+        }
+        if (isset($conexion['unit_id'])) {
+            $partes[] = "unidad {$conexion['unit_id']}";
+        }
+        if (isset($conexion['device_instance'])) {
+            $partes[] = "instancia {$conexion['device_instance']}";
+        }
+
+        return implode(' · ', $partes);
     }
 }

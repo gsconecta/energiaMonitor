@@ -1,7 +1,8 @@
+import { canalDisponible, nombreCanalPropuesto } from '@/lib/canales-dispositivo';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Activity,
     BarChart3,
@@ -67,6 +68,12 @@ interface Dispositivo {
     invertir_sentido_canal_2: boolean;
     invertir_sentido_canal_3: boolean;
     modelo: string | null;
+    modelo_dispositivo_id: number | null;
+    num_canales: number;
+    modo_canales: 'circuitos' | 'fases';
+    driver_label: string;
+    driver_disponible: boolean;
+    conexion_resumen: string | null;
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
@@ -97,12 +104,17 @@ export default function DispositivosShow({
     metricas_energia,
     panel_global_mode,
 }: Props) {
+    const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
+    // Vacío, no el nombre propuesto: un campo que el usuario no toca debe enviarse como null (ver
+    // handleGuardarNombresCanales) para que el backend lo siga proponiendo. La propuesta se
+    // muestra como placeholder al editar y como texto al mostrar (ver obtenerNombreCanal), nunca
+    // se precarga en el propio input.
     const [nombresCanales, setNombresCanales] = useState({
-        nombre_canal_1: dispositivo.nombre_canal_1 ?? 'Canal 1',
-        nombre_canal_2: dispositivo.nombre_canal_2 ?? 'Canal 2',
-        nombre_canal_3: dispositivo.nombre_canal_3 ?? 'Canal 3',
+        nombre_canal_1: dispositivo.nombre_canal_1 ?? '',
+        nombre_canal_2: dispositivo.nombre_canal_2 ?? '',
+        nombre_canal_3: dispositivo.nombre_canal_3 ?? '',
     });
     const [coloresCanales, setColoresCanales] = useState({
         color_canal_1: dispositivo.color_canal_1 ?? '#ef4444',
@@ -119,6 +131,10 @@ export default function DispositivosShow({
         invertir_sentido_canal_2: dispositivo.invertir_sentido_canal_2,
         invertir_sentido_canal_3: dispositivo.invertir_sentido_canal_3,
     });
+
+    // Un dispositivo de legado sin modelo asignado no puede guardar desde este panel: el
+    // modelo es obligatorio y aquí no hay selector para asignarlo.
+    const sinModeloAsignado = dispositivo.modelo_dispositivo_id === null;
 
     const handleEliminar = () => {
         if (confirm('¿Estás seguro de eliminar este dispositivo?')) {
@@ -161,29 +177,47 @@ export default function DispositivosShow({
     };
 
     const handleGuardarNombresCanales = () => {
+        // No se manda `conexion`: este panel no la gestiona, y el servidor conserva la ya
+        // guardada cuando la clave no está presente en la petición. Los canales que sobran del
+        // modelo se anulan explícitamente (el servidor los rechaza si llegan con datos).
         router.put(
             `/dispositivos/${dispositivo.id}`,
             {
                 sitio_id: dispositivo.sitio.id,
                 device_id: dispositivo.device_id,
                 nombre: dispositivo.nombre,
+                modelo_dispositivo_id: dispositivo.modelo_dispositivo_id,
+                modo_canales: dispositivo.modo_canales,
                 num_fases: dispositivo.num_fases,
                 nombre_canal_1: nombresCanales.nombre_canal_1 || null,
-                nombre_canal_2: nombresCanales.nombre_canal_2 || null,
-                nombre_canal_3: nombresCanales.nombre_canal_3 || null,
+                nombre_canal_2: canalDisponible(2, dispositivo.num_canales)
+                    ? nombresCanales.nombre_canal_2 || null
+                    : null,
+                nombre_canal_3: canalDisponible(3, dispositivo.num_canales)
+                    ? nombresCanales.nombre_canal_3 || null
+                    : null,
                 color_canal_1: coloresCanales.color_canal_1,
-                color_canal_2: coloresCanales.color_canal_2,
-                color_canal_3: coloresCanales.color_canal_3,
+                color_canal_2: canalDisponible(2, dispositivo.num_canales)
+                    ? coloresCanales.color_canal_2
+                    : null,
+                color_canal_3: canalDisponible(3, dispositivo.num_canales)
+                    ? coloresCanales.color_canal_3
+                    : null,
                 tipo_canal_1: tiposCanales.tipo_canal_1 || null,
-                tipo_canal_2: tiposCanales.tipo_canal_2 || null,
-                tipo_canal_3: tiposCanales.tipo_canal_3 || null,
+                tipo_canal_2: canalDisponible(2, dispositivo.num_canales)
+                    ? tiposCanales.tipo_canal_2 || null
+                    : null,
+                tipo_canal_3: canalDisponible(3, dispositivo.num_canales)
+                    ? tiposCanales.tipo_canal_3 || null
+                    : null,
                 invertir_sentido_canal_1:
                     invertirSentidoCanales.invertir_sentido_canal_1,
-                invertir_sentido_canal_2:
-                    invertirSentidoCanales.invertir_sentido_canal_2,
-                invertir_sentido_canal_3:
-                    invertirSentidoCanales.invertir_sentido_canal_3,
-                modelo: dispositivo.modelo,
+                invertir_sentido_canal_2: canalDisponible(2, dispositivo.num_canales)
+                    ? invertirSentidoCanales.invertir_sentido_canal_2
+                    : false,
+                invertir_sentido_canal_3: canalDisponible(3, dispositivo.num_canales)
+                    ? invertirSentidoCanales.invertir_sentido_canal_3
+                    : false,
                 ip_local: dispositivo.ip_local,
                 firmware: dispositivo.firmware,
                 activo: dispositivo.activo,
@@ -192,21 +226,30 @@ export default function DispositivosShow({
                 onSuccess: () => {
                     setEditandoNombres(false);
                 },
+                onError: () => {
+                    // Mantener el panel abierto si hay errores
+                },
             },
         );
     };
 
+    // Si el campo está vacío (no tocado) se muestra la propuesta del backend, nunca un literal
+    // guardado: ver el comentario junto a la inicialización de nombresCanales más arriba.
     const obtenerNombreCanal = (numero: number): string => {
-        switch (numero) {
-            case 1:
-                return nombresCanales.nombre_canal_1;
-            case 2:
-                return nombresCanales.nombre_canal_2;
-            case 3:
-                return nombresCanales.nombre_canal_3;
-            default:
-                return `Canal ${numero}`;
-        }
+        const nombreEditado = (() => {
+            switch (numero) {
+                case 1:
+                    return nombresCanales.nombre_canal_1;
+                case 2:
+                    return nombresCanales.nombre_canal_2;
+                case 3:
+                    return nombresCanales.nombre_canal_3;
+                default:
+                    return '';
+            }
+        })();
+
+        return nombreEditado || nombreCanalPropuesto(numero, dispositivo.modo_canales);
     };
 
     return (
@@ -236,12 +279,19 @@ export default function DispositivosShow({
                         </button>
                         <button
                             onClick={handleSincronizar}
-                            disabled={sincronizando}
+                            disabled={
+                                sincronizando || !dispositivo.driver_disponible
+                            }
                             className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium ${
-                                sincronizando
+                                sincronizando || !dispositivo.driver_disponible
                                     ? 'cursor-not-allowed bg-gray-400'
                                     : 'bg-indigo-600 hover:bg-indigo-700'
                             } text-white`}
+                            title={
+                                dispositivo.driver_disponible
+                                    ? undefined
+                                    : 'Este modelo aún no tiene lector'
+                            }
                         >
                             <RefreshCw
                                 className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`}
@@ -383,6 +433,27 @@ export default function DispositivosShow({
                                         <span>{dispositivo.modelo}</span>
                                     </div>
                                 )}
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <Server className="h-4 w-4" />
+                                    <span className="font-medium">Driver:</span>
+                                    <span>{dispositivo.driver_label}</span>
+                                    {!dispositivo.driver_disponible && (
+                                        <span className="text-amber-700 dark:text-amber-400">
+                                            (sin lector)
+                                        </span>
+                                    )}
+                                </div>
+                                {dispositivo.conexion_resumen && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <Server className="h-4 w-4" />
+                                        <span className="font-medium">
+                                            Conexión:
+                                        </span>
+                                        <span className="font-mono">
+                                            {dispositivo.conexion_resumen}
+                                        </span>
+                                    </div>
+                                )}
                                 {dispositivo.num_fases && (
                                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                         <Settings className="h-4 w-4" />
@@ -463,13 +534,31 @@ export default function DispositivosShow({
                                 Nombres y Colores de Canales
                             </h2>
                             {!editandoNombres ? (
-                                <button
-                                    onClick={() => setEditandoNombres(true)}
-                                    className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                    Editar Nombres y Colores
-                                </button>
+                                <div className="text-right">
+                                    <button
+                                        onClick={() => setEditandoNombres(true)}
+                                        disabled={sinModeloAsignado}
+                                        className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white ${
+                                            sinModeloAsignado
+                                                ? 'cursor-not-allowed bg-gray-400'
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
+                                        title={
+                                            sinModeloAsignado
+                                                ? 'Asigna primero un modelo desde el listado de dispositivos'
+                                                : undefined
+                                        }
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                        Editar Nombres y Colores
+                                    </button>
+                                    {sinModeloAsignado && (
+                                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                                            Asigna primero un modelo desde el
+                                            listado de dispositivos.
+                                        </p>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="flex gap-2">
                                     <button
@@ -483,14 +572,14 @@ export default function DispositivosShow({
                                             setEditandoNombres(false);
                                             setNombresCanales({
                                                 nombre_canal_1:
-                                                    dispositivo.nombre_canal_1 ||
-                                                    'Canal 1',
+                                                    dispositivo.nombre_canal_1 ??
+                                                    '',
                                                 nombre_canal_2:
-                                                    dispositivo.nombre_canal_2 ||
-                                                    'Canal 2',
+                                                    dispositivo.nombre_canal_2 ??
+                                                    '',
                                                 nombre_canal_3:
-                                                    dispositivo.nombre_canal_3 ||
-                                                    'Canal 3',
+                                                    dispositivo.nombre_canal_3 ??
+                                                    '',
                                             });
                                             setColoresCanales({
                                                 color_canal_1:
@@ -530,9 +619,19 @@ export default function DispositivosShow({
                                 </div>
                             )}
                         </div>
+                        {editandoNombres &&
+                            errors &&
+                            Object.keys(errors).length > 0 && (
+                                <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                                    {Object.values(errors).map(
+                                        (mensaje, indice) => (
+                                            <p key={indice}>{mensaje}</p>
+                                        ),
+                                    )}
+                                </div>
+                            )}
                         <div className="grid gap-4 sm:grid-cols-3">
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 1 && (
+                            {dispositivo.num_canales >= 1 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 1
@@ -552,7 +651,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Producción Solar"
+                                                    placeholder={nombreCanalPropuesto(1, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">
@@ -668,8 +767,7 @@ export default function DispositivosShow({
                                         )}
                                     </div>
                                 )}
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 2 && (
+                            {dispositivo.num_canales >= 2 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 2
@@ -689,7 +787,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Consumo General"
+                                                    placeholder={nombreCanalPropuesto(2, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">
@@ -805,8 +903,7 @@ export default function DispositivosShow({
                                         )}
                                     </div>
                                 )}
-                            {dispositivo.num_fases &&
-                                dispositivo.num_fases >= 3 && (
+                            {dispositivo.num_canales >= 3 && (
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Canal 3
@@ -826,7 +923,7 @@ export default function DispositivosShow({
                                                         })
                                                     }
                                                     className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder="Ej: Red Eléctrica"
+                                                    placeholder={nombreCanalPropuesto(3, dispositivo.modo_canales)}
                                                 />
                                                 <div className="flex items-center gap-2">
                                                     <label className="text-xs text-gray-600 dark:text-gray-400">

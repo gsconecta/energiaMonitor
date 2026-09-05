@@ -38,7 +38,8 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 'dispositivos.id',
                 'dispositivos.device_id',
                 'dispositivos.nombre',
-                'dispositivos.modelo',
+                'dispositivos.modelo_legacy',
+                'dispositivos.modelo_dispositivo_id',
                 'sitios.organizacion_id',
             ])
             ->join('sitios', 'dispositivos.sitio_id', '=', 'sitios.id')
@@ -47,7 +48,7 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
             ->whereNull('dispositivos.deleted_at')
             ->whereNull('sitios.deleted_at')
             ->whereNull('organizaciones.deleted_at')
-            ->with(['sitio.organizacion'])
+            ->with(['sitio.organizacion', 'modeloDispositivo'])
             ->orderBy('sitios.organizacion_id')
             ->orderBy('dispositivos.id')
             ->get();
@@ -84,7 +85,11 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                         'id' => $dispositivo->id,
                         'device_id' => $dispositivo->device_id,
                         'nombre' => $dispositivo->nombre,
-                        'modelo' => $dispositivo->modelo,
+                        // n8n es un consumidor externo que no controlamos: mantiene el mismo valor
+                        // de siempre (el texto legado), igual que /sql-dispositivos-activos. El
+                        // nombre del catálogo (nombreModelo()) no se expone aquí para no romper su
+                        // contrato con un valor distinto al que ya procesan.
+                        'modelo' => $dispositivo->modelo_legacy,
                     ];
                 })->values()->toArray(),
             ];
@@ -144,7 +149,7 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 d.id,
                 d.device_id,
                 d.nombre,
-                d.modelo,
+                d.modelo_legacy AS modelo,
                 o.id as organizacion_id,
                 o.nombre as organizacion_nombre,
                 o.codigo as organizacion_codigo,
