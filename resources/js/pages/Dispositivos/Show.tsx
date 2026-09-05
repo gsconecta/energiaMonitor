@@ -67,6 +67,9 @@ interface Dispositivo {
     invertir_sentido_canal_2: boolean;
     invertir_sentido_canal_3: boolean;
     modelo: string | null;
+    driver_label: string;
+    driver_disponible: boolean;
+    conexion_resumen: string | null;
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
@@ -236,12 +239,19 @@ export default function DispositivosShow({
                         </button>
                         <button
                             onClick={handleSincronizar}
-                            disabled={sincronizando}
+                            disabled={
+                                sincronizando || !dispositivo.driver_disponible
+                            }
                             className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium ${
-                                sincronizando
+                                sincronizando || !dispositivo.driver_disponible
                                     ? 'cursor-not-allowed bg-gray-400'
                                     : 'bg-indigo-600 hover:bg-indigo-700'
                             } text-white`}
+                            title={
+                                dispositivo.driver_disponible
+                                    ? undefined
+                                    : 'Este modelo aún no tiene lector'
+                            }
                         >
                             <RefreshCw
                                 className={`h-4 w-4 ${sincronizando ? 'animate-spin' : ''}`}
@@ -381,6 +391,27 @@ export default function DispositivosShow({
                                             Modelo:
                                         </span>
                                         <span>{dispositivo.modelo}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <Server className="h-4 w-4" />
+                                    <span className="font-medium">Driver:</span>
+                                    <span>{dispositivo.driver_label}</span>
+                                    {!dispositivo.driver_disponible && (
+                                        <span className="text-amber-700 dark:text-amber-400">
+                                            (sin lector)
+                                        </span>
+                                    )}
+                                </div>
+                                {dispositivo.conexion_resumen && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <Server className="h-4 w-4" />
+                                        <span className="font-medium">
+                                            Conexión:
+                                        </span>
+                                        <span className="font-mono">
+                                            {dispositivo.conexion_resumen}
+                                        </span>
                                     </div>
                                 )}
                                 {dispositivo.num_fases && (

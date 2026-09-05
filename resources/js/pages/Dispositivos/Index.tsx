@@ -1,3 +1,7 @@
+import CamposConexion, {
+    conexionPorDefecto,
+    type CampoConexion,
+} from '@/components/dispositivos/campos-conexion';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -37,6 +41,12 @@ interface Dispositivo {
     device_id: string;
     nombre: string;
     modelo: string | null;
+    modelo_dispositivo_id: number | null;
+    modo_canales: 'circuitos' | 'fases';
+    driver: string;
+    driver_label: string;
+    driver_disponible: boolean;
+    conexion: Record<string, string | number>;
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
@@ -61,15 +71,31 @@ interface Dispositivo {
     potencia_actual: number;
 }
 
+interface ModeloParaFormulario {
+    id: number;
+    fabricante: string;
+    nombre: string;
+    activo: boolean;
+    driver: string;
+    driver_label: string;
+    driver_disponible: boolean;
+    num_canales: number;
+    modo_canales_por_defecto: 'circuitos' | 'fases';
+    modo_canales_configurable: boolean;
+    campos_conexion: CampoConexion[];
+}
+
 interface Props {
     dispositivos: Dispositivo[];
     sitios: Sitio[];
+    modelos: ModeloParaFormulario[];
     panel_global_mode: boolean;
 }
 
 export default function DispositivosIndex({
     dispositivos,
     sitios,
+    modelos,
     panel_global_mode,
 }: Props) {
     const { errors } = usePage<{ errors?: Record<string, string> }>().props;
@@ -81,7 +107,9 @@ export default function DispositivosIndex({
         sitio_id: '',
         device_id: '',
         nombre: '',
-        modelo: 'Shelly EM3',
+        modelo_dispositivo_id: '' as string,
+        modo_canales: 'circuitos' as 'circuitos' | 'fases',
+        conexion: {} as Record<string, string | number>,
         ip_local: '',
         firmware: '',
         activo: true,
@@ -100,13 +128,35 @@ export default function DispositivosIndex({
         invertir_sentido_canal_3: false,
     });
 
+    const modeloElegido =
+        modelos.find(
+            (m) => m.id.toString() === formData.modelo_dispositivo_id,
+        ) ?? null;
+    const numCanales = modeloElegido?.num_canales ?? 3;
+    const esFases = formData.modo_canales === 'fases';
+    const modelosSeleccionables = modelos.filter(
+        (m) => m.activo || m.id === dispositivoEditando?.modelo_dispositivo_id,
+    );
+
+    const elegirModelo = (id: string) => {
+        const modelo = modelos.find((m) => m.id.toString() === id) ?? null;
+        setFormData({
+            ...formData,
+            modelo_dispositivo_id: id,
+            modo_canales: modelo?.modo_canales_por_defecto ?? 'circuitos',
+            conexion: modelo ? conexionPorDefecto(modelo.campos_conexion) : {},
+        });
+    };
+
     const abrirModalNuevo = () => {
         setDispositivoEditando(null);
         setFormData({
             sitio_id: sitios[0]?.id.toString() || '',
             device_id: '',
             nombre: '',
-            modelo: 'Shelly EM3',
+            modelo_dispositivo_id: '' as string,
+            modo_canales: 'circuitos' as 'circuitos' | 'fases',
+            conexion: {} as Record<string, string | number>,
             ip_local: '',
             firmware: '',
             activo: true,
@@ -133,7 +183,10 @@ export default function DispositivosIndex({
             sitio_id: dispositivo.sitio.id.toString(),
             device_id: dispositivo.device_id,
             nombre: dispositivo.nombre,
-            modelo: dispositivo.modelo || '',
+            modelo_dispositivo_id:
+                dispositivo.modelo_dispositivo_id?.toString() ?? '',
+            modo_canales: dispositivo.modo_canales,
+            conexion: dispositivo.conexion ?? {},
             ip_local: dispositivo.ip_local || '',
             firmware: dispositivo.firmware || '',
             activo: dispositivo.activo,
@@ -157,16 +210,40 @@ export default function DispositivosIndex({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Preparar datos para envío, convirtiendo strings vacíos a null
+        // Un canal está disponible cuando su número no supera el num_canales del modelo elegido.
+        const canalDisponible = (canal: number) => canal <= numCanales;
+
+        // Preparar datos para envío, convirtiendo strings vacíos a null. Los canales que el
+        // modelo no admite se anulan explícitamente (incluidos los colores, que siempre traen
+        // un valor por defecto): el servidor los rechaza si llegan con datos.
         const datosEnvio = {
             ...formData,
+            modelo_dispositivo_id: formData.modelo_dispositivo_id
+                ? parseInt(formData.modelo_dispositivo_id)
+                : null,
             num_fases: formData.num_fases || null,
             nombre_canal_1: formData.nombre_canal_1 || null,
-            nombre_canal_2: formData.nombre_canal_2 || null,
-            nombre_canal_3: formData.nombre_canal_3 || null,
+            nombre_canal_2: canalDisponible(2)
+                ? formData.nombre_canal_2 || null
+                : null,
+            nombre_canal_3: canalDisponible(3)
+                ? formData.nombre_canal_3 || null
+                : null,
+            color_canal_2: canalDisponible(2) ? formData.color_canal_2 : null,
+            color_canal_3: canalDisponible(3) ? formData.color_canal_3 : null,
             tipo_canal_1: formData.tipo_canal_1 || null,
-            tipo_canal_2: formData.tipo_canal_2 || null,
-            tipo_canal_3: formData.tipo_canal_3 || null,
+            tipo_canal_2: canalDisponible(2)
+                ? formData.tipo_canal_2 || null
+                : null,
+            tipo_canal_3: canalDisponible(3)
+                ? formData.tipo_canal_3 || null
+                : null,
+            invertir_sentido_canal_2: canalDisponible(2)
+                ? formData.invertir_sentido_canal_2
+                : false,
+            invertir_sentido_canal_3: canalDisponible(3)
+                ? formData.invertir_sentido_canal_3
+                : false,
         };
 
         if (dispositivoEditando) {
@@ -338,6 +415,11 @@ export default function DispositivosIndex({
                                             </div>
                                             <div className="text-xs text-gray-500 dark:text-gray-400">
                                                 {dispositivo.modelo}
+                                                {!dispositivo.driver_disponible && (
+                                                    <span className="ml-1 text-amber-700 dark:text-amber-400">
+                                                        · sin lector
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900 dark:text-gray-100">
@@ -386,15 +468,21 @@ export default function DispositivosIndex({
                                                     }
                                                     disabled={
                                                         sincronizando ===
-                                                        dispositivo.id
+                                                            dispositivo.id ||
+                                                        !dispositivo.driver_disponible
                                                     }
                                                     className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
                                                         sincronizando ===
-                                                        dispositivo.id
+                                                            dispositivo.id ||
+                                                        !dispositivo.driver_disponible
                                                             ? 'cursor-not-allowed text-gray-400'
                                                             : 'text-indigo-600'
                                                     }`}
-                                                    title="Sincronizar manualmente"
+                                                    title={
+                                                        dispositivo.driver_disponible
+                                                            ? 'Sincronizar manualmente'
+                                                            : 'Este modelo aún no tiene lector'
+                                                    }
                                                 >
                                                     <RefreshCw
                                                         className={`h-4 w-4 ${
@@ -557,21 +645,108 @@ export default function DispositivosIndex({
                                 </div>
 
                                 <div className="relative grid gap-2">
-                                    <Label htmlFor="modelo">Modelo</Label>
-                                    <Input
-                                        id="modelo"
-                                        type="text"
-                                        value={formData.modelo}
+                                    <Label htmlFor="modelo_dispositivo_id">
+                                        Modelo{' '}
+                                        <span className="text-red-500">*</span>
+                                    </Label>
+                                    <select
+                                        id="modelo_dispositivo_id"
+                                        value={formData.modelo_dispositivo_id}
                                         onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                modelo: e.target.value,
-                                            })
+                                            elegirModelo(e.target.value)
                                         }
-                                        placeholder="Shelly EM3"
-                                    />
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                        required
+                                    >
+                                        <option value="">
+                                            Selecciona un modelo
+                                        </option>
+                                        {modelosSeleccionables.map((modelo) => (
+                                            <option
+                                                key={modelo.id}
+                                                value={modelo.id}
+                                            >
+                                                {modelo.fabricante}{' '}
+                                                {modelo.nombre}
+                                                {modelo.driver_disponible
+                                                    ? ''
+                                                    : ' (sin lector)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {modeloElegido &&
+                                        !modeloElegido.driver_disponible && (
+                                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                                                Aún sin lector: el dispositivo
+                                                se guardará pero no se leerán
+                                                datos.
+                                            </p>
+                                        )}
+                                    {errors?.modelo_dispositivo_id && (
+                                        <p className="text-sm text-red-600 dark:text-red-400">
+                                            {errors.modelo_dispositivo_id}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
+
+                            {modeloElegido?.modo_canales_configurable && (
+                                <div className="grid gap-2">
+                                    <Label>Modo de canales</Label>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                                        {(['circuitos', 'fases'] as const).map(
+                                            (modo) => (
+                                                <label
+                                                    key={modo}
+                                                    className="flex items-center gap-2 text-sm"
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="modo_canales"
+                                                        value={modo}
+                                                        checked={
+                                                            formData.modo_canales ===
+                                                            modo
+                                                        }
+                                                        onChange={() =>
+                                                            setFormData({
+                                                                ...formData,
+                                                                modo_canales:
+                                                                    modo,
+                                                            })
+                                                        }
+                                                    />
+                                                    {modo === 'circuitos'
+                                                        ? 'Circuitos independientes'
+                                                        : 'Fases de un mismo circuito'}
+                                                </label>
+                                            ),
+                                        )}
+                                    </div>
+                                    {errors?.modo_canales && (
+                                        <p className="text-sm text-red-600 dark:text-red-400">
+                                            {errors.modo_canales}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {modeloElegido && (
+                                <div className="grid gap-2">
+                                    <Label>Conexión</Label>
+                                    <CamposConexion
+                                        campos={modeloElegido.campos_conexion}
+                                        valores={formData.conexion}
+                                        onChange={(conexion) =>
+                                            setFormData({
+                                                ...formData,
+                                                conexion,
+                                            })
+                                        }
+                                        errors={errors}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Configuración de Canales */}
@@ -586,33 +761,38 @@ export default function DispositivosIndex({
                                 </p>
                             </div>
 
-                            <div className="relative grid gap-2 sm:w-1/2">
-                                <Label htmlFor="num_fases">
-                                    Número de Fases
-                                </Label>
-                                <select
-                                    id="num_fases"
-                                    value={formData.num_fases || ''}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            num_fases: e.target.value
-                                                ? parseInt(e.target.value)
-                                                : null,
-                                        })
-                                    }
-                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <option value="">No especificado</option>
-                                    <option value="1">1 - Monofásico</option>
-                                    <option value="2">2 - Bifásico</option>
-                                    <option value="3">3 - Trifásico</option>
-                                </select>
-                            </div>
+                            {!esFases && (
+                                <div className="relative grid gap-2 sm:w-1/2">
+                                    <Label htmlFor="num_fases">
+                                        Número de Fases
+                                    </Label>
+                                    <select
+                                        id="num_fases"
+                                        value={formData.num_fases || ''}
+                                        onChange={(e) =>
+                                            setFormData({
+                                                ...formData,
+                                                num_fases: e.target.value
+                                                    ? parseInt(e.target.value)
+                                                    : null,
+                                            })
+                                        }
+                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="">
+                                            No especificado
+                                        </option>
+                                        <option value="1">
+                                            1 - Monofásico
+                                        </option>
+                                        <option value="2">2 - Bifásico</option>
+                                        <option value="3">3 - Trifásico</option>
+                                    </select>
+                                </div>
+                            )}
 
                             {/* Canal 1 */}
-                            {(!formData.num_fases ||
-                                formData.num_fases >= 1) && (
+                            {numCanales >= 1 && (
                                 <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 1
@@ -636,7 +816,11 @@ export default function DispositivosIndex({
                                                             e.target.value,
                                                     })
                                                 }
-                                                placeholder="Ej: Consumo General"
+                                                placeholder={
+                                                    esFases
+                                                        ? 'L1'
+                                                        : 'Ej: Consumo General'
+                                                }
                                                 className="h-9 text-sm"
                                             />
                                         </div>
@@ -686,7 +870,9 @@ export default function DispositivosIndex({
                                                 htmlFor="tipo_canal_1"
                                                 className="text-xs"
                                             >
-                                                Tipo
+                                                {esFases
+                                                    ? 'Tipo (todas las fases)'
+                                                    : 'Tipo'}
                                             </Label>
                                             <select
                                                 id="tipo_canal_1"
@@ -713,6 +899,11 @@ export default function DispositivosIndex({
                                                     Red Eléctrica
                                                 </option>
                                             </select>
+                                            {errors?.tipo_canal_1 && (
+                                                <p className="text-xs text-red-600">
+                                                    {errors.tipo_canal_1}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2 pt-6">
                                             <Checkbox
@@ -732,7 +923,9 @@ export default function DispositivosIndex({
                                                 htmlFor="invertir_sentido_canal_1"
                                                 className="cursor-pointer text-xs"
                                             >
-                                                Invertir sentido
+                                                {esFases
+                                                    ? 'Invertir sentido (todas las fases)'
+                                                    : 'Invertir sentido'}
                                             </Label>
                                         </div>
                                     </div>
@@ -740,7 +933,7 @@ export default function DispositivosIndex({
                             )}
 
                             {/* Canal 2 */}
-                            {formData.num_fases && formData.num_fases >= 2 && (
+                            {numCanales >= 2 && (
                                 <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 2
@@ -764,7 +957,11 @@ export default function DispositivosIndex({
                                                             e.target.value,
                                                     })
                                                 }
-                                                placeholder="Ej: Consumo General"
+                                                placeholder={
+                                                    esFases
+                                                        ? 'L2'
+                                                        : 'Ej: Consumo General'
+                                                }
                                                 className="h-9 text-sm"
                                             />
                                         </div>
@@ -809,66 +1006,80 @@ export default function DispositivosIndex({
                                                 />
                                             </div>
                                         </div>
-                                        <div className="relative grid gap-2">
-                                            <Label
-                                                htmlFor="tipo_canal_2"
-                                                className="text-xs"
-                                            >
-                                                Tipo
-                                            </Label>
-                                            <select
-                                                id="tipo_canal_2"
-                                                value={
-                                                    formData.tipo_canal_2 || ''
-                                                }
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        tipo_canal_2:
-                                                            e.target.value ||
-                                                            null,
-                                                    })
-                                                }
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <option value="">
-                                                    Seleccionar tipo
-                                                </option>
-                                                <option value="fotovoltaica">
-                                                    Fotovoltaica
-                                                </option>
-                                                <option value="red_electrica">
-                                                    Red Eléctrica
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center gap-2 pt-6">
-                                            <Checkbox
-                                                id="invertir_sentido_canal_2"
-                                                checked={
-                                                    formData.invertir_sentido_canal_2
-                                                }
-                                                onCheckedChange={(checked) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        invertir_sentido_canal_2:
-                                                            checked === true,
-                                                    })
-                                                }
-                                            />
-                                            <Label
-                                                htmlFor="invertir_sentido_canal_2"
-                                                className="cursor-pointer text-xs"
-                                            >
-                                                Invertir sentido
-                                            </Label>
-                                        </div>
+                                        {!esFases && (
+                                            <div className="relative grid gap-2">
+                                                <Label
+                                                    htmlFor="tipo_canal_2"
+                                                    className="text-xs"
+                                                >
+                                                    Tipo
+                                                </Label>
+                                                <select
+                                                    id="tipo_canal_2"
+                                                    value={
+                                                        formData.tipo_canal_2 ||
+                                                        ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            tipo_canal_2:
+                                                                e.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <option value="">
+                                                        Seleccionar tipo
+                                                    </option>
+                                                    <option value="fotovoltaica">
+                                                        Fotovoltaica
+                                                    </option>
+                                                    <option value="red_electrica">
+                                                        Red Eléctrica
+                                                    </option>
+                                                </select>
+                                                {errors?.tipo_canal_2 && (
+                                                    <p className="text-xs text-red-600">
+                                                        {errors.tipo_canal_2}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                        {!esFases && (
+                                            <div className="flex items-center gap-2 pt-6">
+                                                <Checkbox
+                                                    id="invertir_sentido_canal_2"
+                                                    checked={
+                                                        formData.invertir_sentido_canal_2
+                                                    }
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            invertir_sentido_canal_2:
+                                                                checked ===
+                                                                true,
+                                                        })
+                                                    }
+                                                />
+                                                <Label
+                                                    htmlFor="invertir_sentido_canal_2"
+                                                    className="cursor-pointer text-xs"
+                                                >
+                                                    Invertir sentido
+                                                </Label>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
                             {/* Canal 3 */}
-                            {formData.num_fases && formData.num_fases >= 3 && (
+                            {numCanales >= 3 && (
                                 <div className="space-y-3 rounded-md border border-gray-200 bg-background p-3 dark:border-gray-800">
                                     <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         Canal 3
@@ -892,7 +1103,11 @@ export default function DispositivosIndex({
                                                             e.target.value,
                                                     })
                                                 }
-                                                placeholder="Ej: Red Eléctrica"
+                                                placeholder={
+                                                    esFases
+                                                        ? 'L3'
+                                                        : 'Ej: Consumo General'
+                                                }
                                                 className="h-9 text-sm"
                                             />
                                         </div>
@@ -937,60 +1152,74 @@ export default function DispositivosIndex({
                                                 />
                                             </div>
                                         </div>
-                                        <div className="relative grid gap-2">
-                                            <Label
-                                                htmlFor="tipo_canal_3"
-                                                className="text-xs"
-                                            >
-                                                Tipo
-                                            </Label>
-                                            <select
-                                                id="tipo_canal_3"
-                                                value={
-                                                    formData.tipo_canal_3 || ''
-                                                }
-                                                onChange={(e) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        tipo_canal_3:
-                                                            e.target.value ||
-                                                            null,
-                                                    })
-                                                }
-                                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-                                            >
-                                                <option value="">
-                                                    Seleccionar tipo
-                                                </option>
-                                                <option value="fotovoltaica">
-                                                    Fotovoltaica
-                                                </option>
-                                                <option value="red_electrica">
-                                                    Red Eléctrica
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center gap-2 pt-6">
-                                            <Checkbox
-                                                id="invertir_sentido_canal_3"
-                                                checked={
-                                                    formData.invertir_sentido_canal_3
-                                                }
-                                                onCheckedChange={(checked) =>
-                                                    setFormData({
-                                                        ...formData,
-                                                        invertir_sentido_canal_3:
-                                                            checked === true,
-                                                    })
-                                                }
-                                            />
-                                            <Label
-                                                htmlFor="invertir_sentido_canal_3"
-                                                className="cursor-pointer text-xs"
-                                            >
-                                                Invertir sentido
-                                            </Label>
-                                        </div>
+                                        {!esFases && (
+                                            <div className="relative grid gap-2">
+                                                <Label
+                                                    htmlFor="tipo_canal_3"
+                                                    className="text-xs"
+                                                >
+                                                    Tipo
+                                                </Label>
+                                                <select
+                                                    id="tipo_canal_3"
+                                                    value={
+                                                        formData.tipo_canal_3 ||
+                                                        ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            tipo_canal_3:
+                                                                e.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <option value="">
+                                                        Seleccionar tipo
+                                                    </option>
+                                                    <option value="fotovoltaica">
+                                                        Fotovoltaica
+                                                    </option>
+                                                    <option value="red_electrica">
+                                                        Red Eléctrica
+                                                    </option>
+                                                </select>
+                                                {errors?.tipo_canal_3 && (
+                                                    <p className="text-xs text-red-600">
+                                                        {errors.tipo_canal_3}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                        {!esFases && (
+                                            <div className="flex items-center gap-2 pt-6">
+                                                <Checkbox
+                                                    id="invertir_sentido_canal_3"
+                                                    checked={
+                                                        formData.invertir_sentido_canal_3
+                                                    }
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            invertir_sentido_canal_3:
+                                                                checked ===
+                                                                true,
+                                                        })
+                                                    }
+                                                />
+                                                <Label
+                                                    htmlFor="invertir_sentido_canal_3"
+                                                    className="cursor-pointer text-xs"
+                                                >
+                                                    Invertir sentido
+                                                </Label>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
