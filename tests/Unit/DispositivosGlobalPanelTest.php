@@ -6,104 +6,22 @@ use App\Models\Lectura;
 use App\Models\Organizacion;
 use App\Models\Sitio;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
+use Database\Seeders\ModeloDispositivoSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\Support\EsquemaDispositivos;
 use Tests\TestCase;
 
 uses(TestCase::class);
 
 beforeEach(function () {
-    Schema::dropIfExists('lecturas');
-    Schema::dropIfExists('dispositivos');
-    Schema::dropIfExists('sitios');
-    Schema::dropIfExists('organizacion_user');
-    Schema::dropIfExists('organizaciones');
-    Schema::dropIfExists('users');
-
-    Schema::create('users', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('email')->unique();
-        $table->timestamp('email_verified_at')->nullable();
-        $table->string('password');
-        $table->enum('rol_global', ['cliente', 'tecnico', 'admin'])->default('cliente');
-        $table->rememberToken()->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('organizaciones', function (Blueprint $table) {
-        $table->id();
-        $table->string('nombre');
-        $table->string('codigo')->nullable();
-        $table->boolean('activa')->default(true);
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('organizacion_user', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('organizacion_id');
-        $table->unsignedBigInteger('user_id');
-        $table->string('rol')->default('viewer');
-        $table->timestamps();
-    });
-
-    Schema::create('sitios', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('organizacion_id');
-        $table->string('nombre');
-        $table->string('codigo')->nullable();
-        $table->boolean('activa')->default(true);
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('dispositivos', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('sitio_id');
-        $table->string('device_id')->unique();
-        $table->string('nombre');
-        $table->string('modelo')->nullable();
-        $table->string('ip_local')->nullable();
-        $table->string('firmware')->nullable();
-        $table->boolean('activo')->default(true);
-        $table->unsignedTinyInteger('num_fases')->nullable();
-        $table->string('nombre_canal_1')->nullable();
-        $table->string('nombre_canal_2')->nullable();
-        $table->string('nombre_canal_3')->nullable();
-        $table->string('color_canal_1')->nullable();
-        $table->string('color_canal_2')->nullable();
-        $table->string('color_canal_3')->nullable();
-        $table->string('tipo_canal_1')->nullable();
-        $table->string('tipo_canal_2')->nullable();
-        $table->string('tipo_canal_3')->nullable();
-        $table->json('configuracion')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('lecturas', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('dispositivo_id');
-        $table->timestamp('fecha_lectura');
-        $table->decimal('potencia_total_w', 10, 2)->nullable();
-        $table->timestamps();
-    });
-
+    EsquemaDispositivos::crear();
+    (new ModeloDispositivoSeeder)->run();
     Event::fake([DashboardLecturaActualizada::class]);
 });
 
-afterEach(function () {
-    Schema::dropIfExists('lecturas');
-    Schema::dropIfExists('dispositivos');
-    Schema::dropIfExists('sitios');
-    Schema::dropIfExists('organizacion_user');
-    Schema::dropIfExists('organizaciones');
-    Schema::dropIfExists('users');
-});
+afterEach(fn () => EsquemaDispositivos::eliminar());
 
 it('lists all devices while in global panel mode', function () {
     $user = User::factory()->create([
@@ -131,7 +49,6 @@ it('lists all devices while in global panel mode', function () {
         'sitio_id' => $sitioA->id,
         'device_id' => 'dev-a',
         'nombre' => 'Medidor A',
-        'modelo' => 'Shelly EM3',
         'activo' => true,
     ]);
 
@@ -139,7 +56,6 @@ it('lists all devices while in global panel mode', function () {
         'sitio_id' => $sitioB->id,
         'device_id' => 'dev-b',
         'nombre' => 'Medidor B',
-        'modelo' => 'Shelly EM3',
         'activo' => true,
     ]);
 
@@ -201,7 +117,6 @@ it('keeps regular users scoped to their organizations without context', function
         'sitio_id' => $sitioA->id,
         'device_id' => 'dev-a',
         'nombre' => 'Medidor A',
-        'modelo' => 'Shelly EM3',
         'activo' => true,
     ]);
 
@@ -209,7 +124,6 @@ it('keeps regular users scoped to their organizations without context', function
         'sitio_id' => $sitioB->id,
         'device_id' => 'dev-b',
         'nombre' => 'Medidor B',
-        'modelo' => 'Shelly EM3',
         'activo' => true,
     ]);
 
@@ -249,7 +163,6 @@ it('allows updating and syncing any device in global panel mode', function () {
         'sitio_id' => $sitio->id,
         'device_id' => 'dev-soporte',
         'nombre' => 'Medidor Original',
-        'modelo' => 'Shelly EM3',
         'activo' => true,
     ]);
 
@@ -258,7 +171,9 @@ it('allows updating and syncing any device in global panel mode', function () {
             'sitio_id' => $sitio->id,
             'device_id' => 'dev-soporte',
             'nombre' => 'Medidor Actualizado',
-            'modelo' => 'Shelly Pro EM',
+            'modelo_dispositivo_id' => \App\Models\ModeloDispositivo::where('codigo', 'shelly-pro-3em')->value('id'),
+            'modo_canales' => 'circuitos',
+            'conexion' => [],
             'ip_local' => '192.168.1.25',
             'firmware' => '1.0.0',
             'activo' => true,
