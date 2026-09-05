@@ -280,7 +280,8 @@ it('allows updating and syncing any device in global panel mode', function () {
 
     Artisan::shouldReceive('call')
         ->once()
-        ->with('shelly:obtener-lecturas', ['--dispositivo' => $dispositivo->id]);
+        ->with('lecturas:obtener', ['--dispositivo' => $dispositivo->id])
+        ->andReturn(0);
 
     $this->actingAs($user)
         ->from(route('dashboard'))

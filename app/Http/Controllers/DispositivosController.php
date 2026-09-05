@@ -347,16 +347,21 @@ class DispositivosController extends Controller
         $this->ensureCanAccessDispositivo($request, $dispositivo);
 
         try {
-            \Artisan::call('shelly:obtener-lecturas', [
+            $codigo = \Artisan::call('lecturas:obtener', [
                 '--dispositivo' => $dispositivo->id,
             ]);
-
-            return redirect()->back()
-                ->with('success', 'Dispositivo sincronizado correctamente');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error al sincronizar el dispositivo: '.$e->getMessage());
         }
+
+        if ($codigo !== \Illuminate\Console\Command::SUCCESS) {
+            return redirect()->back()
+                ->with('error', 'No se pudo sincronizar el dispositivo: '.trim(\Artisan::output()));
+        }
+
+        return redirect()->back()
+            ->with('success', 'Dispositivo sincronizado correctamente');
     }
 
     private function isGlobalPanelMode(Request $request): bool

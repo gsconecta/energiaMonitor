@@ -11,12 +11,12 @@ Artisan::command('inspire', function () {
 // Programar obtención de lecturas de Shelly cada 3 minutos
 // Solo se ejecuta en entornos que no sean local
 if (!app()->environment('local')) {
-    Schedule::command('shelly:obtener-lecturas')
+    Schedule::command('lecturas:obtener')
         ->everyThreeMinutes()
         ->withoutOverlapping()
         ->runInBackground()
         ->onFailure(function () {
-            \Log::error('Error al ejecutar comando shelly:obtener-lecturas');
+            \Log::error('Error al ejecutar comando lecturas:obtener');
         });
 
     Schedule::command('lecturas:compactar-15m --days=60')

@@ -170,13 +170,13 @@ class DiagnosticoScheduler extends Command
 
     private function checkCommand()
     {
-        $this->info('5️⃣  Verificando comando shelly:obtener-lecturas...');
+        $this->info('5️⃣  Verificando comando lecturas:obtener...');
         
-        if ($this->commandExists('shelly:obtener-lecturas')) {
+        if ($this->commandExists('lecturas:obtener')) {
             $this->info('   ✅ Comando encontrado');
-            $this->line('   💡 Puedes probarlo con: php artisan shelly:obtener-lecturas');
+            $this->line('   💡 Puedes probarlo con: php artisan lecturas:obtener');
         } else {
-            $this->error('   ❌ Comando shelly:obtener-lecturas no encontrado');
+            $this->error('   ❌ Comando lecturas:obtener no encontrado');
             $this->line('   📝 Verifica app/Console/Commands/ObtenerLecturasShelly.php');
         }
         
