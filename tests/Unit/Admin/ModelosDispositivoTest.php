@@ -63,11 +63,16 @@ it('muestra el catálogo a técnicos y administradores', function () {
                     'num_canales', 'modo_canales_por_defecto', 'modo_canales_configurable', 'magnitudes', 'activo', 'notas', 'dispositivos_count'])));
 });
 
-it('bloquea el catálogo a los clientes', function () {
+it('bloquea el catálogo a los clientes en sus seis acciones', function () {
     $cliente = User::factory()->create(['rol_global' => 'cliente']);
+    $modelo = ModeloDispositivo::where('codigo', 'shelly-3em')->first();
 
     $this->actingAs($cliente)->get('/admin/modelos-dispositivo')->assertForbidden();
+    $this->actingAs($cliente)->get('/admin/modelos-dispositivo/create')->assertForbidden();
     $this->actingAs($cliente)->post('/admin/modelos-dispositivo', modeloValido())->assertForbidden();
+    $this->actingAs($cliente)->get("/admin/modelos-dispositivo/{$modelo->id}/edit")->assertForbidden();
+    $this->actingAs($cliente)->put("/admin/modelos-dispositivo/{$modelo->id}", modeloValido())->assertForbidden();
+    $this->actingAs($cliente)->delete("/admin/modelos-dispositivo/{$modelo->id}")->assertForbidden();
 });
 
 it('crea un modelo válido', function () {
@@ -103,9 +108,45 @@ it('no permite bajar los canales por debajo de los configurados en sus dispositi
     expect(session('errors')->first('num_canales'))->toContain('Cuadro taller');
 });
 
+it('no permite bajar los canales aunque el dispositivo en conflicto esté eliminado', function () {
+    $modelo = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
+    $dispositivo = dispositivoConModelo($modelo, ['tipo_canal_3' => 'red_electrica', 'nombre' => 'Cuadro taller']);
+    $dispositivo->delete();
+
+    $this->actingAs($this->admin)
+        ->put("/admin/modelos-dispositivo/{$modelo->id}", modeloValido(['num_canales' => 2, 'driver' => 'shelly_cloud']))
+        ->assertSessionHasErrors('num_canales');
+
+    expect($modelo->fresh()->num_canales)->toBe(3);
+});
+
+it('permite bajar los canales cuando ningún dispositivo usa los canales que se eliminan', function () {
+    $modelo = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
+    dispositivoConModelo($modelo, ['tipo_canal_1' => 'red_electrica', 'nombre' => 'Cuadro taller']);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/modelos-dispositivo/{$modelo->id}", modeloValido(['num_canales' => 2, 'driver' => 'shelly_cloud']))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('admin.modelos-dispositivo.index'));
+
+    expect($modelo->fresh()->num_canales)->toBe(2);
+});
+
 it('no permite cambiar el driver de un modelo con dispositivos', function () {
     $modelo = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
     dispositivoConModelo($modelo);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/modelos-dispositivo/{$modelo->id}", modeloValido(['num_canales' => 3, 'driver' => 'modbus_tcp']))
+        ->assertSessionHasErrors('driver');
+
+    expect($modelo->fresh()->driver->value)->toBe('shelly_cloud');
+});
+
+it('no permite cambiar el driver aunque el dispositivo que lo usa esté eliminado', function () {
+    $modelo = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
+    $dispositivo = dispositivoConModelo($modelo);
+    $dispositivo->delete();
 
     $this->actingAs($this->admin)
         ->put("/admin/modelos-dispositivo/{$modelo->id}", modeloValido(['num_canales' => 3, 'driver' => 'modbus_tcp']))
@@ -136,6 +177,16 @@ it('no elimina un modelo con dispositivos y sí uno sin ellos', function () {
 
     expect(ModeloDispositivo::find($conUso->id))->not->toBeNull()
         ->and(ModeloDispositivo::find($sinUso->id))->toBeNull();
+});
+
+it('no elimina un modelo aunque su único dispositivo esté eliminado', function () {
+    $modelo = ModeloDispositivo::where('codigo', 'shelly-3em')->first();
+    $dispositivo = dispositivoConModelo($modelo);
+    $dispositivo->delete();
+
+    $this->actingAs($this->admin)->delete("/admin/modelos-dispositivo/{$modelo->id}")->assertSessionHasErrors('error');
+
+    expect(ModeloDispositivo::find($modelo->id))->not->toBeNull();
 });
 
 it('las páginas de alta y edición reciben las opciones de los enums', function () {
