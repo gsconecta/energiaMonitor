@@ -15,6 +15,7 @@ import { Head, router } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowRight,
+    Boxes,
     Building2,
     CheckCircle2,
     Cpu,
@@ -231,16 +232,26 @@ export default function ControlPanel({
                             </p>
                         </div>
                     </div>
-                    <Button
-                        onClick={() =>
-                            router.visit('/admin/credenciales-shelly')
-                        }
-                        variant="outline"
-                        className="gap-2"
-                    >
-                        <Key className="h-4 w-4" />
-                        Credenciales Shelly
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            onClick={() => router.visit('/admin/modelos-dispositivo')}
+                            variant="outline"
+                            className="gap-2"
+                        >
+                            <Boxes className="h-4 w-4" />
+                            Modelos compatibles
+                        </Button>
+                        <Button
+                            onClick={() =>
+                                router.visit('/admin/credenciales-shelly')
+                            }
+                            variant="outline"
+                            className="gap-2"
+                        >
+                            <Key className="h-4 w-4" />
+                            Credenciales Shelly
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
