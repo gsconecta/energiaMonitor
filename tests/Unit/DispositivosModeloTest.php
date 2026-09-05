@@ -92,9 +92,40 @@ it('exige los campos de conexión del driver y los guarda en configuracion.conex
 
     expect($dispositivo->conexion())->toBe(['host' => '192.168.1.50', 'port' => 502, 'unit_id' => 1])
         ->and($dispositivo->num_fases)->toBe(3)
+        ->and($dispositivo->tipo_canal_2)->toBe('red_electrica')
+        ->and($dispositivo->invertir_sentido_canal_2)->toBeTrue()
         ->and($dispositivo->tipo_canal_3)->toBe('red_electrica')
         ->and($dispositivo->invertir_sentido_canal_3)->toBeTrue()
         ->and($dispositivo->modoCanales()->value)->toBe('fases');
+});
+
+it('conserva otras claves de configuracion al actualizar solo la conexión', function () {
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('circutor-cvm-e3-mini-mc-wieth'),
+        'modo_canales' => 'fases',
+        'tipo_canal_1' => 'red_electrica',
+        'configuracion' => [
+            'notas_internas' => 'instalado en cuadro general',
+            'conexion' => ['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2],
+        ],
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadDispositivo($this, [
+            'device_id' => 'dev-1',
+            'modelo_dispositivo_id' => idModelo('circutor-cvm-e3-mini-mc-wieth'),
+            'modo_canales' => 'fases',
+            'conexion' => ['host' => '192.168.1.99', 'port' => 502, 'unit_id' => 9],
+        ]))
+        ->assertRedirect(route('dispositivos.index'));
+
+    $dispositivo->refresh();
+
+    expect($dispositivo->configuracion['notas_internas'])->toBe('instalado en cuadro general')
+        ->and($dispositivo->conexion())->toBe(['host' => '192.168.1.99', 'port' => 502, 'unit_id' => 9]);
 });
 
 it('solo permite cambiar el modo de canales si el modelo es configurable', function () {
@@ -119,6 +150,69 @@ it('obliga a asignar modelo al editar un dispositivo de legado', function () {
         ->assertRedirect(route('dispositivos.index'));
 
     expect($legado->fresh()->modeloDispositivo->codigo)->toBe('shelly-pro-3em');
+});
+
+it('permite conservar el modelo ya asignado aunque se desactive, pero rechaza otro modelo distinto e inactivo', function () {
+    $modeloAsignado = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
+    $otroModeloInactivo = ModeloDispositivo::where('codigo', 'shelly-3em')->first();
+
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => $modeloAsignado->id,
+        'modo_canales' => 'circuitos',
+        'tipo_canal_1' => 'red_electrica',
+    ]);
+
+    $modeloAsignado->update(['activo' => false]);
+    $otroModeloInactivo->update(['activo' => false]);
+
+    // Reenviar el mismo modelo, ahora inactivo, no bloquea la edición: es el que ya tenía.
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadDispositivo($this, [
+            'device_id' => 'dev-1',
+            'modelo_dispositivo_id' => $modeloAsignado->id,
+        ]))
+        ->assertRedirect(route('dispositivos.index'));
+
+    expect($dispositivo->fresh()->modelo_dispositivo_id)->toBe($modeloAsignado->id);
+
+    // Control: un modelo distinto e inactivo sigue rechazado aunque el dispositivo ya tenga uno inactivo.
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadDispositivo($this, [
+            'device_id' => 'dev-1',
+            'modelo_dispositivo_id' => $otroModeloInactivo->id,
+        ]))
+        ->assertSessionHasErrors('modelo_dispositivo_id');
+});
+
+it('vacía en base de datos los canales sobrantes al editar hacia un modelo con menos canales', function () {
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('shelly-pro-3em'),
+        'modo_canales' => 'circuitos',
+        'nombre_canal_3' => 'Canal viejo',
+        'color_canal_3' => '#123456',
+        'tipo_canal_3' => 'fotovoltaica',
+        'invertir_sentido_canal_3' => true,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadDispositivo($this, [
+            'device_id' => 'dev-1',
+            'modelo_dispositivo_id' => idModelo('shelly-pro-em-50'),
+        ]))
+        ->assertRedirect(route('dispositivos.index'));
+
+    $dispositivo->refresh();
+
+    expect($dispositivo->nombre_canal_3)->toBeNull()
+        ->and($dispositivo->color_canal_3)->toBeNull()
+        ->and($dispositivo->tipo_canal_3)->toBeNull()
+        ->and($dispositivo->invertir_sentido_canal_3)->toBeFalse();
 });
 
 it('el listado expone los modelos y el nombre del modelo de cada dispositivo', function () {
