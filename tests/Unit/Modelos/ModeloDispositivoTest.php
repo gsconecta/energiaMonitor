@@ -46,6 +46,26 @@ it('siembra el catálogo inicial de forma idempotente', function () {
         ->and($cvm->modo_canales_configurable)->toBeFalse();
 });
 
+it('una edición hecha desde el panel sobrevive a una segunda pasada del seeder', function () {
+    (new ModeloDispositivoSeeder)->run();
+
+    // Corregir las magnitudes de un Circutor tras confirmar la hoja de datos es justo el caso que
+    // motiva el catálogo (ver notas de siembra): un redespliegue no puede revertirlo.
+    $cvm = ModeloDispositivo::where('codigo', 'circutor-cvm-mini-mc-itf-bacnet-c2')->first();
+    $cvm->update([
+        'activo' => false,
+        'magnitudes' => ['tension', 'corriente'],
+        'notas' => 'Confirmado con la hoja de datos: solo tensión y corriente.',
+    ]);
+
+    (new ModeloDispositivoSeeder)->run();
+    $cvm->refresh();
+
+    expect($cvm->activo)->toBeFalse()
+        ->and($cvm->magnitudes)->toBe(['tension', 'corriente'])
+        ->and($cvm->notas)->toBe('Confirmado con la hoja de datos: solo tensión y corriente.');
+});
+
 it('un dispositivo sin modelo se lee con Shelly Cloud y sin conexión extra', function () {
     $dispositivo = Dispositivo::create(['sitio_id' => sitioDePrueba()->id, 'device_id' => 'd1', 'nombre' => 'Legado']);
 
@@ -113,4 +133,30 @@ it('asigna modelo a los dispositivos de legado y deja el resto sin modelo', func
         ->and($conocido->fresh()->modeloDispositivo->codigo)->toBe('shelly-3em')
         ->and($conocido->fresh()->modoCanales())->toBe(ModoCanales::Circuitos)
         ->and($desconocido->fresh()->modelo_dispositivo_id)->toBeNull();
+});
+
+it('no toca un dispositivo que ya tiene modelo asignado, aunque esté en modo fases', function () {
+    (new ModeloDispositivoSeeder)->run();
+    $sitio = sitioDePrueba();
+    $modeloAsignado = ModeloDispositivo::where('codigo', 'shelly-pro-3em')->first();
+
+    // asignarTodos() es público: la migración es su única llamada real, pero si algo más lo
+    // invoca después no debe revertir en silencio un dispositivo que un instalador ya pasó a
+    // `fases` desde el panel.
+    $yaAsignado = Dispositivo::create([
+        'sitio_id' => $sitio->id,
+        'device_id' => 'ya-asignado',
+        'nombre' => 'Ya asignado',
+        'modelo_dispositivo_id' => $modeloAsignado->id,
+        'modo_canales' => 'fases',
+    ]);
+    $legado = Dispositivo::create(['sitio_id' => $sitio->id, 'device_id' => 'legado', 'nombre' => 'Legado']);
+    $legado->forceFill(['modelo_legacy' => 'SHEM-3'])->save();
+
+    $resultado = (new AsignadorModeloLegado)->asignarTodos();
+
+    expect($resultado)->toBe(['asignados' => 1, 'sin_modelo' => 0])
+        ->and($yaAsignado->fresh()->modelo_dispositivo_id)->toBe($modeloAsignado->id)
+        ->and($yaAsignado->fresh()->modoCanales())->toBe(ModoCanales::Fases)
+        ->and($legado->fresh()->modeloDispositivo->codigo)->toBe('shelly-3em');
 });

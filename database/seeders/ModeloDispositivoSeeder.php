@@ -10,11 +10,18 @@ use Illuminate\Database\Seeder;
 
 class ModeloDispositivoSeeder extends Seeder
 {
-    /** Catálogo inicial. Idempotente: se hace upsert por `codigo`. */
+    /**
+     * Catálogo inicial. Idempotente: crea por `codigo` lo que falte, sin tocar lo que ya existe.
+     *
+     * Corregir las magnitudes de un modelo (típicamente los Circutor, sembrados con notas de
+     * "confirmar con la hoja de datos") es una edición desde el panel de administración, no un
+     * nuevo despliegue: un `php artisan db:seed` en un entorno ya en marcha no debe revertir esas
+     * correcciones, ni `activo` ni `notas`. Antes con `updateOrCreate` sí lo hacía, silenciosamente.
+     */
     public function run(): void
     {
         foreach ($this->catalogo() as $modelo) {
-            ModeloDispositivo::updateOrCreate(['codigo' => $modelo['codigo']], $modelo);
+            ModeloDispositivo::firstOrCreate(['codigo' => $modelo['codigo']], $modelo);
         }
     }
 

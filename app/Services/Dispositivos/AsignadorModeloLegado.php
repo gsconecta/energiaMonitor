@@ -26,24 +26,38 @@ class AsignadorModeloLegado
         return self::CODIGO_POR_TEXTO[$clave] ?? null;
     }
 
-    /** @return array{asignados: int, sin_modelo: int} */
+    /**
+     * Asigna modelo solo a quien todavía no tiene uno. El filtro `whereNull('modelo_dispositivo_id')`
+     * es un no-op en su única llamada real (la migración: la columna se acaba de crear, todo el
+     * parque está sin modelo), pero como el método es público, protege una llamada futura: sin él,
+     * `modo_canales` se pisaría a `circuitos` en todos los dispositivos, incluidos los que ya
+     * tienen modelo asignado y se hayan pasado a `fases` desde el panel.
+     *
+     * @return array{asignados: int, sin_modelo: int}
+     */
     public function asignarTodos(): array
     {
-        $idPorCodigo = ModeloDispositivo::query()->pluck('id', 'codigo');
-        $resultado = ['asignados' => 0, 'sin_modelo' => 0];
+        return DB::transaction(function () {
+            $idPorCodigo = ModeloDispositivo::query()->pluck('id', 'codigo');
+            $resultado = ['asignados' => 0, 'sin_modelo' => 0];
 
-        foreach (DB::table('dispositivos')->get(['id', 'modelo_legacy']) as $fila) {
-            $codigo = $this->codigoPara($fila->modelo_legacy);
-            $modeloId = $codigo !== null ? $idPorCodigo->get($codigo) : null;
+            $dispositivosSinModelo = DB::table('dispositivos')
+                ->whereNull('modelo_dispositivo_id')
+                ->get(['id', 'modelo_legacy']);
 
-            DB::table('dispositivos')->where('id', $fila->id)->update([
-                'modelo_dispositivo_id' => $modeloId,
-                'modo_canales' => ModoCanales::Circuitos->value,
-            ]);
+            foreach ($dispositivosSinModelo as $fila) {
+                $codigo = $this->codigoPara($fila->modelo_legacy);
+                $modeloId = $codigo !== null ? $idPorCodigo->get($codigo) : null;
 
-            $resultado[$modeloId !== null ? 'asignados' : 'sin_modelo']++;
-        }
+                DB::table('dispositivos')->where('id', $fila->id)->update([
+                    'modelo_dispositivo_id' => $modeloId,
+                    'modo_canales' => ModoCanales::Circuitos->value,
+                ]);
 
-        return $resultado;
+                $resultado[$modeloId !== null ? 'asignados' : 'sin_modelo']++;
+            }
+
+            return $resultado;
+        });
     }
 }
