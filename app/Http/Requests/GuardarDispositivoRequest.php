@@ -66,8 +66,13 @@ class GuardarDispositivoRequest extends FormRequest
         // host sería un agujero. Al editar, solo se valida si la petición trae la clave
         // `conexion` (ausente = no tocar, misma semántica que atributosParaGuardar()): así un
         // formulario parcial que nunca gestiona la conexión —como el panel de nombres/colores
-        // de la ficha— no queda bloqueado por campos que no le corresponden.
-        $debeValidarConexion = $existente === null || $this->has('conexion');
+        // de la ficha— no queda bloqueado por campos que no le corresponden. Y si la edición
+        // cambia de modelo hacia uno distinto, se valida aunque la petición no traiga `conexion`:
+        // de lo contrario, pasar de Shelly Cloud a un Circutor sin enviar la clave dejaría
+        // `conexion` vacía sin que ninguna regla lo impidiera (ver atributosParaGuardar()).
+        $debeValidarConexion = $existente === null
+            || $this->has('conexion')
+            || $modelo?->id !== $existente?->modelo_dispositivo_id;
 
         return $reglas + ($debeValidarConexion ? ($modelo?->driver->reglasConexion() ?? []) : []);
     }
@@ -94,9 +99,14 @@ class GuardarDispositivoRequest extends FormRequest
      * Ausente = no tocar: si la petición no trae la clave `conexion`, se conserva la ya
      * guardada en vez de pisarla con un array vacío. Un formulario que no gestiona la
      * conexión —como el panel rápido de nombres/colores de la ficha— no debe poder borrarla.
+     *
+     * El dispositivo en edición se obtiene del route binding, igual que en rules(): no se recibe
+     * por parámetro para que no puedan desincronizarse (un `update()` que olvidara pasarlo aquí
+     * pisaría `configuracion.conexion` con `[]` en silencio).
      */
-    public function atributosParaGuardar(?Dispositivo $existente = null): array
+    public function atributosParaGuardar(): array
     {
+        $existente = $this->dispositivoEnEdicion();
         $modelo = $this->modeloElegido();
         $datos = $this->validated();
 

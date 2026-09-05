@@ -247,7 +247,7 @@ class DispositivosController extends Controller
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
 
-        $atributos = $request->atributosParaGuardar($dispositivo);
+        $atributos = $request->atributosParaGuardar();
 
         $sitio = Sitio::findOrFail($atributos['sitio_id']);
         $this->ensureCanAccessSitio($request, $sitio);

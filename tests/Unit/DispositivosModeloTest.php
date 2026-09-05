@@ -332,6 +332,28 @@ it('acepta el payload del panel de nombres/colores para un dispositivo Modbus TC
         ->and($dispositivo->conexion())->toBe(['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2]);
 });
 
+it('exige la conexión si el panel de nombres/colores cambia hacia un modelo que la requiere, aunque no envíe la clave', function () {
+    // Sin la tercera condición de $debeValidarConexion (modelo distinto al ya asignado), este
+    // payload —que nunca gestiona `conexion`— habría pasado de largo la validación y dejado
+    // `configuracion.conexion` en `[]` para un Circutor recién asignado.
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('shelly-pro-3em'),
+        'modo_canales' => 'fases',
+        'tipo_canal_1' => 'red_electrica',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadPanelNombresColores($this, [
+            'modelo_dispositivo_id' => idModelo('circutor-cvm-e3-mini-mc-wieth'),
+        ]))
+        ->assertSessionHasErrors(['conexion.host', 'conexion.port', 'conexion.unit_id']);
+
+    expect($dispositivo->fresh()->modelo_dispositivo_id)->toBe(idModelo('shelly-pro-3em'));
+});
+
 it('el listado expone los modelos y el nombre del modelo de cada dispositivo', function () {
     Dispositivo::create(['sitio_id' => $this->sitio->id, 'device_id' => 'a', 'nombre' => 'A', 'modelo_dispositivo_id' => idModelo('shelly-pro-3em')]);
 
