@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GuardarDispositivoRequest;
 use App\Models\Dispositivo;
+use App\Models\Lectura;
 use App\Models\ModeloDispositivo;
 use App\Models\Sitio;
 use Illuminate\Http\Request;
@@ -160,6 +161,9 @@ class DispositivosController extends Controller
                 'invertir_sentido_canal_2' => (bool) $dispositivo->invertir_sentido_canal_2,
                 'invertir_sentido_canal_3' => (bool) $dispositivo->invertir_sentido_canal_3,
                 'modelo' => $dispositivo->nombreModelo(),
+                'modelo_dispositivo_id' => $dispositivo->modelo_dispositivo_id,
+                'num_canales' => $dispositivo->modeloDispositivo?->num_canales ?? Lectura::MAX_CANALES,
+                'modo_canales' => $dispositivo->modoCanales()->value,
                 'driver_label' => $dispositivo->driver()->label(),
                 'driver_disponible' => $dispositivo->driver()->disponible(),
                 'conexion_resumen' => $this->resumenConexion($dispositivo),

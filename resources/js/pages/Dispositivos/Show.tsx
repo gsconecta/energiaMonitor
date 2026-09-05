@@ -67,6 +67,9 @@ interface Dispositivo {
     invertir_sentido_canal_2: boolean;
     invertir_sentido_canal_3: boolean;
     modelo: string | null;
+    modelo_dispositivo_id: number | null;
+    num_canales: number;
+    modo_canales: 'circuitos' | 'fases';
     driver_label: string;
     driver_disponible: boolean;
     conexion_resumen: string | null;
@@ -123,6 +126,10 @@ export default function DispositivosShow({
         invertir_sentido_canal_3: dispositivo.invertir_sentido_canal_3,
     });
 
+    // Un dispositivo de legado sin modelo asignado no puede guardar desde este panel: el
+    // modelo es obligatorio y aquí no hay selector para asignarlo.
+    const sinModeloAsignado = dispositivo.modelo_dispositivo_id === null;
+
     const handleEliminar = () => {
         if (confirm('¿Estás seguro de eliminar este dispositivo?')) {
             router.delete(`/dispositivos/${dispositivo.id}`);
@@ -164,29 +171,51 @@ export default function DispositivosShow({
     };
 
     const handleGuardarNombresCanales = () => {
+        // Un canal está disponible cuando su número no supera el num_canales del modelo:
+        // los que sobran se anulan explícitamente (el servidor los rechaza si llegan con
+        // datos). No se manda `conexion`: este panel no la gestiona, y el servidor conserva
+        // la ya guardada cuando la clave no está presente en la petición.
+        const canalDisponible = (canal: number) =>
+            canal <= dispositivo.num_canales;
+
         router.put(
             `/dispositivos/${dispositivo.id}`,
             {
                 sitio_id: dispositivo.sitio.id,
                 device_id: dispositivo.device_id,
                 nombre: dispositivo.nombre,
+                modelo_dispositivo_id: dispositivo.modelo_dispositivo_id,
+                modo_canales: dispositivo.modo_canales,
                 num_fases: dispositivo.num_fases,
                 nombre_canal_1: nombresCanales.nombre_canal_1 || null,
-                nombre_canal_2: nombresCanales.nombre_canal_2 || null,
-                nombre_canal_3: nombresCanales.nombre_canal_3 || null,
+                nombre_canal_2: canalDisponible(2)
+                    ? nombresCanales.nombre_canal_2 || null
+                    : null,
+                nombre_canal_3: canalDisponible(3)
+                    ? nombresCanales.nombre_canal_3 || null
+                    : null,
                 color_canal_1: coloresCanales.color_canal_1,
-                color_canal_2: coloresCanales.color_canal_2,
-                color_canal_3: coloresCanales.color_canal_3,
+                color_canal_2: canalDisponible(2)
+                    ? coloresCanales.color_canal_2
+                    : null,
+                color_canal_3: canalDisponible(3)
+                    ? coloresCanales.color_canal_3
+                    : null,
                 tipo_canal_1: tiposCanales.tipo_canal_1 || null,
-                tipo_canal_2: tiposCanales.tipo_canal_2 || null,
-                tipo_canal_3: tiposCanales.tipo_canal_3 || null,
+                tipo_canal_2: canalDisponible(2)
+                    ? tiposCanales.tipo_canal_2 || null
+                    : null,
+                tipo_canal_3: canalDisponible(3)
+                    ? tiposCanales.tipo_canal_3 || null
+                    : null,
                 invertir_sentido_canal_1:
                     invertirSentidoCanales.invertir_sentido_canal_1,
-                invertir_sentido_canal_2:
-                    invertirSentidoCanales.invertir_sentido_canal_2,
-                invertir_sentido_canal_3:
-                    invertirSentidoCanales.invertir_sentido_canal_3,
-                modelo: dispositivo.modelo,
+                invertir_sentido_canal_2: canalDisponible(2)
+                    ? invertirSentidoCanales.invertir_sentido_canal_2
+                    : false,
+                invertir_sentido_canal_3: canalDisponible(3)
+                    ? invertirSentidoCanales.invertir_sentido_canal_3
+                    : false,
                 ip_local: dispositivo.ip_local,
                 firmware: dispositivo.firmware,
                 activo: dispositivo.activo,
@@ -494,13 +523,31 @@ export default function DispositivosShow({
                                 Nombres y Colores de Canales
                             </h2>
                             {!editandoNombres ? (
-                                <button
-                                    onClick={() => setEditandoNombres(true)}
-                                    className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                    Editar Nombres y Colores
-                                </button>
+                                <div className="text-right">
+                                    <button
+                                        onClick={() => setEditandoNombres(true)}
+                                        disabled={sinModeloAsignado}
+                                        className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-white ${
+                                            sinModeloAsignado
+                                                ? 'cursor-not-allowed bg-gray-400'
+                                                : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
+                                        title={
+                                            sinModeloAsignado
+                                                ? 'Asigna primero un modelo desde el listado de dispositivos'
+                                                : undefined
+                                        }
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                        Editar Nombres y Colores
+                                    </button>
+                                    {sinModeloAsignado && (
+                                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                                            Asigna primero un modelo desde el
+                                            listado de dispositivos.
+                                        </p>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="flex gap-2">
                                     <button

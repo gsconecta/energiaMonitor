@@ -83,13 +83,17 @@ class GuardarDispositivoRequest extends FormRequest
     /**
      * Atributos listos para create()/update(): conexión bajo configuracion.conexion,
      * canales sobrantes vacíos y, en modo fases, tipo e inversión replicados y num_fases fijado.
+     *
+     * Ausente = no tocar: si la petición no trae la clave `conexion`, se conserva la ya
+     * guardada en vez de pisarla con un array vacío. Un formulario que no gestiona la
+     * conexión —como el panel rápido de nombres/colores de la ficha— no debe poder borrarla.
      */
     public function atributosParaGuardar(?Dispositivo $existente = null): array
     {
         $modelo = $this->modeloElegido();
         $datos = $this->validated();
 
-        $conexion = $datos['conexion'] ?? [];
+        $conexion = $this->has('conexion') ? ($datos['conexion'] ?? []) : ($existente?->conexion() ?? []);
         unset($datos['conexion']);
         $datos['configuracion'] = array_merge($existente?->configuracion ?? [], ['conexion' => $conexion]);
 

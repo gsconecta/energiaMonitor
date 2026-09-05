@@ -215,6 +215,85 @@ it('vacía en base de datos los canales sobrantes al editar hacia un modelo con 
         ->and($dispositivo->invertir_sentido_canal_3)->toBeFalse();
 });
 
+/**
+ * Forma exacta del payload de Show.tsx::handleGuardarNombresCanales: a diferencia de
+ * payloadDispositivo(), no incluye la clave `conexion` en absoluto (ese panel no la gestiona).
+ */
+function payloadPanelNombresColores(TestCase $test, array $cambios = []): array
+{
+    return array_merge([
+        'sitio_id' => $test->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('shelly-pro-3em'),
+        'modo_canales' => 'fases',
+        'num_fases' => null,
+        'nombre_canal_1' => 'L1',
+        'nombre_canal_2' => null,
+        'nombre_canal_3' => null,
+        'color_canal_1' => '#ef4444',
+        'color_canal_2' => '#22c55e',
+        'color_canal_3' => '#eab308',
+        'tipo_canal_1' => 'red_electrica',
+        'tipo_canal_2' => 'red_electrica',
+        'tipo_canal_3' => 'red_electrica',
+        'invertir_sentido_canal_1' => false,
+        'invertir_sentido_canal_2' => false,
+        'invertir_sentido_canal_3' => false,
+        'ip_local' => null,
+        'firmware' => null,
+        'activo' => true,
+    ], $cambios);
+}
+
+it('conserva la conexión guardada cuando la petición no trae la clave conexion, como el panel de nombres/colores de la ficha', function () {
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('shelly-pro-3em'),
+        'modo_canales' => 'fases',
+        'tipo_canal_1' => 'red_electrica',
+        'configuracion' => [
+            'conexion' => ['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2],
+        ],
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadPanelNombresColores($this, ['nombre' => 'Cuadro renombrado']))
+        ->assertRedirect(route('dispositivos.index'));
+
+    $dispositivo->refresh();
+
+    expect($dispositivo->nombre)->toBe('Cuadro renombrado')
+        ->and($dispositivo->conexion())->toBe(['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2]);
+});
+
+it('acepta el payload del panel de nombres/colores para un modelo con menos canales, con los sobrantes anulados', function () {
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('shelly-pro-em-50'),
+        'modo_canales' => 'circuitos',
+        'tipo_canal_1' => 'red_electrica',
+        'tipo_canal_2' => 'fotovoltaica',
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadPanelNombresColores($this, [
+            'modelo_dispositivo_id' => idModelo('shelly-pro-em-50'),
+            'modo_canales' => 'circuitos',
+            'nombre_canal_2' => 'L2',
+            'tipo_canal_2' => 'fotovoltaica',
+            'color_canal_3' => null,
+            'tipo_canal_3' => null,
+        ]))
+        ->assertRedirect(route('dispositivos.index'));
+
+    expect($dispositivo->fresh()->tipo_canal_3)->toBeNull();
+});
+
 it('el listado expone los modelos y el nombre del modelo de cada dispositivo', function () {
     Dispositivo::create(['sitio_id' => $this->sitio->id, 'device_id' => 'a', 'nombre' => 'A', 'modelo_dispositivo_id' => idModelo('shelly-pro-3em')]);
 
