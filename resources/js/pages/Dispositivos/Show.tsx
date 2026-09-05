@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Activity,
     BarChart3,
@@ -103,6 +103,7 @@ export default function DispositivosShow({
     metricas_energia,
     panel_global_mode,
 }: Props) {
+    const { errors } = usePage<{ errors?: Record<string, string> }>().props;
     const [sincronizando, setSincronizando] = useState(false);
     const [editandoNombres, setEditandoNombres] = useState(false);
     const [nombresCanales, setNombresCanales] = useState({
@@ -223,6 +224,9 @@ export default function DispositivosShow({
             {
                 onSuccess: () => {
                     setEditandoNombres(false);
+                },
+                onError: () => {
+                    // Mantener el panel abierto si hay errores
                 },
             },
         );
@@ -608,6 +612,17 @@ export default function DispositivosShow({
                                 </div>
                             )}
                         </div>
+                        {editandoNombres &&
+                            errors &&
+                            Object.keys(errors).length > 0 && (
+                                <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                                    {Object.values(errors).map(
+                                        (mensaje, indice) => (
+                                            <p key={indice}>{mensaje}</p>
+                                        ),
+                                    )}
+                                </div>
+                            )}
                         <div className="grid gap-4 sm:grid-cols-3">
                             {dispositivo.num_fases &&
                                 dispositivo.num_fases >= 1 && (

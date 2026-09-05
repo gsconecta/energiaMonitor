@@ -291,7 +291,45 @@ it('acepta el payload del panel de nombres/colores para un modelo con menos cana
         ]))
         ->assertRedirect(route('dispositivos.index'));
 
-    expect($dispositivo->fresh()->tipo_canal_3)->toBeNull();
+    $dispositivo->refresh();
+
+    expect($dispositivo->nombre_canal_3)->toBeNull()
+        ->and($dispositivo->color_canal_3)->toBeNull()
+        ->and($dispositivo->tipo_canal_3)->toBeNull()
+        ->and($dispositivo->invertir_sentido_canal_3)->toBeFalse();
+});
+
+it('acepta el payload del panel de nombres/colores para un dispositivo Modbus TCP con conexión guardada, y la conserva', function () {
+    // La forma exacta del payload del panel nunca incluye la clave `conexion`: antes de la
+    // Ronda de corrección 2, esto hacía que GuardarDispositivoRequest::rules() exigiera
+    // conexion.host/port/unit_id como si fueran a validarse, y la petición fallaba con 422
+    // para cualquier Circutor —justo la familia de equipos que motiva este catálogo—, en
+    // silencio porque Show.tsx no mostraba los errores. Este test cubre exactamente eso.
+    $dispositivo = Dispositivo::create([
+        'sitio_id' => $this->sitio->id,
+        'device_id' => 'dev-1',
+        'nombre' => 'Cuadro',
+        'modelo_dispositivo_id' => idModelo('circutor-cvm-e3-mini-mc-wieth'),
+        'modo_canales' => 'fases',
+        'tipo_canal_1' => 'red_electrica',
+        'configuracion' => [
+            'conexion' => ['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2],
+        ],
+    ]);
+
+    $this->actingAs($this->admin)
+        ->put("/dispositivos/{$dispositivo->id}", payloadPanelNombresColores($this, [
+            'modelo_dispositivo_id' => idModelo('circutor-cvm-e3-mini-mc-wieth'),
+            'nombre' => 'Cuadro renombrado',
+            'nombre_canal_1' => 'Canal principal',
+        ]))
+        ->assertRedirect(route('dispositivos.index'));
+
+    $dispositivo->refresh();
+
+    expect($dispositivo->nombre)->toBe('Cuadro renombrado')
+        ->and($dispositivo->nombre_canal_1)->toBe('Canal principal')
+        ->and($dispositivo->conexion())->toBe(['host' => '10.0.0.1', 'port' => 502, 'unit_id' => 2]);
 });
 
 it('el listado expone los modelos y el nombre del modelo de cada dispositivo', function () {

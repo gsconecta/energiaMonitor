@@ -62,7 +62,14 @@ class GuardarDispositivoRequest extends FormRequest
                 : $this->reglasCanalFueraDelModelo($canal);
         }
 
-        return $reglas + ($modelo?->driver->reglasConexion() ?? []);
+        // Al crear, la conexión es obligatoria: no hay nada que conservar, y un Circutor sin
+        // host sería un agujero. Al editar, solo se valida si la petición trae la clave
+        // `conexion` (ausente = no tocar, misma semántica que atributosParaGuardar()): así un
+        // formulario parcial que nunca gestiona la conexión —como el panel de nombres/colores
+        // de la ficha— no queda bloqueado por campos que no le corresponden.
+        $debeValidarConexion = $existente === null || $this->has('conexion');
+
+        return $reglas + ($debeValidarConexion ? ($modelo?->driver->reglasConexion() ?? []) : []);
     }
 
     public function withValidator(Validator $validator): void
