@@ -35,7 +35,10 @@ class OrganizacionesController extends Controller
             });
 
         // Obtener todas las organizaciones para validar códigos únicos en el formulario
-        $todasOrganizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
+        $todasOrganizaciones = (auth()->user()->esAdminOTecnico()
+            ? Organizacion::query()
+            : auth()->user()->organizacionesActivas())
+            ->get(['organizaciones.id', 'organizaciones.nombre', 'organizaciones.codigo']);
 
         return Inertia::render('Organizaciones/Index', [
             'organizaciones' => $organizaciones,
@@ -49,7 +52,10 @@ class OrganizacionesController extends Controller
     public function create()
     {
         // Obtener todas las organizaciones para validar códigos únicos
-        $organizaciones = \App\Models\Organizacion::select('id', 'nombre', 'codigo')->get();
+        $organizaciones = (auth()->user()->esAdminOTecnico()
+            ? Organizacion::query()
+            : auth()->user()->organizacionesActivas())
+            ->get(['organizaciones.id', 'organizaciones.nombre', 'organizaciones.codigo']);
 
         $credencialesShelly = auth()->user()->esAdminOTecnico() ? CredencialShelly::all() : [];
 

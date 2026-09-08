@@ -218,7 +218,7 @@ class DispositivosController extends Controller
         $atributos = $request->atributosParaGuardar();
 
         $sitio = Sitio::findOrFail($atributos['sitio_id']);
-        $this->ensureCanAccessSitio($request, $sitio);
+        $this->ensureCanManageSitio($request, $sitio);
 
         $dispositivoExistente = Dispositivo::withTrashed()
             ->where('device_id', $atributos['device_id'])
@@ -231,6 +231,7 @@ class DispositivosController extends Controller
                 ])->withInput();
             }
 
+            $this->ensureCanManageSitio($request, $dispositivoExistente->sitio);
             $dispositivoExistente->forceDelete();
         }
 
@@ -246,11 +247,12 @@ class DispositivosController extends Controller
     public function update(GuardarDispositivoRequest $request, Dispositivo $dispositivo)
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
+        $this->ensureCanManageSitio($request, $dispositivo->sitio);
 
         $atributos = $request->atributosParaGuardar();
 
         $sitio = Sitio::findOrFail($atributos['sitio_id']);
-        $this->ensureCanAccessSitio($request, $sitio);
+        $this->ensureCanManageSitio($request, $sitio);
 
         $dispositivo->update($atributos);
 
@@ -268,6 +270,7 @@ class DispositivosController extends Controller
     public function destroy(Request $request, Dispositivo $dispositivo)
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
+        $this->ensureCanManageSitio($request, $dispositivo->sitio);
 
         $dispositivo->delete();
 
@@ -281,6 +284,7 @@ class DispositivosController extends Controller
     public function toggleActivo(Request $request, Dispositivo $dispositivo)
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
+        $this->ensureCanManageSitio($request, $dispositivo->sitio);
 
         $dispositivo->update([
             'activo' => ! $dispositivo->activo,
@@ -296,6 +300,7 @@ class DispositivosController extends Controller
     public function sincronizar(Request $request, Dispositivo $dispositivo)
     {
         $this->ensureCanAccessDispositivo($request, $dispositivo);
+        $this->ensureCanManageSitio($request, $dispositivo->sitio);
 
         try {
             $codigo = \Artisan::call('lecturas:obtener', [
@@ -337,6 +342,17 @@ class DispositivosController extends Controller
             ->exists();
 
         abort_unless($allowed, 403, 'No tienes acceso a este sitio.');
+    }
+
+    private function ensureCanManageSitio(Request $request, Sitio $sitio): void
+    {
+        $this->ensureCanAccessSitio($request, $sitio);
+        if ($this->isGlobalPanelMode($request)) {
+            return;
+        }
+
+        abort_unless(in_array($request->user()->rolEnOrganizacion($sitio->organizacion_id),
+            ['owner', 'admin', 'member'], true), 403, 'No tienes permisos para modificar dispositivos.');
     }
 
     private function ensureCanAccessDispositivo(Request $request, Dispositivo $dispositivo): void
