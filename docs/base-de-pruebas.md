@@ -1,6 +1,6 @@
 # Base de pruebas de EnergiaMonitor
 
-Fase 1, 05/09/2026, sobre `febd82d`. Objetivo: reconstruir el esquema real, detectar regresiones y probar cambios con datos sintéticos. No se han desplegado estos cambios en CT 1140 ni modificado sus datos.
+Fase 1, 05/09/2026, sobre `febd82d`. Objetivo: reconstruir el esquema real, detectar regresiones y probar cambios con datos sintéticos. Integrada mediante PR #1 y desplegada en CT 1140 el 08/09/2026 (`48e428d`), sin migraciones pendientes ni modificaciones del histórico.
 
 ## Ejecución rápida
 
@@ -123,3 +123,18 @@ bloqueo. El trabajo de recursos comprueba también TypeScript antes de compilar.
 Los trabajos de formato existentes siguen aplicando el formato en su entorno de
 CI; no constituyen una comprobación de que todo el repositorio ya esté formateado.
 No se añaden migraciones pendientes para producción en este cierre.
+
+
+## Despliegue y cierre de fase 1
+
+PR #1 integrada en `48e428d`; producción y main verificados el 08/09/2026.
+CI completo correcto tanto en PR como después de integrar: SQLite 173/962,
+MariaDB 49/199, calidad, tipos y compilación. Web, login, health y recursos JS
+responden HTTP 200. Dos workers y Reverb activos; nuevas lecturas posteriores
+al despliegue y cero trabajos fallidos. Existe copia privada de los archivos de
+la versión anterior en el servidor; detalles operativos en el vault.
+
+La fase 2 comienza por reproducir y corregir elevación de privilegios, exposición
+de metadatos y escrituras de viewers. La asignación explícita por sitio y el
+contrato de unidades del histórico requieren tratamiento separado; estas
+correcciones iniciales no completan el aislamiento por instalación.

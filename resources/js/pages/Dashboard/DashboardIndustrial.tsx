@@ -55,10 +55,10 @@ export default function DashboardIndustrial({
                                         style={{ color: colorCanal }}
                                     >
                                         {metricas?.[
-                                            `factor_potencia_${i + 1}` as keyof typeof metricas
+                                            `factor_potencia_${i + 1}` as `factor_potencia_${1 | 2 | 3}`
                                         ] !== undefined
                                             ? metricas?.[
-                                                  `factor_potencia_${i + 1}` as keyof typeof metricas
+                                                  `factor_potencia_${i + 1}` as `factor_potencia_${1 | 2 | 3}`
                                               ]
                                             : 0}
                                     </span>

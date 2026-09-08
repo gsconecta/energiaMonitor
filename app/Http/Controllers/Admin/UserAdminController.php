@@ -15,7 +15,7 @@ class UserAdminController extends Controller
 {
     public function index(Request $request)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403, 'No tienes permisos para gestionar usuarios.');
         }
 
@@ -28,7 +28,7 @@ class UserAdminController extends Controller
             $busqueda = $request->busqueda;
             $query->where(function ($q) use ($busqueda) {
                 $q->where('name', 'like', "%{$busqueda}%")
-                  ->orWhere('email', 'like', "%{$busqueda}%");
+                    ->orWhere('email', 'like', "%{$busqueda}%");
             });
         }
 
@@ -69,15 +69,20 @@ class UserAdminController extends Controller
 
     public function update(Request $request, User $user)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403);
         }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'rol_global' => 'required|in:cliente,tecnico,admin',
         ]);
+
+        if (! $request->user()->esAdmin()) {
+            abort_unless($validated['rol_global'] === $user->rol_global, 403);
+            abort_unless($user->rol_global === 'cliente' || $user->is($request->user()), 403);
+        }
 
         $user->update($validated);
 
@@ -86,7 +91,7 @@ class UserAdminController extends Controller
 
     public function updatePassword(Request $request, User $user): RedirectResponse
     {
-        if (!auth()->user()->esAdmin()) {
+        if (! auth()->user()->esAdmin()) {
             abort(403);
         }
 
@@ -103,9 +108,11 @@ class UserAdminController extends Controller
 
     public function destroy(User $user)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403);
         }
+
+        abort_unless(auth()->user()->esAdmin() || $user->rol_global === 'cliente', 403);
 
         // No permitir eliminar al propio usuario
         if ($user->id === auth()->id()) {
@@ -121,7 +128,7 @@ class UserAdminController extends Controller
 
     public function addOrganizacion(Request $request, User $user)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403);
         }
 
@@ -144,7 +151,7 @@ class UserAdminController extends Controller
 
     public function updateOrganizacionRol(Request $request, User $user, Organizacion $organizacion)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403);
         }
 
@@ -161,7 +168,7 @@ class UserAdminController extends Controller
 
     public function removeOrganizacion(Request $request, User $user, Organizacion $organizacion)
     {
-        if (!auth()->user()->esAdminOTecnico()) {
+        if (! auth()->user()->esAdminOTecnico()) {
             abort(403);
         }
 

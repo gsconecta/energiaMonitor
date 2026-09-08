@@ -23,15 +23,15 @@ interface VerificacionMeteorologica {
 }
 
 interface MetricasResidenciales {
-    consumo_casa_kwh: number;
-    importacion_red_kwh: number;
+    consumo_casa_kwh: number | null;
+    importacion_red_kwh: number | null;
     produccion_fotovoltaica_actual_kw: number;
     consumo_total_actual_kw: number;
-    generacion_fotovoltaica_kwh: number;
-    energia_retornada_kwh: number;
+    generacion_fotovoltaica_kwh: number | null;
+    energia_retornada_kwh: number | null;
     red_electrica_actual_kw: number;
     exportacion_actual_kw: number;
-    independencia_energetica_pct: number;
+    independencia_energetica_pct: number | null;
 }
 
 interface DatosGraficaResidenciales {
@@ -130,7 +130,11 @@ const metricToneClasses = {
 
 type MetricTone = keyof typeof metricToneClasses;
 
-function formatDashboardNumber(value: number, maximumFractionDigits = 2) {
+function formatDashboardNumber(
+    value: number | null | undefined,
+    maximumFractionDigits = 2,
+) {
+    if (value == null || !Number.isFinite(value)) return 'Sin datos';
     return value.toLocaleString('es-ES', { maximumFractionDigits });
 }
 
@@ -233,7 +237,7 @@ function MobileEnergyOverview({
     metricas?: MetricasResidenciales;
     tieneFotovoltaica: boolean;
     periodoLabel: string;
-    independenciaEnergetica: number;
+    independenciaEnergetica: number | null;
 }) {
     const consumoActual = metricas?.consumo_total_actual_kw ?? 0;
     const produccionSolar = metricas?.produccion_fotovoltaica_actual_kw ?? 0;
@@ -292,7 +296,10 @@ function MobileEnergyOverview({
                         />
                         <MobileEnergyStat
                             label="Auto"
-                            value={independenciaEnergetica.toFixed(0)}
+                            value={formatDashboardNumber(
+                                independenciaEnergetica,
+                                0,
+                            )}
                             unit="%"
                             icon={Leaf}
                             tone="independence"
@@ -310,7 +317,7 @@ function MobileEnergyOverview({
                         <MobileEnergyStat
                             label="Hoy"
                             value={formatDashboardNumber(
-                                metricas?.importacion_red_kwh ?? 0,
+                                metricas?.importacion_red_kwh,
                             )}
                             unit="kWh"
                             icon={Activity}
@@ -391,7 +398,8 @@ export default function DashboardResidencial({
     dispositivo,
     periodoLabel = 'Periodo',
 }: DashboardResidencialProps) {
-    const independenciaEnergetica = metricas?.independencia_energetica_pct ?? 0;
+    const independenciaEnergetica =
+        metricas?.independencia_energetica_pct ?? null;
     const tieneFotovoltaica = dispositivo?.tiene_fotovoltaica ?? false;
 
     return (
@@ -425,21 +433,28 @@ export default function DashboardResidencial({
                     <>
                         <MetricCard
                             label={`Generación Solar (${periodoLabel})`}
-                            value={metricas?.generacion_fotovoltaica_kwh || 0}
+                            value={formatDashboardNumber(
+                                metricas?.generacion_fotovoltaica_kwh,
+                            )}
                             unit="kWh"
                             icon={Sun}
                             tone="solar"
                         />
                         <MetricCard
                             label={`Energía Retornada (${periodoLabel})`}
-                            value={metricas?.energia_retornada_kwh || 0}
+                            value={formatDashboardNumber(
+                                metricas?.energia_retornada_kwh,
+                            )}
                             unit="kWh"
                             icon={HandCoins}
                             tone="export"
                         />
                         <MetricCard
                             label={`Independencia (${periodoLabel})`}
-                            value={independenciaEnergetica.toFixed(1)}
+                            value={formatDashboardNumber(
+                                independenciaEnergetica,
+                                1,
+                            )}
                             unit="%"
                             icon={Leaf}
                             tone="independence"
@@ -448,7 +463,9 @@ export default function DashboardResidencial({
                 ) : (
                     <MetricCard
                         label={`Consumo de Red (${periodoLabel})`}
-                        value={metricas?.importacion_red_kwh || 0}
+                        value={formatDashboardNumber(
+                            metricas?.importacion_red_kwh,
+                        )}
                         unit="kWh"
                         icon={Zap}
                         tone="grid"
