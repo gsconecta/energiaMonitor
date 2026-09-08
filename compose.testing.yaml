@@ -1,0 +1,19 @@
+# Instancia desechable; el volumen tmpfs se pierde al detener el contenedor.
+name: energiamonitor-tests
+services:
+  mariadb:
+    image: mariadb:10.11
+    ports:
+      - '127.0.0.1:3307:3306'
+    environment:
+      MARIADB_ROOT_PASSWORD: root-local-tests-only
+      MARIADB_DATABASE: energiamonitor_test
+      MARIADB_USER: energiamonitor_test
+      MARIADB_PASSWORD: local-tests-only
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 20

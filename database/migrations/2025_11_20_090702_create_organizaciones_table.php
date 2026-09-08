@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('organizaciones', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre');
+            $table->string('codigo')->unique();
+            $table->text('descripcion')->nullable();
+            $table->boolean('activa')->default(true)->index();
+            $table->json('configuracion')->nullable();
+            $table->softDeletes();
+            $table->index('codigo');
             $table->timestamps();
         });
     }

@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('organizacion_user', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('organizacion_id')->constrained('organizaciones')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->enum('rol', ['owner', 'admin', 'member', 'viewer'])->default('member')->index();
+            $table->unique(['organizacion_id', 'user_id']);
             $table->timestamps();
         });
     }

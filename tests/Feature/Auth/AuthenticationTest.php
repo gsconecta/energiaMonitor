@@ -71,6 +71,7 @@ test('users can logout', function () {
 });
 
 test('users are rate limited', function () {
+    $this->freezeTime();
     $user = User::factory()->create();
 
     RateLimiter::increment(implode('|', [$user->email, '127.0.0.1']), amount: 10);
@@ -84,5 +85,5 @@ test('users are rate limited', function () {
 
     $errors = session('errors');
 
-    $this->assertStringContainsString('Too many login attempts', $errors->first('email'));
+    $this->assertSame(__('auth.throttle', ['seconds' => RateLimiter::availableIn(implode('|', [$user->email, '127.0.0.1'])), 'minutes' => 1]), $errors->first('email'));
 });

@@ -1,0 +1,2423 @@
+{
+    "source": "CT 1140 / febd82d / MariaDB 10.11.14 / 2026-09-05 / solo metadatos, sin filas de clientes",
+    "schema": {
+        "alertas": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "descripcion": {
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "fecha_alerta": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "fecha_resolucion": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "nivel": {
+                    "type": "enum('info','warning','error','critical')",
+                    "nullable": false,
+                    "default": "'warning'",
+                    "extra": ""
+                },
+                "notas": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "resuelta": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "tipo": {
+                    "type": "enum('offline','bajo_rendimiento','alto_consumo','voltaje_anormal','factor_potencia_bajo','otro')",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "titulo": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_medido": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_umbral": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "dispositivo_id",
+                        "resuelta"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "fecha_alerta"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "alertas_umbral": {
+            "columns": {
+                "canal": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "lectura_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "metrica": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "resuelta": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "resuelta_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "severidad": {
+                    "type": "enum('info','warning','critical')",
+                    "nullable": false,
+                    "default": "'warning'",
+                    "extra": ""
+                },
+                "umbral_funcionamiento_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_leido": {
+                    "type": "decimal(12,2)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_maximo": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_minimo": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "dispositivo_id"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "lectura_id"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "umbral_funcionamiento_id",
+                        "dispositivo_id",
+                        "canal",
+                        "resuelta"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                },
+                "lectura_id": {
+                    "table": "lecturas",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                },
+                "umbral_funcionamiento_id": {
+                    "table": "umbrales_funcionamiento",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "cache": {
+            "columns": {
+                "expiration": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "key": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "value": {
+                    "type": "mediumtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "key"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "cache_locks": {
+            "columns": {
+                "expiration": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "key": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "owner": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "key"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "calculos": {
+            "columns": {
+                "ahorro_estimado_euros": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "autoconsumo_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                },
+                "carga_bateria_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "co2_ahorrado_kg": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "consumo_nave_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "descarga_bateria_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "fecha_calculo": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "importacion_red_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                },
+                "porcentaje_autoconsumo": {
+                    "type": "decimal(5,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "porcentaje_autosuficiencia": {
+                    "type": "decimal(5,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "produccion_solar_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                },
+                "sitio_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "soc_bateria_porcentaje": {
+                    "type": "decimal(5,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "vertido_red_kw": {
+                    "type": "decimal(10,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "fecha_calculo"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "sitio_id",
+                        "fecha_calculo"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "sitio_id": {
+                    "table": "sitios",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "credencial_shellies": {
+            "columns": {
+                "api_key": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "deleted_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "nombre": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "server": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "dispositivo_umbral": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "umbral_funcionamiento_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "umbral_funcionamiento_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "dispositivo_id",
+                        "umbral_funcionamiento_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                },
+                "umbral_funcionamiento_id": {
+                    "table": "umbrales_funcionamiento",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "dispositivos": {
+            "columns": {
+                "activo": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "color_canal_1": {
+                    "type": "varchar(7)",
+                    "nullable": true,
+                    "default": "'#ef4444'",
+                    "extra": ""
+                },
+                "color_canal_2": {
+                    "type": "varchar(7)",
+                    "nullable": true,
+                    "default": "'#22c55e'",
+                    "extra": ""
+                },
+                "color_canal_3": {
+                    "type": "varchar(7)",
+                    "nullable": true,
+                    "default": "'#eab308'",
+                    "extra": ""
+                },
+                "configuracion": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "deleted_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "device_id": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "firmware": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "invertir_sentido_canal_1": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "invertir_sentido_canal_2": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "invertir_sentido_canal_3": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "ip_local": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "modelo_dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "modelo_legacy": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "modo_canales": {
+                    "type": "varchar(20)",
+                    "nullable": false,
+                    "default": "'circuitos'",
+                    "extra": ""
+                },
+                "nombre": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre_canal_1": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre_canal_2": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre_canal_3": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "num_fases": {
+                    "type": "tinyint(4)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "sitio_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "tipo_canal_1": {
+                    "type": "varchar(20)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "tipo_canal_2": {
+                    "type": "varchar(20)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "tipo_canal_3": {
+                    "type": "varchar(20)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "modelo_dispositivo_id"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "num_fases"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "sitio_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "device_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "modelo_dispositivo_id": {
+                    "table": "modelos_dispositivo",
+                    "column": "id",
+                    "delete": "RESTRICT",
+                    "update": "RESTRICT"
+                },
+                "sitio_id": {
+                    "table": "sitios",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "failed_jobs": {
+            "columns": {
+                "connection": {
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "exception": {
+                    "type": "longtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "failed_at": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": "current_timestamp()",
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "payload": {
+                    "type": "longtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "queue": {
+                    "type": "text",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "uuid": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "uuid"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "job_batches": {
+            "columns": {
+                "cancelled_at": {
+                    "type": "int(11)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "failed_job_ids": {
+                    "type": "longtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "failed_jobs": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "finished_at": {
+                    "type": "int(11)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "name": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "options": {
+                    "type": "mediumtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "pending_jobs": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "total_jobs": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "jobs": {
+            "columns": {
+                "attempts": {
+                    "type": "tinyint(3) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "available_at": {
+                    "type": "int(10) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "int(10) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "payload": {
+                    "type": "longtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "queue": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "reserved_at": {
+                    "type": "int(10) unsigned",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "queue"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "kpis": {
+            "columns": {
+                "color": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": "'#000000'",
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "description": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "icon": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": "'Activity'",
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "name": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "lecturas": {
+            "columns": {
+                "corriente_canal_1": {
+                    "type": "decimal(8,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "corriente_canal_2": {
+                    "type": "decimal(8,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "corriente_canal_3": {
+                    "type": "decimal(8,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "corriente_neutro": {
+                    "type": "decimal(8,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "datos_raw": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_canal_1_kwh": {
+                    "type": "decimal(12,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_canal_2_kwh": {
+                    "type": "decimal(12,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_canal_3_kwh": {
+                    "type": "decimal(12,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_retornada_kwh": {
+                    "type": "decimal(12,3)",
+                    "nullable": false,
+                    "default": "0.000",
+                    "extra": ""
+                },
+                "energia_total_kwh": {
+                    "type": "decimal(12,3)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "fecha_lectura": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "online": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "pf_canal_1": {
+                    "type": "decimal(4,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "pf_canal_2": {
+                    "type": "decimal(4,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "pf_canal_3": {
+                    "type": "decimal(4,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_canal_1_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_canal_2_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_canal_3_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_total_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "reactiva_canal_1_var": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "reactiva_canal_2_var": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "reactiva_canal_3_var": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "reactiva_total_var": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "uptime_segundos": {
+                    "type": "int(11)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_canal_1": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_canal_2": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_canal_3": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_promedio": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "wifi_conectado": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "wifi_rssi": {
+                    "type": "int(11)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "dispositivo_id",
+                        "fecha_lectura"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "metricas_diarias": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "disponibilidad_porcentaje": {
+                    "type": "decimal(5,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_consumida_kwh": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_generada_kwh": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_importada_kwh": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_vertida_kwh": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "fecha": {
+                    "type": "date",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "hora_potencia_max": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "hora_potencia_min": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "minutos_offline": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "minutos_online": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "numero_alertas": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "numero_lecturas": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "pf_min": {
+                    "type": "decimal(4,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "pf_promedio": {
+                    "type": "decimal(4,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_max_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_min_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_promedio_w": {
+                    "type": "decimal(10,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_max": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_min": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_promedio": {
+                    "type": "decimal(6,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "fecha"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "dispositivo_id",
+                        "fecha"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "metricas_quince_minutos": {
+            "columns": {
+                "corriente_promedio_1": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "corriente_promedio_2": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "corriente_promedio_3": {
+                    "type": "decimal(10,3)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dispositivo_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "energia_consumida_kwh": {
+                    "type": "decimal(12,4)",
+                    "nullable": false,
+                    "default": "0.0000",
+                    "extra": ""
+                },
+                "energia_exportada_kwh": {
+                    "type": "decimal(12,4)",
+                    "nullable": false,
+                    "default": "0.0000",
+                    "extra": ""
+                },
+                "energia_generada_kwh": {
+                    "type": "decimal(12,4)",
+                    "nullable": false,
+                    "default": "0.0000",
+                    "extra": ""
+                },
+                "energia_importada_kwh": {
+                    "type": "decimal(12,4)",
+                    "nullable": false,
+                    "default": "0.0000",
+                    "extra": ""
+                },
+                "hora_potencia_max": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "hora_potencia_min": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "intervalo_fin": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "intervalo_inicio": {
+                    "type": "timestamp",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "minutos_offline": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "minutos_online": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "numero_lecturas": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "pf_promedio": {
+                    "type": "decimal(6,4)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_max_w": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_min_w": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "potencia_promedio_w": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "primera_lectura_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "reactiva_promedio_var": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "resumen": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "ultima_lectura_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "voltaje_promedio": {
+                    "type": "decimal(8,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "intervalo_inicio",
+                        "intervalo_fin"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "dispositivo_id",
+                        "intervalo_inicio"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "dispositivo_id": {
+                    "table": "dispositivos",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "modelos_dispositivo": {
+            "columns": {
+                "activo": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "codigo": {
+                    "type": "varchar(60)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "driver": {
+                    "type": "varchar(30)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "fabricante": {
+                    "type": "varchar(60)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "familia": {
+                    "type": "varchar(60)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "magnitudes": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "modo_canales_configurable": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "modo_canales_por_defecto": {
+                    "type": "varchar(20)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre": {
+                    "type": "varchar(120)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "notas": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "num_canales": {
+                    "type": "tinyint(3) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "codigo"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "organizacion_umbral": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "organizacion_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "umbral_funcionamiento_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "umbral_funcionamiento_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "organizacion_id",
+                        "umbral_funcionamiento_id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "organizacion_id": {
+                    "table": "organizaciones",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                },
+                "umbral_funcionamiento_id": {
+                    "table": "umbrales_funcionamiento",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "organizacion_user": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "organizacion_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "rol": {
+                    "type": "enum('owner','admin','member','viewer')",
+                    "nullable": false,
+                    "default": "'member'",
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "user_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "rol"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "user_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "organizacion_id",
+                        "user_id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "organizacion_id": {
+                    "table": "organizaciones",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                },
+                "user_id": {
+                    "table": "users",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "organizaciones": {
+            "columns": {
+                "activa": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "codigo": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "configuracion": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "credencial_shelly_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "deleted_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "descripcion": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "nombre": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "shelly_api_key": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "shelly_server": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "tipo_perfil": {
+                    "type": "enum('residencial','industrial')",
+                    "nullable": false,
+                    "default": "'industrial'",
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "activa"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "codigo"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "credencial_shelly_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "codigo"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "credencial_shelly_id": {
+                    "table": "credencial_shellies",
+                    "column": "id",
+                    "delete": "SET NULL",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "password_reset_tokens": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "email": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "token": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "email"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "sessions": {
+            "columns": {
+                "id": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "ip_address": {
+                    "type": "varchar(45)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "last_activity": {
+                    "type": "int(11)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "payload": {
+                    "type": "longtext",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "user_agent": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "user_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "last_activity"
+                    ]
+                },
+                {
+                    "unique": false,
+                    "columns": [
+                        "user_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "sitios": {
+            "columns": {
+                "activa": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "codigo": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "codigo_municipio_aemet": {
+                    "type": "varchar(10)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "deleted_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "descripcion": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "latitud": {
+                    "type": "decimal(10,8)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "longitud": {
+                    "type": "decimal(11,8)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "organizacion_id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "ubicacion": {
+                    "type": "varchar(255)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": false,
+                    "columns": [
+                        "organizacion_id"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "codigo"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": {
+                "organizacion_id": {
+                    "table": "organizaciones",
+                    "column": "id",
+                    "delete": "CASCADE",
+                    "update": "RESTRICT"
+                }
+            }
+        },
+        "umbrales_funcionamiento": {
+            "columns": {
+                "activo": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "1",
+                    "extra": ""
+                },
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "destinatarios_email": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "dias_semana": {
+                    "type": "longtext",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "hora_fin": {
+                    "type": "time",
+                    "nullable": false,
+                    "default": "'23:59:00'",
+                    "extra": ""
+                },
+                "hora_inicio": {
+                    "type": "time",
+                    "nullable": false,
+                    "default": "'00:00:00'",
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "metrica": {
+                    "type": "enum('voltaje','corriente','potencia_activa','potencia_fotovoltaica','potencia_reactiva','factor_potencia','energia_consumo','generacion_fv')",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "nombre": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "notificar_app": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "notificar_email": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "notificar_telegram": {
+                    "type": "tinyint(1)",
+                    "nullable": false,
+                    "default": "0",
+                    "extra": ""
+                },
+                "severidad": {
+                    "type": "enum('info','warning','critical')",
+                    "nullable": false,
+                    "default": "'warning'",
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_maximo": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "valor_minimo": {
+                    "type": "decimal(12,2)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        },
+        "users": {
+            "columns": {
+                "created_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "email": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "email_verified_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "id": {
+                    "type": "bigint(20) unsigned",
+                    "nullable": false,
+                    "default": null,
+                    "extra": "auto_increment"
+                },
+                "name": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "password": {
+                    "type": "varchar(255)",
+                    "nullable": false,
+                    "default": null,
+                    "extra": ""
+                },
+                "remember_token": {
+                    "type": "varchar(100)",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "rol_global": {
+                    "type": "enum('cliente','tecnico','admin')",
+                    "nullable": false,
+                    "default": "'cliente'",
+                    "extra": ""
+                },
+                "two_factor_confirmed_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "two_factor_recovery_codes": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "two_factor_secret": {
+                    "type": "text",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                },
+                "updated_at": {
+                    "type": "timestamp",
+                    "nullable": true,
+                    "default": null,
+                    "extra": ""
+                }
+            },
+            "indexes": [
+                {
+                    "unique": true,
+                    "columns": [
+                        "email"
+                    ]
+                },
+                {
+                    "unique": true,
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "foreign_keys": []
+        }
+    }
+}

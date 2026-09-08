@@ -1,8 +1,5 @@
 <?php
 
-use App\Enums\ModoCanales;
-use App\Services\Dispositivos\AsignadorModeloLegado;
-use Database\Seeders\ModeloDispositivoSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +24,7 @@ return new class extends Migration
 
         if (! Schema::hasColumn('dispositivos', 'modo_canales')) {
             Schema::table('dispositivos', function (Blueprint $table) {
-                $table->string('modo_canales', 20)->default(ModoCanales::Circuitos->value)->after('num_fases');
+                $table->string('modo_canales', 20)->default('circuitos')->after('num_fases');
             });
         }
 
@@ -49,25 +46,37 @@ return new class extends Migration
             $table->string('modelo_legacy')->nullable()->default(null)->change();
         });
 
-        // Se siembra y se asigna el legado reutilizando el seeder y AsignadorModeloLegado, en vez de con
-        // DB::table literal como hace 2026_03_10_111358_add_credencial_shelly_id_to_organizaciones_table
-        // ("para no depender de modelos Eloquent mutables"): aquí no aplica el riesgo que ese precedente
-        // evita, que un replay del historial ejecute las clases de hoy contra el esquema de ayer, porque
-        // el historial de este proyecto ya no es reproducible (2025_11_20_090702_create_organizaciones_table
-        // crea `organizaciones` solo con id+timestamps, sin `nombre`/`shelly_api_key`/etc., y
-        // 2025_11_20_091034_rename_naves_to_sitios_and_add_organizacion_id tiene el cuerpo vacío). A cambio,
-        // el catálogo no se duplica y el mapeo del legado queda cubierto por tests.
-        //
-        // Re-entrancia: en MySQL el DDL de arriba se auto-commitea columna a columna, así que si el
-        // seeder o el asignador lanzan, Laravel no marca esta migración como ejecutada pero el esquema
-        // ya está aplicado; sin las guardas de arriba, el siguiente `migrate` reventaría con "Duplicate
-        // column name" al reintentar el mismo ALTER TABLE. La parte de datos va en su propia transacción
-        // para que un fallo a mitad dentro de ella (seeder ok, asignador falla, o viceversa) no dañe el
-        // esquema y el reintento la repita entera desde cero sobre datos limpios.
+        // Datos históricos congelados: no ejecutar los modelos/seeders de una versión futura.
+        // DDL guardado por columnas y datos en transacción para permitir reintentos en MariaDB.
         DB::transaction(function () {
-            (new ModeloDispositivoSeeder)->run();
+            $catalogo = json_decode(file_get_contents(__DIR__.'/data/2026_09_04_modelos_dispositivo.json'), true, flags: JSON_THROW_ON_ERROR);
+            foreach ($catalogo as $modelo) {
+                if (! DB::table('modelos_dispositivo')->where('codigo', $modelo['codigo'])->exists()) {
+                    $modelo['magnitudes'] = json_encode($modelo['magnitudes'], JSON_THROW_ON_ERROR);
+                    DB::table('modelos_dispositivo')->insert($modelo + ['created_at' => now(), 'updated_at' => now()]);
+                }
+            }
 
-            $resultado = (new AsignadorModeloLegado)->asignarTodos();
+            $codigos = [
+                'shem-3' => 'shelly-3em',
+                'shelly em3' => 'shelly-3em',
+                'shelly pro 3em' => 'shelly-pro-3em',
+                'shelly pro em 50' => 'shelly-pro-em-50',
+            ];
+            $ids = DB::table('modelos_dispositivo')->pluck('id', 'codigo');
+            $resultado = ['asignados' => 0, 'sin_modelo' => 0];
+            DB::table('dispositivos')->whereNull('modelo_dispositivo_id')
+                ->select(['id', 'modelo_legacy'])->orderBy('id')
+                ->chunkById(500, function ($filas) use ($codigos, $ids, &$resultado) {
+                    foreach ($filas as $fila) {
+                        $codigo = $codigos[mb_strtolower(trim((string) $fila->modelo_legacy))] ?? null;
+                        $modeloId = $codigo === null ? null : $ids->get($codigo);
+                        DB::table('dispositivos')->where('id', $fila->id)->update([
+                            'modelo_dispositivo_id' => $modeloId, 'modo_canales' => 'circuitos',
+                        ]);
+                        $resultado[$modeloId === null ? 'sin_modelo' : 'asignados']++;
+                    }
+                });
 
             Log::info('Catálogo de modelos: asignación del legado terminada.', $resultado);
         });

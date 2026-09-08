@@ -6,23 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('sitios_and_add_organizacion_id', function (Blueprint $table) {
-            //
+        Schema::rename('naves', 'sitios');
+        Schema::table('sitios', function (Blueprint $table) {
+            $table->foreignId('organizacion_id')->nullable()->after('id')->index()
+                ->constrained('organizaciones')->cascadeOnDelete();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('sitios_and_add_organizacion_id', function (Blueprint $table) {
-            //
+        Schema::table('sitios', function (Blueprint $table) {
+            $table->dropForeign(['organizacion_id']);
+            $table->dropIndex(['organizacion_id']);
+            $table->dropColumn('organizacion_id');
         });
+        Schema::rename('sitios', 'naves');
     }
 };
