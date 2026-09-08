@@ -91,3 +91,10 @@ Resultado local final:
 Los dos tests desactualizados ahora verifican el mensaje traducido de throttling y la redirección al selector cuando falta contexto. Se añadió además la entrada válida al dashboard con contexto/datos reales del esquema, en lugar de eliminar esa cobertura.
 
 Persisten fuera de esta fase los problemas de autorización, unidades y cálculo energético, captura offline/duplicados, agregados y los 16 errores TypeScript del análisis. Una suite verde es la base para corregirlos; no significa que esas incidencias estén resueltas.
+
+
+## CI ejecutado — 08/09/2026
+
+Rama publicada en `codex/fase-1-base-pruebas`, implementación `35f0450`, [PR #1 en borrador](https://github.com/gsconecta/energiaMonitor/pull/1). [Workflow tests](https://github.com/gsconecta/energiaMonitor/actions/runs/34207061470): **SQLite 173/173 (962 aserciones), MariaDB 49/49 (199 aserciones) y assets correctos**. El contenedor utilizado fue MariaDB **10.11.19**. Queda verificada la rama 10.11 en GitHub; se supera la limitación de validación solo local indicada arriba.
+
+El [workflow adicional linter](https://github.com/gsconecta/energiaMonitor/actions/runs/34207061411) falla en Pint con `routes/api.php: Index invalid or out of range`; las etapas frontend no llegan a ejecutarse. Se reprodujo el mismo error sobre el archivo extraído de `main` (`febd82d`), sin cambios de esta fase. El workflow tests está verde, pero el conjunto de checks de la PR **no está completamente verde**. Pendiente corregir ese bloqueo heredado antes de considerar la integración. Sin merge ni despliegue.
