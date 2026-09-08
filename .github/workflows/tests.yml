@@ -70,6 +70,9 @@ jobs:
           cache: npm
       - run: composer install --no-interaction --prefer-dist --no-scripts
       - run: npm ci
+      - run: php artisan wayfinder:generate --with-form
+        env:
+          APP_ENV: testing
       - run: npm run types
       - run: npm run build
         env:
