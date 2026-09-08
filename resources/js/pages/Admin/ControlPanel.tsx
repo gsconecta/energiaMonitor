@@ -126,8 +126,6 @@ export default function ControlPanel({
                     'alertasPendientes',
                     'ultimasLecturas',
                 ],
-                preserveScroll: true,
-                preserveState: true,
             });
         }, AUTO_REFRESH_INTERVAL_MS);
 
@@ -234,7 +232,9 @@ export default function ControlPanel({
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button
-                            onClick={() => router.visit('/admin/modelos-dispositivo')}
+                            onClick={() =>
+                                router.visit('/admin/modelos-dispositivo')
+                            }
                             variant="outline"
                             className="gap-2"
                         >

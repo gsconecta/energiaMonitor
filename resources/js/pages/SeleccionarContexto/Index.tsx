@@ -89,17 +89,9 @@ export default function SeleccionarContexto() {
         useState(true);
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [mostrarFormularioSitio, setMostrarFormularioSitio] = useState(false);
-    const [codigoEditadoManualmente, setCodigoEditadoManualmente] =
-        useState(false);
     const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] =
         useState(false);
     const [entrandoPanel, setEntrandoPanel] = useState(false);
-
-    const formOrganizacion = useForm({
-        nombre: '',
-        codigo: '',
-        descripcion: '',
-    });
 
     const formSitio = useForm({
         organizacion_id: organizacionSeleccionada?.toString() || '',
@@ -109,45 +101,6 @@ export default function SeleccionarContexto() {
         descripcion: '',
         activa: true,
     });
-
-    const generarCodigo = (nombre: string): string => {
-        if (!nombre) return '';
-
-        let codigo = nombre.toLowerCase();
-        codigo = codigo.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        codigo = codigo.replace(/[^a-z0-9]+/g, '-');
-        codigo = codigo.replace(/^-+|-+$/g, '');
-
-        if (codigo.length > 50) {
-            codigo = codigo.substring(0, 50);
-        }
-
-        if (!codigo) {
-            codigo = 'organizacion';
-        }
-
-        let codigoFinal = codigo;
-        let contador = 1;
-
-        while (organizaciones.some((org) => org.codigo === codigoFinal)) {
-            codigoFinal = `${codigo}-${contador}`;
-            contador++;
-        }
-
-        return codigoFinal;
-    };
-
-    const handleNombreChange = (nombre: string) => {
-        formOrganizacion.setData('nombre', nombre);
-        if (!codigoEditadoManualmente) {
-            formOrganizacion.setData('codigo', generarCodigo(nombre));
-        }
-    };
-
-    const handleCodigoChange = (codigo: string) => {
-        formOrganizacion.setData('codigo', codigo);
-        setCodigoEditadoManualmente(true);
-    };
 
     // Función para generar código único basado en el nombre
     const generarCodigoSitio = (nombre: string): string => {
@@ -189,14 +142,15 @@ export default function SeleccionarContexto() {
         setCodigoSitioEditadoManualmente(true);
     };
 
+    const { setData: setSitioData } = formSitio;
     useEffect(() => {
         if (organizacionSeleccionada && mostrarFormularioSitio) {
-            formSitio.setData(
+            setSitioData(
                 'organizacion_id',
                 organizacionSeleccionada.toString(),
             );
         }
-    }, [organizacionSeleccionada, mostrarFormularioSitio]);
+    }, [organizacionSeleccionada, mostrarFormularioSitio, setSitioData]);
 
     const organizacionSeleccionadaObj = organizaciones.find(
         (org) => org.id === organizacionSeleccionada,
@@ -247,22 +201,6 @@ export default function SeleccionarContexto() {
 
         setSitioSeleccionado(null);
         setMostrarListaOrganizaciones(false);
-    };
-
-    const crearOrganizacion = (e: React.FormEvent) => {
-        e.preventDefault();
-        formOrganizacion.post('/organizaciones', {
-            preserveScroll: true,
-            onSuccess: () => {
-                formOrganizacion.reset();
-                setMostrarFormulario(false);
-                setCodigoEditadoManualmente(false);
-                router.reload({ only: ['organizaciones'] });
-            },
-            onError: (errors) => {
-                console.error('ERRORES DE VALIDACIÓN:', errors);
-            },
-        });
     };
 
     const crearSitio = (e: React.FormEvent) => {
@@ -864,185 +802,7 @@ export default function SeleccionarContexto() {
                             )}
 
                         {/* Formulario de creación de organización */}
-                        {false && mostrarFormulario && (
-                            <Card className="w-full border-none shadow-none">
-                                <div className="p-6">
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                            Crear Nueva Organización
-                                        </h2>
-                                        <button
-                                            onClick={() => {
-                                                setMostrarFormulario(false);
-                                                formOrganizacion.reset();
-                                                setCodigoEditadoManualmente(
-                                                    false,
-                                                );
-                                            }}
-                                            className="rounded p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                        >
-                                            <X className="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                    <form
-                                        onSubmit={crearOrganizacion}
-                                        className="space-y-4"
-                                    >
-                                        <div className="space-y-2">
-                                            <Label htmlFor="nombre">
-                                                Nombre{' '}
-                                                <span className="text-red-500">
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <Input
-                                                id="nombre"
-                                                type="text"
-                                                value={
-                                                    formOrganizacion.data.nombre
-                                                }
-                                                onChange={(e) =>
-                                                    handleNombreChange(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Mi Empresa"
-                                                required
-                                                aria-invalid={
-                                                    formOrganizacion.errors
-                                                        .nombre
-                                                        ? 'true'
-                                                        : 'false'
-                                                }
-                                            />
-                                            {formOrganizacion.errors.nombre && (
-                                                <p
-                                                    className="text-sm text-red-600"
-                                                    role="alert"
-                                                >
-                                                    {
-                                                        formOrganizacion.errors
-                                                            .nombre
-                                                    }
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="codigo">
-                                                Código{' '}
-                                                <span className="text-red-500">
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <Input
-                                                id="codigo"
-                                                type="text"
-                                                value={
-                                                    formOrganizacion.data.codigo
-                                                }
-                                                onChange={(e) =>
-                                                    handleCodigoChange(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Se generará automáticamente"
-                                                required
-                                                aria-invalid={
-                                                    formOrganizacion.errors
-                                                        .codigo
-                                                        ? 'true'
-                                                        : 'false'
-                                                }
-                                            />
-                                            <p className="text-xs text-muted-foreground">
-                                                Código único para identificar la
-                                                organización (se genera
-                                                automáticamente, puedes
-                                                editarlo)
-                                            </p>
-                                            {formOrganizacion.errors.codigo && (
-                                                <p
-                                                    className="text-sm text-red-600"
-                                                    role="alert"
-                                                >
-                                                    {
-                                                        formOrganizacion.errors
-                                                            .codigo
-                                                    }
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label htmlFor="descripcion">
-                                                Descripción
-                                            </Label>
-                                            <Textarea
-                                                id="descripcion"
-                                                value={
-                                                    formOrganizacion.data
-                                                        .descripcion
-                                                }
-                                                onChange={(e) =>
-                                                    formOrganizacion.setData(
-                                                        'descripcion',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                rows={3}
-                                                placeholder="Descripción de la organización..."
-                                                aria-invalid={
-                                                    formOrganizacion.errors
-                                                        .descripcion
-                                                        ? 'true'
-                                                        : 'false'
-                                                }
-                                            />
-                                            {formOrganizacion.errors
-                                                .descripcion && (
-                                                <p
-                                                    className="text-sm text-red-600"
-                                                    role="alert"
-                                                >
-                                                    {
-                                                        formOrganizacion.errors
-                                                            .descripcion
-                                                    }
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="flex gap-3">
-                                            <Button
-                                                type="submit"
-                                                disabled={
-                                                    formOrganizacion.processing
-                                                }
-                                                className="flex-1"
-                                            >
-                                                {formOrganizacion.processing
-                                                    ? 'Creando...'
-                                                    : 'Crear Organización'}
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setMostrarFormulario(false);
-                                                    formOrganizacion.reset();
-                                                    setCodigoEditadoManualmente(
-                                                        false,
-                                                    );
-                                                }}
-                                            >
-                                                Cancelar
-                                            </Button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </Card>
-                        )}
+                        {/* Alta de organización disponible en el asistente dedicado. */}
 
                         {/* Botón de acción */}
                         {mostrarFormulario && wizardOrganizacion}

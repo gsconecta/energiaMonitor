@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Esquema mínimo y compartido para los tests de dispositivos, modelos y lecturas.
- * Las migraciones antiguas del proyecto no son fiables en SQLite, por eso se crea a mano.
+ * Legado: estas pruebas usan un esquema parcial. El contrato del esquema real se verifica
+ * en tests/Integration y tests/Migrations; las pruebas nuevas de BD deben usar migraciones.
  */
 class EsquemaDispositivos
 {

@@ -1,18 +1,18 @@
 import {
-    Chart as ChartJS,
     CategoryScale,
+    Chart as ChartJS,
+    Filler,
+    Legend,
     LinearScale,
-    PointElement,
     LineElement,
+    PointElement,
     Title,
     Tooltip,
-    Legend,
-    Filler,
     type ChartOptions,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import { useState, useEffect, useRef } from 'react';
 import { Clock, Maximize, Minimize } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -22,7 +22,7 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
 );
 
 interface DatosGrafica {
@@ -49,10 +49,31 @@ const getRgba = (hex: string | null | undefined, defaultRgba: string) => {
     return defaultRgba;
 };
 
-export default function CorrienteFasesChart({ datos, num_fases = 1, colores_canales = [] }: Props) {
+export default function CorrienteFasesChart({
+    datos,
+    num_fases = 1,
+    colores_canales = [],
+}: Props) {
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () =>
+            document.removeEventListener(
+                'fullscreenchange',
+                handleFullscreenChange,
+            );
+    }, []);
+
     const [horaDesde, setHoraDesde] = useState<string>('00:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:59');
-    const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
+    const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(
+        datos || [],
+    );
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
 
@@ -75,9 +96,14 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
                 const horaMinutos = fecha.getHours() * 60 + fecha.getMinutes();
 
                 if (hastaMinutos < desdeMinutos) {
-                    return horaMinutos >= desdeMinutos || horaMinutos <= hastaMinutos;
+                    return (
+                        horaMinutos >= desdeMinutos ||
+                        horaMinutos <= hastaMinutos
+                    );
                 }
-                return horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos;
+                return (
+                    horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos
+                );
             });
 
             setDatosFiltrados(filtrados);
@@ -111,9 +137,17 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
         const esHoy = fecha.toDateString() === ahora.toDateString();
 
         if (esHoy) {
-            return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            return fecha.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
         }
-        return fecha.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return fecha.toLocaleString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     });
 
     const datasets = [];
@@ -122,9 +156,12 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
         datasets.push(
             {
                 label: 'Fase 1 (Amperaje)',
-                data: datosFiltrados.map((d) => (d.corriente_canal_1 ?? 0)),
+                data: datosFiltrados.map((d) => d.corriente_canal_1 ?? 0),
                 borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
-                backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
+                backgroundColor: getRgba(
+                    colores_canales[0],
+                    'rgba(59, 130, 246, 0.1)',
+                ),
                 fill: false,
                 tension: 0.4,
                 borderWidth: 1.5,
@@ -133,9 +170,12 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
             },
             {
                 label: 'Fase 2 (Amperaje)',
-                data: datosFiltrados.map((d) => (d.corriente_canal_2 ?? 0)),
+                data: datosFiltrados.map((d) => d.corriente_canal_2 ?? 0),
                 borderColor: colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
-                backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
+                backgroundColor: getRgba(
+                    colores_canales[1],
+                    'rgba(245, 158, 11, 0.1)',
+                ),
                 fill: false,
                 tension: 0.4,
                 borderWidth: 1.5,
@@ -144,30 +184,34 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
             },
             {
                 label: 'Fase 3 (Amperaje)',
-                data: datosFiltrados.map((d) => (d.corriente_canal_3 ?? 0)),
+                data: datosFiltrados.map((d) => d.corriente_canal_3 ?? 0),
                 borderColor: colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
-                backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
+                backgroundColor: getRgba(
+                    colores_canales[2],
+                    'rgba(168, 85, 247, 0.1)',
+                ),
                 fill: false,
                 tension: 0.4,
                 borderWidth: 1.5,
                 pointRadius: 0,
                 pointHoverRadius: 4,
-            }
+            },
         );
     } else {
-        datasets.push(
-            {
-                label: 'Intensidad',
-                data: datosFiltrados.map((d) => (d.corriente_canal_1 ?? 0)),
-                borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
-                backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-            }
-        );
+        datasets.push({
+            label: 'Intensidad',
+            data: datosFiltrados.map((d) => d.corriente_canal_1 ?? 0),
+            borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
+            backgroundColor: getRgba(
+                colores_canales[0],
+                'rgba(59, 130, 246, 0.1)',
+            ),
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+        });
     }
 
     const chartData = {
@@ -257,29 +301,25 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
         options.scales!.y!.grid!.color = 'rgba(156, 163, 175, 0.1)';
     }
 
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
-
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
-            chartContainerRef.current?.requestFullscreen().catch((err: Error) => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
+            chartContainerRef.current
+                ?.requestFullscreen()
+                .catch((err: Error) => {
+                    console.error(
+                        `Error attempting to enable full-screen mode: ${err.message}`,
+                    );
+                });
         } else {
             document.exitFullscreen();
         }
     };
 
     return (
-        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
+        <div
+            ref={chartContainerRef}
+            className={`w-full ${isFullscreen ? 'overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900' : ''}`}
+        >
             {isFullscreen && (
                 <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
                     Intensidad Eléctrica (Canales)
@@ -324,21 +364,34 @@ export default function CorrienteFasesChart({ datos, num_fases = 1, colores_cana
                     <button
                         onClick={toggleFullscreen}
                         className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                        title={
+                            isFullscreen
+                                ? 'Salir de pantalla completa'
+                                : 'Ver en pantalla completa'
+                        }
                     >
-                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                        {isFullscreen ? (
+                            <Minimize className="h-4 w-4" />
+                        ) : (
+                            <Maximize className="h-4 w-4" />
+                        )}
                     </button>
                 </div>
             </div>
 
             {datosFiltrados.length === 0 ? (
-                <div className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div
+                    className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}
+                >
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No hay datos en el rango horario seleccionado ({horaDesde} - {horaHasta})
+                        No hay datos en el rango horario seleccionado (
+                        {horaDesde} - {horaHasta})
                     </p>
                 </div>
             ) : (
-                <div className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div
+                    className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}
+                >
                     <Line data={chartData} options={options} />
                 </div>
             )}

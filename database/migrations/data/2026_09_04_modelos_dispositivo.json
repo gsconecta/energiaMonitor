@@ -1,0 +1,120 @@
+[
+    {
+        "codigo": "shelly-3em",
+        "fabricante": "Shelly",
+        "familia": "EM Gen1",
+        "nombre": "3EM (SHEM-3)",
+        "driver": "shelly_cloud",
+        "num_canales": 3,
+        "modo_canales_por_defecto": "fases",
+        "modo_canales_configurable": true,
+        "magnitudes": [
+            "potencia_activa",
+            "tension",
+            "corriente",
+            "factor_potencia",
+            "potencia_reactiva",
+            "energia_activa_importada",
+            "energia_activa_exportada"
+        ],
+        "activo": true,
+        "notas": null
+    },
+    {
+        "codigo": "shelly-pro-3em",
+        "fabricante": "Shelly",
+        "familia": "Pro EM",
+        "nombre": "Pro 3EM",
+        "driver": "shelly_cloud",
+        "num_canales": 3,
+        "modo_canales_por_defecto": "fases",
+        "modo_canales_configurable": true,
+        "magnitudes": [
+            "potencia_activa",
+            "tension",
+            "corriente",
+            "factor_potencia",
+            "potencia_reactiva",
+            "potencia_aparente",
+            "corriente_neutro",
+            "frecuencia",
+            "energia_activa_importada",
+            "energia_activa_exportada"
+        ],
+        "activo": true,
+        "notas": null
+    },
+    {
+        "codigo": "shelly-pro-em-50",
+        "fabricante": "Shelly",
+        "familia": "Pro EM",
+        "nombre": "Pro EM 50",
+        "driver": "shelly_cloud",
+        "num_canales": 2,
+        "modo_canales_por_defecto": "circuitos",
+        "modo_canales_configurable": false,
+        "magnitudes": [
+            "potencia_activa",
+            "tension",
+            "corriente",
+            "factor_potencia",
+            "potencia_aparente",
+            "frecuencia",
+            "energia_activa_importada",
+            "energia_activa_exportada"
+        ],
+        "activo": true,
+        "notas": null
+    },
+    {
+        "codigo": "circutor-cvm-mini-mc-itf-bacnet-c2",
+        "fabricante": "Circutor",
+        "familia": "CVM-MINI",
+        "nombre": "CVM-MINI-MC-ITF-BACnet-C2",
+        "driver": "bacnet_ip",
+        "num_canales": 3,
+        "modo_canales_por_defecto": "fases",
+        "modo_canales_configurable": false,
+        "magnitudes": [
+            "potencia_activa",
+            "tension",
+            "corriente",
+            "factor_potencia",
+            "corriente_neutro",
+            "potencia_reactiva",
+            "potencia_aparente",
+            "frecuencia",
+            "energia_activa_importada",
+            "energia_activa_exportada",
+            "energia_reactiva",
+            "thd"
+        ],
+        "activo": true,
+        "notas": "Magnitudes según documentación general de la familia: confirmar con la hoja de datos antes de implementar el lector."
+    },
+    {
+        "codigo": "circutor-cvm-e3-mini-mc-wieth",
+        "fabricante": "Circutor",
+        "familia": "CVM-E3-MINI",
+        "nombre": "CVM-E3-MINI-MC-WiEth",
+        "driver": "modbus_tcp",
+        "num_canales": 3,
+        "modo_canales_por_defecto": "fases",
+        "modo_canales_configurable": false,
+        "magnitudes": [
+            "potencia_activa",
+            "tension",
+            "corriente",
+            "factor_potencia",
+            "potencia_reactiva",
+            "potencia_aparente",
+            "frecuencia",
+            "energia_activa_importada",
+            "energia_activa_exportada",
+            "energia_reactiva",
+            "thd"
+        ],
+        "activo": true,
+        "notas": "Magnitudes según documentación general de la familia: confirmar con la hoja de datos antes de implementar el lector."
+    }
+]

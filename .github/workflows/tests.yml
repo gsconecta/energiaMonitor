@@ -2,49 +2,78 @@ name: tests
 
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
   pull_request:
-    branches:
-      - develop
-      - main
+    branches: [develop, main]
+
+permissions:
+  contents: read
 
 jobs:
-  ci:
+  sqlite:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: '8.4'
+          extensions: pdo_sqlite
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-scripts
+      - run: composer test
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+  mariadb:
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root-ci-only
+          MARIADB_DATABASE: energiamonitor_test
+          MARIADB_USER: energiamonitor_test
+          MARIADB_PASSWORD: ci-only
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-scripts
+      - run: composer test:mariadb
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: '3307'
+          TEST_DB_DATABASE: energiamonitor_test
+          TEST_DB_USERNAME: energiamonitor_test
+          TEST_DB_PASSWORD: ci-only
+
+  assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Build Assets
-        run: npm run build
-
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Tests
-        run: ./vendor/bin/pest
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist --no-scripts
+      - run: npm ci
+      - run: php artisan wayfinder:generate --with-form
+        env:
+          APP_ENV: testing
+      - run: npm run types
+      - run: npm run build
+        env:
+          APP_ENV: testing

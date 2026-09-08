@@ -1,4 +1,3 @@
-
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -13,7 +12,16 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Cpu, Building2, ChartArea, ShieldAlert, Key, Users, Gauge } from 'lucide-react';
+import {
+    Building2,
+    ChartArea,
+    Cpu,
+    Gauge,
+    Key,
+    LayoutGrid,
+    ShieldAlert,
+    Users,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -77,11 +85,10 @@ const adminNavItems: NavItem[] = [
     },
 ];
 
-
-
 export function AppSidebar() {
     const { url, props } = usePage();
-    const isAdminContext = !props.organizacion_actual || url.startsWith('/admin');
+    const isAdminContext =
+        !props.organizacion_actual || url.startsWith('/admin');
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -98,7 +105,9 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={isAdminContext ? adminNavItems : mainNavItems} />
+                <NavMain
+                    items={isAdminContext ? adminNavItems : mainNavItems}
+                />
             </SidebarContent>
 
             <SidebarFooter>

@@ -3,7 +3,13 @@ import { Input } from '@/components/ui/input';
 import L from 'leaflet';
 import { Check, Copy, Navigation, Search } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import {
+    MapContainer,
+    Marker,
+    TileLayer,
+    useMap,
+    useMapEvents,
+} from 'react-leaflet';
 
 // Fix para iconos de Leaflet en producción
 delete (
@@ -37,6 +43,15 @@ interface PlaceSuggestion {
 
 interface AemetCodeResponse {
     codigo_municipio_aemet?: string | null;
+}
+
+function MapClickHandler({
+    onClick,
+}: {
+    onClick: (event: L.LeafletMouseEvent) => void;
+}) {
+    useMapEvents({ click: onClick });
+    return null;
 }
 
 // Componente para actualizar el centro del mapa cuando cambian las coordenadas
@@ -330,8 +345,8 @@ export default function LocationPicker({
                     center={mapCenter}
                     zoom={currentLat && currentLng ? 13 : 6}
                     style={{ height: '100%', width: '100%' }}
-                    onClick={handleMapClick}
                 >
+                    <MapClickHandler onClick={handleMapClick} />
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

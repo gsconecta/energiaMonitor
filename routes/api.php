@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\VerifyApiKey;
 use App\Models\Dispositivo;
 use App\Models\Organizacion;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,12 +21,12 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
     /**
      * Endpoint para n8n: Dispositivos activos agrupados por organización
      * con API Key y servidor de Shelly
-     * 
+     *
      * GET /api/dispositivos-activos-por-organizacion
-     * 
+     *
      * Requiere API Key en header: X-API-Key o Authorization
      * También acepta: ?api_key=xxx en query string
-     * 
+     *
      * Retorna un array de objetos, cada uno contiene:
      * - organizacion: { id, nombre, codigo, shelly_api_key, shelly_server }
      * - dispositivos: [ { id, device_id, nombre, modelo } ]
@@ -63,15 +63,15 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
         // Agrupar dispositivos por organización
         $resultado = $dispositivos->groupBy('organizacion_id')->map(function ($grupo, $orgId) use ($organizaciones) {
             $organizacion = $organizaciones->get($orgId);
-            
-            if (!$organizacion) {
+
+            if (! $organizacion) {
                 return null;
             }
-            
+
             // Obtener la API key usando el accessor
             // Acceder directamente al atributo para que se ejecute el accessor
             $shellyApiKey = $organizacion->shelly_api_key;
-            
+
             return [
                 'organizacion' => [
                     'id' => $organizacion->id,
@@ -101,9 +101,9 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
     /**
      * Endpoint para actualizar número de fases de un dispositivo
      * Se llama automáticamente desde n8n después de insertar una lectura
-     * 
+     *
      * POST /api/dispositivos/{dispositivo_id}/actualizar-fases
-     * 
+     *
      * Body: { "num_fases": 1|2|3 } (opcional, si no se envía se detecta automáticamente)
      */
     Route::post('/dispositivos/{dispositivo}/actualizar-fases', function (Request $request, Dispositivo $dispositivo) {
@@ -114,7 +114,7 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
         if (isset($validated['num_fases'])) {
             // Actualizar manualmente con el valor proporcionado
             $dispositivo->update(['num_fases' => $validated['num_fases']]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Número de fases actualizado manualmente',
@@ -125,10 +125,10 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
         } else {
             // Detectar automáticamente desde la última lectura
             $actualizado = $dispositivo->actualizarNumFasesAuto();
-            
+
             return response()->json([
                 'success' => true,
-                'message' => $actualizado 
+                'message' => $actualizado
                     ? 'Número de fases detectado y actualizado automáticamente'
                     : 'Número de fases no se pudo detectar o ya estaba correcto',
                 'dispositivo_id' => $dispositivo->id,
@@ -144,7 +144,7 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
      * Devuelve todos los campos necesarios para agrupar después
      */
     Route::get('/sql-dispositivos-activos', function () {
-        $sql = "
+        $sql = '
             SELECT 
                 d.id,
                 d.device_id,
@@ -163,15 +163,11 @@ Route::middleware(['api', VerifyApiKey::class])->group(function () {
                 AND s.deleted_at IS NULL
                 AND o.deleted_at IS NULL
             ORDER BY o.id, d.id
-        ";
+        ';
 
         return response()->json([
             'sql' => $sql,
-            'nota' => 'Esta consulta devuelve todos los dispositivos activos con la información de su organización. Puedes agrupar por organizacion_id en n8n.'
+            'nota' => 'Esta consulta devuelve todos los dispositivos activos con la información de su organización. Puedes agrupar por organizacion_id en n8n.',
         ]);
     });
 });
-
-/**
- * 
- */

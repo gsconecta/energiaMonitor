@@ -1,5 +1,8 @@
-import { canalDisponible, nombreCanalPropuesto } from '@/lib/canales-dispositivo';
 import AppLayout from '@/layouts/app-layout';
+import {
+    canalDisponible,
+    nombreCanalPropuesto,
+} from '@/lib/canales-dispositivo';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -77,7 +80,7 @@ interface Dispositivo {
     ip_local: string | null;
     firmware: string | null;
     activo: boolean;
-    configuracion: Record<string, any> | null;
+    configuracion: Record<string, unknown> | null;
     sitio: Sitio;
     lecturas_count: number;
     esta_online: boolean;
@@ -212,10 +215,16 @@ export default function DispositivosShow({
                     : null,
                 invertir_sentido_canal_1:
                     invertirSentidoCanales.invertir_sentido_canal_1,
-                invertir_sentido_canal_2: canalDisponible(2, dispositivo.num_canales)
+                invertir_sentido_canal_2: canalDisponible(
+                    2,
+                    dispositivo.num_canales,
+                )
                     ? invertirSentidoCanales.invertir_sentido_canal_2
                     : false,
-                invertir_sentido_canal_3: canalDisponible(3, dispositivo.num_canales)
+                invertir_sentido_canal_3: canalDisponible(
+                    3,
+                    dispositivo.num_canales,
+                )
                     ? invertirSentidoCanales.invertir_sentido_canal_3
                     : false,
                 ip_local: dispositivo.ip_local,
@@ -249,7 +258,10 @@ export default function DispositivosShow({
             }
         })();
 
-        return nombreEditado || nombreCanalPropuesto(numero, dispositivo.modo_canales);
+        return (
+            nombreEditado ||
+            nombreCanalPropuesto(numero, dispositivo.modo_canales)
+        );
     };
 
     return (
@@ -632,413 +644,413 @@ export default function DispositivosShow({
                             )}
                         <div className="grid gap-4 sm:grid-cols-3">
                             {dispositivo.num_canales >= 1 && (
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Canal 1
-                                        </label>
-                                        {editandoNombres ? (
-                                            <div className="space-y-2">
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Canal 1
+                                    </label>
+                                    {editandoNombres ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={
+                                                    nombresCanales.nombre_canal_1
+                                                }
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_1:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder={nombreCanalPropuesto(
+                                                    1,
+                                                    dispositivo.modo_canales,
+                                                )}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
                                                 <input
-                                                    type="text"
+                                                    type="color"
                                                     value={
-                                                        nombresCanales.nombre_canal_1
+                                                        coloresCanales.color_canal_1
                                                     }
                                                     onChange={(e) =>
-                                                        setNombresCanales({
-                                                            ...nombresCanales,
-                                                            nombre_canal_1:
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_1:
                                                                 e.target.value,
                                                         })
                                                     }
-                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder={nombreCanalPropuesto(1, dispositivo.modo_canales)}
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
-                                                <div className="flex items-center gap-2">
-                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                        Color:
-                                                    </label>
-                                                    <input
-                                                        type="color"
-                                                        value={
-                                                            coloresCanales.color_canal_1
-                                                        }
-                                                        onChange={(e) =>
-                                                            setColoresCanales({
-                                                                ...coloresCanales,
-                                                                color_canal_1:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                        Tipo:
-                                                    </label>
-                                                    <select
-                                                        value={
-                                                            tiposCanales.tipo_canal_1 ||
-                                                            ''
-                                                        }
-                                                        onChange={(e) =>
-                                                            setTiposCanales({
-                                                                ...tiposCanales,
-                                                                tipo_canal_1:
-                                                                    e.target
-                                                                        .value ||
-                                                                    null,
-                                                            })
-                                                        }
-                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    >
-                                                        <option value="">
-                                                            Seleccionar tipo
-                                                        </option>
-                                                        <option value="fotovoltaica">
-                                                            Fotovoltaica
-                                                        </option>
-                                                        <option value="red_electrica">
-                                                            Red Eléctrica
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            invertirSentidoCanales.invertir_sentido_canal_1
-                                                        }
-                                                        onChange={(e) =>
-                                                            setInvertirSentidoCanales(
-                                                                {
-                                                                    ...invertirSentidoCanales,
-                                                                    invertir_sentido_canal_1:
-                                                                        e.target
-                                                                            .checked,
-                                                                },
-                                                            )
-                                                        }
-                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                    <span>
-                                                        Invertir sentido
-                                                    </span>
-                                                </label>
                                             </div>
-                                        ) : (
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                    {obtenerNombreCanal(1)}
-                                                </p>
-                                                <div className="mt-1 flex items-center gap-2">
-                                                    <div
-                                                        className="h-4 w-4 rounded"
-                                                        style={{
-                                                            backgroundColor:
-                                                                coloresCanales.color_canal_1,
-                                                        }}
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {
-                                                            coloresCanales.color_canal_1
-                                                        }
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={
+                                                        tiposCanales.tipo_canal_1 ||
+                                                        ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_1:
+                                                                e.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">
+                                                        Seleccionar tipo
+                                                    </option>
+                                                    <option value="fotovoltaica">
+                                                        Fotovoltaica
+                                                    </option>
+                                                    <option value="red_electrica">
+                                                        Red Eléctrica
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        invertirSentidoCanales.invertir_sentido_canal_1
+                                                    }
+                                                    onChange={(e) =>
+                                                        setInvertirSentidoCanales(
+                                                            {
+                                                                ...invertirSentidoCanales,
+                                                                invertir_sentido_canal_1:
+                                                                    e.target
+                                                                        .checked,
+                                                            },
+                                                        )
+                                                    }
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span>Invertir sentido</span>
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(1)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{
+                                                        backgroundColor:
+                                                            coloresCanales.color_canal_1,
+                                                    }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {
+                                                        coloresCanales.color_canal_1
+                                                    }
+                                                </span>
+                                            </div>
+                                            {tiposCanales.tipo_canal_1 && (
+                                                <div className="mt-1">
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                            tiposCanales.tipo_canal_1 ===
+                                                            'fotovoltaica'
+                                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                        }`}
+                                                    >
+                                                        {tiposCanales.tipo_canal_1 ===
+                                                        'fotovoltaica'
+                                                            ? 'Fotovoltaica'
+                                                            : 'Red Eléctrica'}
                                                     </span>
                                                 </div>
-                                                {tiposCanales.tipo_canal_1 && (
-                                                    <div className="mt-1">
-                                                        <span
-                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                tiposCanales.tipo_canal_1 ===
-                                                                'fotovoltaica'
-                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                            }`}
-                                                        >
-                                                            {tiposCanales.tipo_canal_1 ===
-                                                            'fotovoltaica'
-                                                                ? 'Fotovoltaica'
-                                                                : 'Red Eléctrica'}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {dispositivo.num_canales >= 2 && (
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Canal 2
-                                        </label>
-                                        {editandoNombres ? (
-                                            <div className="space-y-2">
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Canal 2
+                                    </label>
+                                    {editandoNombres ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={
+                                                    nombresCanales.nombre_canal_2
+                                                }
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_2:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder={nombreCanalPropuesto(
+                                                    2,
+                                                    dispositivo.modo_canales,
+                                                )}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
                                                 <input
-                                                    type="text"
+                                                    type="color"
                                                     value={
-                                                        nombresCanales.nombre_canal_2
+                                                        coloresCanales.color_canal_2
                                                     }
                                                     onChange={(e) =>
-                                                        setNombresCanales({
-                                                            ...nombresCanales,
-                                                            nombre_canal_2:
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_2:
                                                                 e.target.value,
                                                         })
                                                     }
-                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder={nombreCanalPropuesto(2, dispositivo.modo_canales)}
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
-                                                <div className="flex items-center gap-2">
-                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                        Color:
-                                                    </label>
-                                                    <input
-                                                        type="color"
-                                                        value={
-                                                            coloresCanales.color_canal_2
-                                                        }
-                                                        onChange={(e) =>
-                                                            setColoresCanales({
-                                                                ...coloresCanales,
-                                                                color_canal_2:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                        Tipo:
-                                                    </label>
-                                                    <select
-                                                        value={
-                                                            tiposCanales.tipo_canal_2 ||
-                                                            ''
-                                                        }
-                                                        onChange={(e) =>
-                                                            setTiposCanales({
-                                                                ...tiposCanales,
-                                                                tipo_canal_2:
-                                                                    e.target
-                                                                        .value ||
-                                                                    null,
-                                                            })
-                                                        }
-                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    >
-                                                        <option value="">
-                                                            Seleccionar tipo
-                                                        </option>
-                                                        <option value="fotovoltaica">
-                                                            Fotovoltaica
-                                                        </option>
-                                                        <option value="red_electrica">
-                                                            Red Eléctrica
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            invertirSentidoCanales.invertir_sentido_canal_2
-                                                        }
-                                                        onChange={(e) =>
-                                                            setInvertirSentidoCanales(
-                                                                {
-                                                                    ...invertirSentidoCanales,
-                                                                    invertir_sentido_canal_2:
-                                                                        e.target
-                                                                            .checked,
-                                                                },
-                                                            )
-                                                        }
-                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                    <span>
-                                                        Invertir sentido
-                                                    </span>
-                                                </label>
                                             </div>
-                                        ) : (
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                    {obtenerNombreCanal(2)}
-                                                </p>
-                                                <div className="mt-1 flex items-center gap-2">
-                                                    <div
-                                                        className="h-4 w-4 rounded"
-                                                        style={{
-                                                            backgroundColor:
-                                                                coloresCanales.color_canal_2,
-                                                        }}
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {
-                                                            coloresCanales.color_canal_2
-                                                        }
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={
+                                                        tiposCanales.tipo_canal_2 ||
+                                                        ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_2:
+                                                                e.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">
+                                                        Seleccionar tipo
+                                                    </option>
+                                                    <option value="fotovoltaica">
+                                                        Fotovoltaica
+                                                    </option>
+                                                    <option value="red_electrica">
+                                                        Red Eléctrica
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        invertirSentidoCanales.invertir_sentido_canal_2
+                                                    }
+                                                    onChange={(e) =>
+                                                        setInvertirSentidoCanales(
+                                                            {
+                                                                ...invertirSentidoCanales,
+                                                                invertir_sentido_canal_2:
+                                                                    e.target
+                                                                        .checked,
+                                                            },
+                                                        )
+                                                    }
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span>Invertir sentido</span>
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(2)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{
+                                                        backgroundColor:
+                                                            coloresCanales.color_canal_2,
+                                                    }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {
+                                                        coloresCanales.color_canal_2
+                                                    }
+                                                </span>
+                                            </div>
+                                            {tiposCanales.tipo_canal_2 && (
+                                                <div className="mt-1">
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                            tiposCanales.tipo_canal_2 ===
+                                                            'fotovoltaica'
+                                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                        }`}
+                                                    >
+                                                        {tiposCanales.tipo_canal_2 ===
+                                                        'fotovoltaica'
+                                                            ? 'Fotovoltaica'
+                                                            : 'Red Eléctrica'}
                                                     </span>
                                                 </div>
-                                                {tiposCanales.tipo_canal_2 && (
-                                                    <div className="mt-1">
-                                                        <span
-                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                tiposCanales.tipo_canal_2 ===
-                                                                'fotovoltaica'
-                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                            }`}
-                                                        >
-                                                            {tiposCanales.tipo_canal_2 ===
-                                                            'fotovoltaica'
-                                                                ? 'Fotovoltaica'
-                                                                : 'Red Eléctrica'}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {dispositivo.num_canales >= 3 && (
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Canal 3
-                                        </label>
-                                        {editandoNombres ? (
-                                            <div className="space-y-2">
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Canal 3
+                                    </label>
+                                    {editandoNombres ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={
+                                                    nombresCanales.nombre_canal_3
+                                                }
+                                                onChange={(e) =>
+                                                    setNombresCanales({
+                                                        ...nombresCanales,
+                                                        nombre_canal_3:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                placeholder={nombreCanalPropuesto(
+                                                    3,
+                                                    dispositivo.modo_canales,
+                                                )}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 dark:text-gray-400">
+                                                    Color:
+                                                </label>
                                                 <input
-                                                    type="text"
+                                                    type="color"
                                                     value={
-                                                        nombresCanales.nombre_canal_3
+                                                        coloresCanales.color_canal_3
                                                     }
                                                     onChange={(e) =>
-                                                        setNombresCanales({
-                                                            ...nombresCanales,
-                                                            nombre_canal_3:
+                                                        setColoresCanales({
+                                                            ...coloresCanales,
+                                                            color_canal_3:
                                                                 e.target.value,
                                                         })
                                                     }
-                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    placeholder={nombreCanalPropuesto(3, dispositivo.modo_canales)}
+                                                    className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
                                                 />
-                                                <div className="flex items-center gap-2">
-                                                    <label className="text-xs text-gray-600 dark:text-gray-400">
-                                                        Color:
-                                                    </label>
-                                                    <input
-                                                        type="color"
-                                                        value={
-                                                            coloresCanales.color_canal_3
-                                                        }
-                                                        onChange={(e) =>
-                                                            setColoresCanales({
-                                                                ...coloresCanales,
-                                                                color_canal_3:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        }
-                                                        className="h-8 w-16 cursor-pointer rounded border border-gray-300 dark:border-gray-600"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
-                                                        Tipo:
-                                                    </label>
-                                                    <select
-                                                        value={
-                                                            tiposCanales.tipo_canal_3 ||
-                                                            ''
-                                                        }
-                                                        onChange={(e) =>
-                                                            setTiposCanales({
-                                                                ...tiposCanales,
-                                                                tipo_canal_3:
-                                                                    e.target
-                                                                        .value ||
-                                                                    null,
-                                                            })
-                                                        }
-                                                        className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                                                    >
-                                                        <option value="">
-                                                            Seleccionar tipo
-                                                        </option>
-                                                        <option value="fotovoltaica">
-                                                            Fotovoltaica
-                                                        </option>
-                                                        <option value="red_electrica">
-                                                            Red Eléctrica
-                                                        </option>
-                                                    </select>
-                                                </div>
-                                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            invertirSentidoCanales.invertir_sentido_canal_3
-                                                        }
-                                                        onChange={(e) =>
-                                                            setInvertirSentidoCanales(
-                                                                {
-                                                                    ...invertirSentidoCanales,
-                                                                    invertir_sentido_canal_3:
-                                                                        e.target
-                                                                            .checked,
-                                                                },
-                                                            )
-                                                        }
-                                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    />
-                                                    <span>
-                                                        Invertir sentido
-                                                    </span>
-                                                </label>
                                             </div>
-                                        ) : (
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                    {obtenerNombreCanal(3)}
-                                                </p>
-                                                <div className="mt-1 flex items-center gap-2">
-                                                    <div
-                                                        className="h-4 w-4 rounded"
-                                                        style={{
-                                                            backgroundColor:
-                                                                coloresCanales.color_canal_3,
-                                                        }}
-                                                    />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {
-                                                            coloresCanales.color_canal_3
-                                                        }
+                                                <label className="mb-1 block text-xs text-gray-600 dark:text-gray-400">
+                                                    Tipo:
+                                                </label>
+                                                <select
+                                                    value={
+                                                        tiposCanales.tipo_canal_3 ||
+                                                        ''
+                                                    }
+                                                    onChange={(e) =>
+                                                        setTiposCanales({
+                                                            ...tiposCanales,
+                                                            tipo_canal_3:
+                                                                e.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                    className="w-full rounded-md border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                                                >
+                                                    <option value="">
+                                                        Seleccionar tipo
+                                                    </option>
+                                                    <option value="fotovoltaica">
+                                                        Fotovoltaica
+                                                    </option>
+                                                    <option value="red_electrica">
+                                                        Red Eléctrica
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        invertirSentidoCanales.invertir_sentido_canal_3
+                                                    }
+                                                    onChange={(e) =>
+                                                        setInvertirSentidoCanales(
+                                                            {
+                                                                ...invertirSentidoCanales,
+                                                                invertir_sentido_canal_3:
+                                                                    e.target
+                                                                        .checked,
+                                                            },
+                                                        )
+                                                    }
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span>Invertir sentido</span>
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                                {obtenerNombreCanal(3)}
+                                            </p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div
+                                                    className="h-4 w-4 rounded"
+                                                    style={{
+                                                        backgroundColor:
+                                                            coloresCanales.color_canal_3,
+                                                    }}
+                                                />
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {
+                                                        coloresCanales.color_canal_3
+                                                    }
+                                                </span>
+                                            </div>
+                                            {tiposCanales.tipo_canal_3 && (
+                                                <div className="mt-1">
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                            tiposCanales.tipo_canal_3 ===
+                                                            'fotovoltaica'
+                                                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                        }`}
+                                                    >
+                                                        {tiposCanales.tipo_canal_3 ===
+                                                        'fotovoltaica'
+                                                            ? 'Fotovoltaica'
+                                                            : 'Red Eléctrica'}
                                                     </span>
                                                 </div>
-                                                {tiposCanales.tipo_canal_3 && (
-                                                    <div className="mt-1">
-                                                        <span
-                                                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                tiposCanales.tipo_canal_3 ===
-                                                                'fotovoltaica'
-                                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                            }`}
-                                                        >
-                                                            {tiposCanales.tipo_canal_3 ===
-                                                            'fotovoltaica'
-                                                                ? 'Fotovoltaica'
-                                                                : 'Red Eléctrica'}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

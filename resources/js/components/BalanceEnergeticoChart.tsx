@@ -1,18 +1,19 @@
 import {
-    Chart as ChartJS,
     CategoryScale,
+    Chart as ChartJS,
+    Filler,
+    Legend,
     LinearScale,
-    PointElement,
     LineElement,
+    PointElement,
     Title,
     Tooltip,
-    Legend,
-    Filler,
     type ChartOptions,
+    type ScriptableLineSegmentContext,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import { useState, useEffect, useRef } from 'react';
 import { Clock, Maximize, Minimize } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -22,7 +23,7 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
 );
 
 interface DatosGrafica {
@@ -53,10 +54,32 @@ const getRgba = (hex: string | null | undefined, defaultRgba: string) => {
     return defaultRgba;
 };
 
-export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = true, num_fases = 1, colores_canales = [] }: Props) {
+export default function BalanceEnergeticoChart({
+    datos,
+    tiene_fotovoltaica = true,
+    num_fases = 1,
+    colores_canales = [],
+}: Props) {
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () =>
+            document.removeEventListener(
+                'fullscreenchange',
+                handleFullscreenChange,
+            );
+    }, []);
+
     const [horaDesde, setHoraDesde] = useState<string>('06:00');
     const [horaHasta, setHoraHasta] = useState<string>('23:00');
-    const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(datos || []);
+    const [datosFiltrados, setDatosFiltrados] = useState<DatosGrafica[]>(
+        datos || [],
+    );
     const horaDesdeRef = useRef<HTMLInputElement>(null);
     const horaHastaRef = useRef<HTMLInputElement>(null);
 
@@ -80,9 +103,14 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
 
                 // Si hasta es menor que desde, significa que cruza medianoche
                 if (hastaMinutos < desdeMinutos) {
-                    return horaMinutos >= desdeMinutos || horaMinutos <= hastaMinutos;
+                    return (
+                        horaMinutos >= desdeMinutos ||
+                        horaMinutos <= hastaMinutos
+                    );
                 }
-                return horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos;
+                return (
+                    horaMinutos >= desdeMinutos && horaMinutos <= hastaMinutos
+                );
             });
 
             setDatosFiltrados(filtrados);
@@ -118,101 +146,142 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
         const esHoy = fecha.toDateString() === ahora.toDateString();
 
         if (esHoy) {
-            return fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            return fecha.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
         }
-        return fecha.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        return fecha.toLocaleString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     });
 
     const chartData = {
         labels,
         datasets: [
-            ...(tiene_fotovoltaica ? [{
-                label: 'Producción Fotovoltaica',
-                data: datosFiltrados.map((d) => d.produccion_fotovoltaica_kw),
-                borderColor: '#FFC107', // Amarillo Ámbar - Generación Solar
-                backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0, // Ocultar puntos normalmente
-                pointHoverRadius: 5, // Mostrar punto al hacer hover
-                pointHoverBorderWidth: 2,
-            }] : []),
+            ...(tiene_fotovoltaica
+                ? [
+                      {
+                          label: 'Producción Fotovoltaica',
+                          data: datosFiltrados.map(
+                              (d) => d.produccion_fotovoltaica_kw,
+                          ),
+                          borderColor: '#FFC107', // Amarillo Ámbar - Generación Solar
+                          backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                          fill: true,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0, // Ocultar puntos normalmente
+                          pointHoverRadius: 5, // Mostrar punto al hacer hover
+                          pointHoverBorderWidth: 2,
+                      },
+                  ]
+                : []),
 
             // Si no tiene fotovoltaica y es trifásico, mostrar las 3 líneas por separado
-            ...(!tiene_fotovoltaica && Number(num_fases) === 3 ? [
-                {
-                    label: 'Fase 1 (L1)',
-                    data: datosFiltrados.map((d) => d.fase_1_kw ?? 0),
-                    borderColor: colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
-                    backgroundColor: getRgba(colores_canales[0], 'rgba(59, 130, 246, 0.1)'),
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHoverBorderWidth: 2,
-                },
-                {
-                    label: 'Fase 2 (L2)',
-                    data: datosFiltrados.map((d) => d.fase_2_kw ?? 0),
-                    borderColor: colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
-                    backgroundColor: getRgba(colores_canales[1], 'rgba(245, 158, 11, 0.1)'),
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHoverBorderWidth: 2,
-                },
-                {
-                    label: 'Fase 3 (L3)',
-                    data: datosFiltrados.map((d) => d.fase_3_kw ?? 0),
-                    borderColor: colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
-                    backgroundColor: getRgba(colores_canales[2], 'rgba(168, 85, 247, 0.1)'),
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHoverBorderWidth: 2,
-                }
-            ] : [
-                // Comportamiento monofásico o combinado clásico
-                {
-                    label: tiene_fotovoltaica ? 'Red Eléctrica' : 'Consumo Eléctrico',
-                    data: datosFiltrados.map((d) => d.red_electrica_kw),
-                    borderColor: colores_canales[0] || '#607D8B', // Gris Pizarra - Red Eléctrica
-                    backgroundColor: getRgba(colores_canales[0], 'rgba(96, 125, 139, 0.1)'),
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHoverBorderWidth: 2,
-                    segment: {
-                        borderColor: (ctx: any) => {
-                            const value = ctx.p1.parsed?.y;
-                            if (value === null || value === undefined) {
-                                return colores_canales[0] || '#607D8B';
-                            }
-                            return value >= 0 ? (colores_canales[0] || '#607D8B') : '#4CAF50';
-                        },
-                    },
-                }
-            ]),
-            ...(tiene_fotovoltaica ? [{
-                label: 'Consumo Casa',
-                data: datosFiltrados.map((d) => d.consumo_casa_kw),
-                borderColor: '#1976D2', // Azul Cobalto - Consumo General
-                backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0, // Ocultar puntos normalmente
-                pointHoverRadius: 5, // Mostrar punto al hacer hover
-                pointHoverBorderWidth: 2,
-            }] : []),
+            ...(!tiene_fotovoltaica && Number(num_fases) === 3
+                ? [
+                      {
+                          label: 'Fase 1 (L1)',
+                          data: datosFiltrados.map((d) => d.fase_1_kw ?? 0),
+                          borderColor:
+                              colores_canales[0] || 'rgb(59, 130, 246)', // blue-500
+                          backgroundColor: getRgba(
+                              colores_canales[0],
+                              'rgba(59, 130, 246, 0.1)',
+                          ),
+                          fill: false,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0,
+                          pointHoverRadius: 5,
+                          pointHoverBorderWidth: 2,
+                      },
+                      {
+                          label: 'Fase 2 (L2)',
+                          data: datosFiltrados.map((d) => d.fase_2_kw ?? 0),
+                          borderColor:
+                              colores_canales[1] || 'rgb(245, 158, 11)', // amber-500
+                          backgroundColor: getRgba(
+                              colores_canales[1],
+                              'rgba(245, 158, 11, 0.1)',
+                          ),
+                          fill: false,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0,
+                          pointHoverRadius: 5,
+                          pointHoverBorderWidth: 2,
+                      },
+                      {
+                          label: 'Fase 3 (L3)',
+                          data: datosFiltrados.map((d) => d.fase_3_kw ?? 0),
+                          borderColor:
+                              colores_canales[2] || 'rgb(168, 85, 247)', // purple-500
+                          backgroundColor: getRgba(
+                              colores_canales[2],
+                              'rgba(168, 85, 247, 0.1)',
+                          ),
+                          fill: false,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0,
+                          pointHoverRadius: 5,
+                          pointHoverBorderWidth: 2,
+                      },
+                  ]
+                : [
+                      // Comportamiento monofásico o combinado clásico
+                      {
+                          label: tiene_fotovoltaica
+                              ? 'Red Eléctrica'
+                              : 'Consumo Eléctrico',
+                          data: datosFiltrados.map((d) => d.red_electrica_kw),
+                          borderColor: colores_canales[0] || '#607D8B', // Gris Pizarra - Red Eléctrica
+                          backgroundColor: getRgba(
+                              colores_canales[0],
+                              'rgba(96, 125, 139, 0.1)',
+                          ),
+                          fill: true,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0,
+                          pointHoverRadius: 5,
+                          pointHoverBorderWidth: 2,
+                          segment: {
+                              borderColor: (
+                                  ctx: ScriptableLineSegmentContext,
+                              ) => {
+                                  const value = ctx.p1.parsed?.y;
+                                  if (value === null || value === undefined) {
+                                      return colores_canales[0] || '#607D8B';
+                                  }
+                                  return value >= 0
+                                      ? colores_canales[0] || '#607D8B'
+                                      : '#4CAF50';
+                              },
+                          },
+                      },
+                  ]),
+            ...(tiene_fotovoltaica
+                ? [
+                      {
+                          label: 'Consumo Casa',
+                          data: datosFiltrados.map((d) => d.consumo_casa_kw),
+                          borderColor: '#1976D2', // Azul Cobalto - Consumo General
+                          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                          fill: true,
+                          tension: 0.4,
+                          borderWidth: 2,
+                          pointRadius: 0, // Ocultar puntos normalmente
+                          pointHoverRadius: 5, // Mostrar punto al hacer hover
+                          pointHoverBorderWidth: 2,
+                      },
+                  ]
+                : []),
         ],
     };
 
@@ -302,21 +371,12 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
         options.scales!.y!.grid!.color = 'rgba(156, 163, 175, 0.1)';
     }
 
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
-
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
-            chartContainerRef.current?.requestFullscreen().catch(err => {
-                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            chartContainerRef.current?.requestFullscreen().catch((err) => {
+                console.error(
+                    `Error attempting to enable full-screen mode: ${err.message}`,
+                );
             });
         } else {
             document.exitFullscreen();
@@ -324,7 +384,10 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
     };
 
     return (
-        <div ref={chartContainerRef} className={`w-full ${isFullscreen ? 'bg-gray-50 dark:bg-gray-900 p-6 overflow-y-auto' : ''}`}>
+        <div
+            ref={chartContainerRef}
+            className={`w-full ${isFullscreen ? 'overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900' : ''}`}
+        >
             {isFullscreen && (
                 <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100">
                     Balance Energético
@@ -370,25 +433,37 @@ export default function BalanceEnergeticoChart({ datos, tiene_fotovoltaica = tru
                     <button
                         onClick={toggleFullscreen}
                         className="rounded-md border border-gray-300 bg-white p-1 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                        title={
+                            isFullscreen
+                                ? 'Salir de pantalla completa'
+                                : 'Ver en pantalla completa'
+                        }
                     >
-                        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                        {isFullscreen ? (
+                            <Minimize className="h-4 w-4" />
+                        ) : (
+                            <Maximize className="h-4 w-4" />
+                        )}
                     </button>
                 </div>
             </div>
 
             {datosFiltrados.length === 0 ? (
-                <div className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div
+                    className={`flex items-center justify-center rounded-lg border border-sidebar-border/70 bg-white dark:border-sidebar-border dark:bg-gray-800 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}
+                >
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No hay datos en el rango horario seleccionado ({horaDesde} - {horaHasta})
+                        No hay datos en el rango horario seleccionado (
+                        {horaDesde} - {horaHasta})
                     </p>
                 </div>
             ) : (
-                <div className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}>
+                <div
+                    className={`w-full p-4 ${isFullscreen ? 'h-[calc(100vh-120px)]' : 'h-96'}`}
+                >
                     <Line data={chartData} options={options} />
                 </div>
             )}
         </div>
     );
 }
-

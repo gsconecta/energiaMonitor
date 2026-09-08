@@ -73,12 +73,6 @@ const rolGlobalLabels: Record<string, { label: string; color: string }> = {
     cliente: { label: 'Cliente', color: 'bg-green-100 text-green-700' },
 };
 
-const rolOrgLabels: Record<string, { label: string; color: string }> = {
-    owner: { label: 'Propietario', color: 'bg-purple-100 text-purple-700' },
-    admin: { label: 'Admin', color: 'bg-blue-100 text-blue-700' },
-    viewer: { label: 'Visor', color: 'bg-gray-100 text-gray-700' },
-};
-
 function EditUserRow({
     usuario,
     organizaciones,

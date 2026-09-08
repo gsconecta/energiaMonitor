@@ -1,15 +1,20 @@
+import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { InputPassword } from '@/components/ui/input-password';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import InputError from '@/components/input-error';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -43,14 +48,19 @@ interface Props {
     credenciales_shelly?: CredencialShelly[];
 }
 
-export default function OrganizacionesEdit({ organizacion, credenciales_shelly = [] }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
+export default function OrganizacionesEdit({
+    organizacion,
+    credenciales_shelly = [],
+}: Props) {
+    const { data, setData, processing, errors } = useForm({
         nombre: organizacion.nombre,
         codigo: organizacion.codigo,
         descripcion: organizacion.descripcion || '',
         tipo_perfil: organizacion.tipo_perfil || 'industrial',
         activa: organizacion.activa,
-        credencial_shelly_id: organizacion.credencial_shelly_id ? organizacion.credencial_shelly_id.toString() : 'none',
+        credencial_shelly_id: organizacion.credencial_shelly_id
+            ? organizacion.credencial_shelly_id.toString()
+            : 'none',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -59,7 +69,10 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
         // Convert "none" back to null for the backend
         const payload = {
             ...data,
-            credencial_shelly_id: data.credencial_shelly_id === 'none' ? null : parseInt(data.credencial_shelly_id),
+            credencial_shelly_id:
+                data.credencial_shelly_id === 'none'
+                    ? null
+                    : parseInt(data.credencial_shelly_id),
         };
 
         router.put(`/organizaciones/${organizacion.id}`, payload);
@@ -86,13 +99,21 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
                                 <div className="space-y-6">
                                     <div className="grid gap-2">
                                         <Label htmlFor="nombre">
-                                            Nombre <span className="text-red-500">*</span>
+                                            Nombre{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <Input
                                             id="nombre"
                                             type="text"
                                             value={data.nombre}
-                                            onChange={(e) => setData('nombre', e.target.value)}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'nombre',
+                                                    e.target.value,
+                                                )
+                                            }
                                             required
                                             placeholder="Nombre de la organización"
                                         />
@@ -101,13 +122,21 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="codigo">
-                                            Código <span className="text-red-500">*</span>
+                                            Código{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <Input
                                             id="codigo"
                                             type="text"
                                             value={data.codigo}
-                                            onChange={(e) => setData('codigo', e.target.value)}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'codigo',
+                                                    e.target.value,
+                                                )
+                                            }
                                             required
                                             placeholder="Código único de la organización"
                                         />
@@ -115,78 +144,137 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="descripcion">Descripción</Label>
+                                        <Label htmlFor="descripcion">
+                                            Descripción
+                                        </Label>
                                         <Textarea
                                             id="descripcion"
                                             value={data.descripcion}
-                                            onChange={(e) => setData('descripcion', e.target.value)}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'descripcion',
+                                                    e.target.value,
+                                                )
+                                            }
                                             rows={4}
                                             placeholder="Descripción de la organización"
                                         />
-                                        <InputError message={errors.descripcion} />
+                                        <InputError
+                                            message={errors.descripcion}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
                                         <Label htmlFor="tipo_perfil">
-                                            Tipo de Perfil <span className="text-red-500">*</span>
+                                            Tipo de Perfil{' '}
+                                            <span className="text-red-500">
+                                                *
+                                            </span>
                                         </Label>
                                         <Select
                                             value={data.tipo_perfil}
-                                            onValueChange={(value) => setData('tipo_perfil', value)}
+                                            onValueChange={(value) =>
+                                                setData('tipo_perfil', value)
+                                            }
                                         >
                                             <SelectTrigger id="tipo_perfil">
                                                 <SelectValue placeholder="Selecciona el tipo de perfil" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="industrial">Industrial (Trifásico / Zonas)</SelectItem>
-                                                <SelectItem value="residencial">Residencial (Monofásico / Solar)</SelectItem>
+                                                <SelectItem value="industrial">
+                                                    Industrial (Trifásico /
+                                                    Zonas)
+                                                </SelectItem>
+                                                <SelectItem value="residencial">
+                                                    Residencial (Monofásico /
+                                                    Solar)
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <p className="text-xs text-muted-foreground">
-                                            Determina qué tipo de panel de control verá esta organización por defecto.
+                                            Determina qué tipo de panel de
+                                            control verá esta organización por
+                                            defecto.
                                         </p>
-                                        <InputError message={errors.tipo_perfil} />
+                                        <InputError
+                                            message={errors.tipo_perfil}
+                                        />
                                     </div>
 
-                                    {credenciales_shelly && credenciales_shelly.length > 0 && (
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="credencial_shelly_id">
-                                                Credencial de Shelly Cloud
-                                            </Label>
-                                            <Select
-                                                value={data.credencial_shelly_id}
-                                                onValueChange={(value) => setData('credencial_shelly_id', value)}
-                                            >
-                                                <SelectTrigger id="credencial_shelly_id">
-                                                    <SelectValue placeholder="Selecciona una credencial (opcional)" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">Ninguna (Sin acceso a Shelly)</SelectItem>
-                                                    {credenciales_shelly.map((credencial) => (
-                                                        <SelectItem key={credencial.id} value={credencial.id.toString()}>
-                                                            {credencial.nombre} {credencial.server ? `(${credencial.server})` : ''}
+                                    {credenciales_shelly &&
+                                        credenciales_shelly.length > 0 && (
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="credencial_shelly_id">
+                                                    Credencial de Shelly Cloud
+                                                </Label>
+                                                <Select
+                                                    value={
+                                                        data.credencial_shelly_id
+                                                    }
+                                                    onValueChange={(value) =>
+                                                        setData(
+                                                            'credencial_shelly_id',
+                                                            value,
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger id="credencial_shelly_id">
+                                                        <SelectValue placeholder="Selecciona una credencial (opcional)" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">
+                                                            Ninguna (Sin acceso
+                                                            a Shelly)
                                                         </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">
-                                                Selecciona qué cuenta de Shelly se usará para obtener los datos de esta organización.
-                                            </p>
-                                            {errors.credencial_shelly_id && (
-                                                <InputError message={errors.credencial_shelly_id} />
-                                            )}
-                                        </div>
-                                    )}
+                                                        {credenciales_shelly.map(
+                                                            (credencial) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        credencial.id
+                                                                    }
+                                                                    value={credencial.id.toString()}
+                                                                >
+                                                                    {
+                                                                        credencial.nombre
+                                                                    }{' '}
+                                                                    {credencial.server
+                                                                        ? `(${credencial.server})`
+                                                                        : ''}
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Selecciona qué cuenta de
+                                                    Shelly se usará para obtener
+                                                    los datos de esta
+                                                    organización.
+                                                </p>
+                                                {errors.credencial_shelly_id && (
+                                                    <InputError
+                                                        message={
+                                                            errors.credencial_shelly_id
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
 
                                     <div className="flex items-center space-x-2">
                                         <Checkbox
                                             id="activa"
                                             checked={data.activa}
-                                            onCheckedChange={(checked) => setData('activa', checked === true)}
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'activa',
+                                                    checked === true,
+                                                )
+                                            }
                                         />
                                         <Label
                                             htmlFor="activa"
-                                            className="text-sm font-normal cursor-pointer"
+                                            className="cursor-pointer text-sm font-normal"
                                         >
                                             Organización activa
                                         </Label>
@@ -199,12 +287,18 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
                                         disabled={processing}
                                         className="flex-1"
                                     >
-                                        {processing ? 'Actualizando...' : 'Actualizar'}
+                                        {processing
+                                            ? 'Actualizando...'
+                                            : 'Actualizar'}
                                     </Button>
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => router.visit(`/organizaciones/${organizacion.id}`)}
+                                        onClick={() =>
+                                            router.visit(
+                                                `/organizaciones/${organizacion.id}`,
+                                            )
+                                        }
                                         className="flex-1"
                                     >
                                         Cancelar
@@ -218,4 +312,3 @@ export default function OrganizacionesEdit({ organizacion, credenciales_shelly =
         </AppLayout>
     );
 }
-
