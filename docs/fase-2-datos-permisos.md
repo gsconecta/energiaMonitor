@@ -47,3 +47,44 @@ referencia certificada. La discrepancia real ya analizada está documentada en e
 Pendientes adicionales de autorización: CRUD global de KPIs, asignación de credenciales
 en altas de clientes, gestión de miembros y alcance del soporte. Este bloque no
 constituye una auditoría completa de seguridad ni completa la fase 2.
+
+## Reconciliación de contadores implementada — 08/09/2026
+
+`ContadoresEnergia` interpreta el almacenamiento histórico por lectura: formato
+EM/EM1 conservado en Wh, emeters ya convertido a kWh por el lector existente.
+No utiliza el tamaño del consumo ni el modelo actual del dispositivo. Normaliza
+cada extremo antes de restar; detecta reinicios intermedios, unidades desconocidas,
+contadores ausentes, dispositivos mezclados y duplicados contradictorios. Devuelve
+`kwh: null` con motivo cuando no puede dar un resultado fiable. Duplicados idénticos
+no suman consumo. No estima los extremos del día sin muestras ni integra potencia.
+Un hueco entre contadores acumulativos no se interpreta como cero ni invalida por
+sí solo su diferencia; no permite descartar un reinicio oculto durante ese hueco.
+
+Herramienta administrativa de solo consulta:
+
+```bash
+php artisan energia:auditar-contadores ID_DISPOSITIVO YYYY-MM-DD
+```
+
+Consulta un único dispositivo/día con límites de fecha semiabiertos y hasta 10.001
+filas; rechaza más de 10.000 para no devolver parciales. La salida contiene fechas,
+número de muestras, valores y estado, sin datos raw ni credenciales. No ejecuta
+captura, cambios de configuración, backfill ni escritura de lecturas. El comando
+está disponible por consola, no expone un endpoint web.
+
+La comprobación operativa de esta clase contra el caso histórico analizado confirmó
+la conciliación del total con la suma de los tres canales. Los detalles de producción
+están en el vault. La comprobación utilizó una sesión SQL READ ONLY con timeout de
+cinco segundos, sin instalar estos archivos en producción.
+
+Fuentes de unidades: [EMData](https://shelly-api-docs.shelly.cloud/gen2/ComponentsAndServices/EMData/)
+y [Gen1](https://shelly-api-docs.shelly.cloud/gen1/). Es necesario distinguir los
+contadores totales en Wh de campos de intervalo en otras unidades. La interpretación
+histórica depende también de la conversión que aplicó nuestro lector al persistir.
+
+**Aún no conectado al dashboard, informes o compactación.** La siguiente integración
+debe transportar el estado de fiabilidad hasta la pantalla y distinguir contadores
+de estimaciones; no sustituir resultados desconocidos por cero. Tampoco se ha
+cambiado la escala de nuevas lecturas: hacerlo aisladamente rompería la continuidad
+del histórico. La futura versión del lector necesitará metadatos explícitos para
+que esta interpretación histórica no se aplique a datos ya normalizados.
