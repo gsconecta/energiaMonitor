@@ -7,6 +7,12 @@ export function initializeTheme() {
     }
 }
 
-export function useAppearance() {
-    return { appearance: 'light' as Appearance, updateAppearance: () => {} } as const;
+export function useAppearance(): {
+    appearance: Appearance;
+    updateAppearance: (appearance: Appearance) => void;
+} {
+    return {
+        appearance: 'light' as Appearance,
+        updateAppearance: () => {},
+    } as const;
 }

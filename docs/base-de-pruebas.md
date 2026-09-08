@@ -98,3 +98,28 @@ Persisten fuera de esta fase los problemas de autorización, unidades y cálculo
 Rama publicada en `codex/fase-1-base-pruebas`, implementación `35f0450`, [PR #1 en borrador](https://github.com/gsconecta/energiaMonitor/pull/1). [Workflow tests](https://github.com/gsconecta/energiaMonitor/actions/runs/34207061470): **SQLite 173/173 (962 aserciones), MariaDB 49/49 (199 aserciones) y assets correctos**. El contenedor utilizado fue MariaDB **10.11.19**. Queda verificada la rama 10.11 en GitHub; se supera la limitación de validación solo local indicada arriba.
 
 El [workflow adicional linter](https://github.com/gsconecta/energiaMonitor/actions/runs/34207061411) falla en Pint con `routes/api.php: Index invalid or out of range`; las etapas frontend no llegan a ejecutarse. Se reprodujo el mismo error sobre el archivo extraído de `main` (`febd82d`), sin cambios de esta fase. El workflow tests está verde, pero el conjunto de checks de la PR **no está completamente verde**. Pendiente corregir ese bloqueo heredado antes de considerar la integración. Sin merge ni despliegue.
+
+## Cierre de calidad del frontend — 2026-09-08
+
+Se corrigieron los hooks condicionales de cinco gráficos: la suscripción a pantalla
+completa se monta siempre, incluso cuando no hay lecturas. Se sustituyeron tipos
+`any`, se retiró un formulario de organización inalcanzable (el alta utiliza el
+asistente existente) y se corrigieron las dependencias de los formularios de sitios.
+La selección de coordenadas usa ahora los eventos de React Leaflet. La preferencia
+de apariencia sigue manteniendo el tema claro.
+
+El archivo de bloqueo de npm actualiza dependencias dentro de los rangos declarados,
+sin forzar cambios de versión mayor. Auditoría npm del 8 de septiembre: de 20 avisos
+a 0 vulnerabilidades conocidas. Esto no equivale a una auditoría de seguridad de
+la aplicación ni sustituye las pruebas de autorización multi-tenant.
+
+Validación local: 173 pruebas PHP / 962 aserciones; ESLint sin errores ni avisos;
+TypeScript sin errores; compilación de producción correcta. Vite mantiene el aviso
+por un paquete superior a 500 kB, pendiente de optimización posterior. No se ha
+realizado todavía una comprobación visual autenticada de todas las pantallas.
+
+El CI usa `npm ci` y Node 22 para instalar las mismas dependencias del archivo de
+bloqueo. El trabajo de recursos comprueba también TypeScript antes de compilar.
+Los trabajos de formato existentes siguen aplicando el formato en su entorno de
+CI; no constituyen una comprobación de que todo el repositorio ya esté formateado.
+No se añaden migraciones pendientes para producción en este cierre.

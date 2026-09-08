@@ -1,12 +1,23 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Trash2, Plus, Users, MapPin, UserPlus, Edit, X, CheckCheck, Building2 } from 'lucide-react';
-import * as React from 'react';
-import { useForm as useReactHookForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Sheet,
     SheetClose,
@@ -16,29 +27,31 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
-import { Alert, AlertTitle } from '@/components/ui/alert';
-import { Key, Server, Copy, Check } from 'lucide-react';
+    Building2,
+    Check,
+    CheckCheck,
+    Copy,
+    Key,
+    MapPin,
+    Pencil,
+    Plus,
+    Server,
+    Trash2,
+    UserPlus,
+    Users,
+    X,
+} from 'lucide-react';
+import * as React from 'react';
 import { useState } from 'react';
+import { useForm as useReactHookForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -91,14 +104,25 @@ interface Props {
     todos_sitios?: SitioSimple[];
 }
 
-export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: Props) {
+export default function OrganizacionesShow({
+    organizacion,
+    todos_sitios = [],
+}: Props) {
     const [mostrarModalUsuario, setMostrarModalUsuario] = useState(false);
     const [openSheetSitio, setOpenSheetSitio] = useState(false);
-    const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] = useState(false);
+    const [codigoSitioEditadoManualmente, setCodigoSitioEditadoManualmente] =
+        useState(false);
     const [openDialogAPI, setOpenDialogAPI] = useState(false);
     const [copied, setCopied] = useState<string | null>(null);
 
-    const { data: formUsuario, setData: setFormUsuario, post: postUsuario, processing: processingUsuario, errors: errorsUsuario, reset: resetUsuario } = useForm({
+    const {
+        data: formUsuario,
+        setData: setFormUsuario,
+        post: postUsuario,
+        processing: processingUsuario,
+        errors: errorsUsuario,
+        reset: resetUsuario,
+    } = useForm({
         email: '',
         rol: 'member',
     });
@@ -134,7 +158,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
         let codigoFinal = codigoBase;
         let contador = 1;
 
-        while (todos_sitios.some(s => s.codigo === codigoFinal)) {
+        while (todos_sitios.some((s) => s.codigo === codigoFinal)) {
             codigoFinal = `${codigoBase}-${contador}`;
             contador++;
         }
@@ -143,14 +167,21 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     };
 
     const formSchemaSitio = z.object({
-        nombre: z.string().min(1, 'El nombre es requerido').min(2, 'El nombre debe tener al menos 2 caracteres'),
+        nombre: z
+            .string()
+            .min(1, 'El nombre es requerido')
+            .min(2, 'El nombre debe tener al menos 2 caracteres'),
         codigo: z.string().min(1, 'El código es requerido'),
         ubicacion: z.string().optional(),
         descripcion: z.string().optional(),
         activa: z.boolean().default(true),
     });
 
-    const formSitio = useReactHookForm<z.infer<typeof formSchemaSitio>>({
+    const formSitio = useReactHookForm<
+        z.input<typeof formSchemaSitio>,
+        unknown,
+        z.output<typeof formSchemaSitio>
+    >({
         resolver: zodResolver(formSchemaSitio),
         defaultValues: {
             nombre: '',
@@ -162,18 +193,24 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     });
 
     const watchNombreSitio = formSitio.watch('nombre');
+    const codigoGenerado = generarCodigoSitio(watchNombreSitio);
+    const { setValue: setSitioValue } = formSitio;
 
     // Auto-generar código cuando cambia el nombre
     React.useEffect(() => {
         if (!codigoSitioEditadoManualmente && watchNombreSitio) {
-            const codigoGenerado = generarCodigoSitio(watchNombreSitio);
-            formSitio.setValue('codigo', codigoGenerado);
+            setSitioValue('codigo', codigoGenerado);
         }
-    }, [watchNombreSitio, codigoSitioEditadoManualmente]);
+    }, [
+        watchNombreSitio,
+        codigoSitioEditadoManualmente,
+        codigoGenerado,
+        setSitioValue,
+    ]);
 
-    // Resetear formulario cuando se abre/cierra el Sheet
-    React.useEffect(() => {
-        if (openSheetSitio) {
+    const cambiarSheetSitio = (open: boolean) => {
+        setOpenSheetSitio(open);
+        if (open) {
             formSitio.reset({
                 nombre: '',
                 codigo: '',
@@ -184,7 +221,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             setCodigoSitioEditadoManualmente(false);
             inertiaFormSitio.reset();
         }
-    }, [openSheetSitio]);
+    };
 
     const onSubmitSitio = (data: z.infer<typeof formSchemaSitio>) => {
         formSitio.clearErrors();
@@ -195,9 +232,22 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
         // Asegurar que los valores no estén vacíos
         const codigoValue = (formValues.codigo || data.codigo || '').trim();
         const nombreValue = (formValues.nombre || data.nombre || '').trim();
-        const ubicacionValue = (formValues.ubicacion || data.ubicacion || '').trim();
-        const descripcionValue = (formValues.descripcion || data.descripcion || '').trim();
-        const activaValue = formValues.activa !== undefined ? formValues.activa : (data.activa !== undefined ? data.activa : true);
+        const ubicacionValue = (
+            formValues.ubicacion ||
+            data.ubicacion ||
+            ''
+        ).trim();
+        const descripcionValue = (
+            formValues.descripcion ||
+            data.descripcion ||
+            ''
+        ).trim();
+        const activaValue =
+            formValues.activa !== undefined
+                ? formValues.activa
+                : data.activa !== undefined
+                  ? data.activa
+                  : true;
 
         if (!codigoValue) {
             formSitio.setError('codigo', {
@@ -231,7 +281,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             preserveScroll: true,
             onSuccess: () => {
                 toast.custom(() => (
-                    <Alert className='border-green-600 text-green-600 dark:border-green-400 dark:text-green-400'>
+                    <Alert className="border-green-600 text-green-600 dark:border-green-400 dark:text-green-400">
                         <CheckCheck />
                         <AlertTitle>Sitio creado exitosamente!</AlertTitle>
                     </Alert>
@@ -243,11 +293,15 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
             },
             onError: (errors) => {
                 Object.keys(errors).forEach((key) => {
-                    const fieldName = key as keyof z.infer<typeof formSchemaSitio>;
+                    const fieldName = key as keyof z.infer<
+                        typeof formSchemaSitio
+                    >;
                     if (fieldName in formSchemaSitio.shape) {
                         formSitio.setError(fieldName, {
                             type: 'server',
-                            message: Array.isArray(errors[key]) ? errors[key][0] : errors[key],
+                            message: Array.isArray(errors[key])
+                                ? errors[key][0]
+                                : errors[key],
                         });
                     }
                 });
@@ -296,8 +350,14 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
     };
 
     const handleEliminarUsuario = (userId: number) => {
-        if (confirm('¿Estás seguro de eliminar este usuario de la organización?')) {
-            router.delete(`/organizaciones/${organizacion.id}/usuarios/${userId}`);
+        if (
+            confirm(
+                '¿Estás seguro de eliminar este usuario de la organización?',
+            )
+        ) {
+            router.delete(
+                `/organizaciones/${organizacion.id}/usuarios/${userId}`,
+            );
         }
     };
 
@@ -335,7 +395,11 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                         {puedeGestionar && (
                             <>
                                 <button
-                                    onClick={() => router.visit(`/organizaciones/${organizacion.id}/edit`)}
+                                    onClick={() =>
+                                        router.visit(
+                                            `/organizaciones/${organizacion.id}/edit`,
+                                        )
+                                    }
                                     className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                                 >
                                     <Pencil className="h-4 w-4" />
@@ -363,8 +427,12 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     Información
                                 </h2>
-                                {(organizacion.tiene_shelly_api_key || organizacion.shelly_server) && (
-                                    <Dialog open={openDialogAPI} onOpenChange={setOpenDialogAPI}>
+                                {(organizacion.tiene_shelly_api_key ||
+                                    organizacion.shelly_server) && (
+                                    <Dialog
+                                        open={openDialogAPI}
+                                        onOpenChange={setOpenDialogAPI}
+                                    >
                                         <DialogTrigger asChild>
                                             <Button variant="outline" size="sm">
                                                 <Key className="h-4 w-4" />
@@ -378,7 +446,9 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     Información API de Shelly
                                                 </DialogTitle>
                                                 <DialogDescription>
-                                                    Configuración de la API de Shelly para esta organización
+                                                    Configuración de la API de
+                                                    Shelly para esta
+                                                    organización
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <div className="space-y-4">
@@ -390,17 +460,25 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                         </Label>
                                                         <div className="flex gap-2">
                                                             <Input
-                                                                value={organizacion.shelly_server}
+                                                                value={
+                                                                    organizacion.shelly_server
+                                                                }
                                                                 readOnly
-                                                                className="font-mono text-sm bg-gray-50/50 dark:bg-gray-900/50"
+                                                                className="bg-gray-50/50 font-mono text-sm dark:bg-gray-900/50"
                                                             />
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
                                                                 size="icon"
-                                                                onClick={() => copiarAlPortapapeles(organizacion.shelly_server!, 'server')}
+                                                                onClick={() =>
+                                                                    copiarAlPortapapeles(
+                                                                        organizacion.shelly_server!,
+                                                                        'server',
+                                                                    )
+                                                                }
                                                             >
-                                                                {copied === 'server' ? (
+                                                                {copied ===
+                                                                'server' ? (
                                                                     <Check className="h-4 w-4 text-green-600" />
                                                                 ) : (
                                                                     <Copy className="h-4 w-4" />
@@ -419,7 +497,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                             <Input
                                                                 value="••••••••••••••••••••••••••••••••"
                                                                 readOnly
-                                                                className="font-mono text-sm bg-gray-50/50 dark:bg-gray-900/50"
+                                                                className="bg-gray-50/50 font-mono text-sm dark:bg-gray-900/50"
                                                             />
                                                             <Button
                                                                 type="button"
@@ -432,26 +510,55 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                             </Button>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">
-                                                            La clave API está configurada a través de una Credencial Shelly vinculada.
+                                                            La clave API está
+                                                            configurada a través
+                                                            de una Credencial
+                                                            Shelly vinculada.
                                                         </p>
                                                     </div>
                                                 )}
-                                                {!organizacion.tiene_shelly_api_key && !organizacion.shelly_server && (
-                                                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-                                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                                            No hay configuración de API de Shelly para esta organización.
-                                                            Debes asignarle una Credencial Shelly desde el formulario de edición.
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                {!organizacion.tiene_shelly_api_key &&
+                                                    !organizacion.shelly_server && (
+                                                        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                                                            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                                                No hay
+                                                                configuración de
+                                                                API de Shelly
+                                                                para esta
+                                                                organización.
+                                                                Debes asignarle
+                                                                una Credencial
+                                                                Shelly desde el
+                                                                formulario de
+                                                                edición.
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                                                     <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                                        Información para consultas API
+                                                        Información para
+                                                        consultas API
                                                     </p>
                                                     <ul className="mt-2 space-y-1 text-xs text-blue-700 dark:text-blue-300">
-                                                        <li>• Usa estas credenciales para realizar llamadas a la API de Shelly Cloud</li>
-                                                        <li>• El servidor debe coincidir con la región de tu cuenta de Shelly</li>
-                                                        <li>• Incluye la clave API en el header: Authorization: Bearer {'{api_key}'}</li>
+                                                        <li>
+                                                            • Usa estas
+                                                            credenciales para
+                                                            realizar llamadas a
+                                                            la API de Shelly
+                                                            Cloud
+                                                        </li>
+                                                        <li>
+                                                            • El servidor debe
+                                                            coincidir con la
+                                                            región de tu cuenta
+                                                            de Shelly
+                                                        </li>
+                                                        <li>
+                                                            • Incluye la clave
+                                                            API en el header:
+                                                            Authorization:
+                                                            Bearer {'{api_key}'}
+                                                        </li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -467,15 +574,24 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                             <div className="mt-4 flex items-center gap-4">
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <MapPin className="h-4 w-4" />
-                                    <span>{organizacion.sitios.length} sitios</span>
+                                    <span>
+                                        {organizacion.sitios.length} sitios
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <Building2 className="h-4 w-4" />
-                                    <span>{organizacion.tipo_perfil === 'residencial' ? 'Residencial' : 'Industrial'}</span>
+                                    <span>
+                                        {organizacion.tipo_perfil ===
+                                        'residencial'
+                                            ? 'Residencial'
+                                            : 'Industrial'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                     <Users className="h-4 w-4" />
-                                    <span>{organizacion.usuarios.length} usuarios</span>
+                                    <span>
+                                        {organizacion.usuarios.length} usuarios
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -489,7 +605,7 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                             <div className="mt-4">
                                 <span
                                     className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getRolBadgeColor(
-                                        organizacion.rol
+                                        organizacion.rol,
                                     )}`}
                                 >
                                     {getRolLabel(organizacion.rol)}
@@ -506,7 +622,10 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Sitios
                             </h2>
-                            <Sheet open={openSheetSitio} onOpenChange={setOpenSheetSitio}>
+                            <Sheet
+                                open={openSheetSitio}
+                                onOpenChange={cambiarSheetSitio}
+                            >
                                 <SheetTrigger asChild>
                                     <Button size="sm">
                                         <Plus className="h-4 w-4" />
@@ -520,16 +639,25 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                         </SheetTitle>
                                         <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                                             <Building2 className="h-4 w-4" />
-                                            <span>Organización: {organizacion.nombre}</span>
+                                            <span>
+                                                Organización:{' '}
+                                                {organizacion.nombre}
+                                            </span>
                                         </div>
                                     </SheetHeader>
                                     <Form {...formSitio}>
                                         <form
                                             onSubmit={(e) => {
                                                 e.preventDefault();
-                                                const formValues = formSitio.getValues();
-                                                console.log('Valores del formulario sitio al hacer submit:', formValues);
-                                                formSitio.handleSubmit(onSubmitSitio)(e);
+                                                const formValues =
+                                                    formSitio.getValues();
+                                                console.log(
+                                                    'Valores del formulario sitio al hacer submit:',
+                                                    formValues,
+                                                );
+                                                formSitio.handleSubmit(
+                                                    onSubmitSitio,
+                                                )(e);
                                             }}
                                             className="w-full"
                                         >
@@ -540,13 +668,19 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>
-                                                                Nombre <span className="text-red-500">*</span>
+                                                                Nombre{' '}
+                                                                <span className="text-red-500">
+                                                                    *
+                                                                </span>
                                                             </FormLabel>
                                                             <FormControl>
                                                                 <Input
                                                                     placeholder="Nave Industrial 1"
                                                                     {...field}
-                                                                    value={field.value || ''}
+                                                                    value={
+                                                                        field.value ||
+                                                                        ''
+                                                                    }
                                                                 />
                                                             </FormControl>
                                                             <FormMessage />
@@ -559,24 +693,47 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>
-                                                                Código <span className="text-red-500">*</span>
+                                                                Código{' '}
+                                                                <span className="text-red-500">
+                                                                    *
+                                                                </span>
                                                             </FormLabel>
                                                             <FormControl>
                                                                 <Input
                                                                     placeholder="Se generará automáticamente"
                                                                     {...field}
-                                                                    value={field.value || ''}
-                                                                    onChange={(e) => {
-                                                                        const value = e.target.value;
-                                                                        field.onChange(value);
-                                                                        if (value && !codigoSitioEditadoManualmente) {
-                                                                            setCodigoSitioEditadoManualmente(true);
+                                                                    value={
+                                                                        field.value ||
+                                                                        ''
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) => {
+                                                                        const value =
+                                                                            e
+                                                                                .target
+                                                                                .value;
+                                                                        field.onChange(
+                                                                            value,
+                                                                        );
+                                                                        if (
+                                                                            value &&
+                                                                            !codigoSitioEditadoManualmente
+                                                                        ) {
+                                                                            setCodigoSitioEditadoManualmente(
+                                                                                true,
+                                                                            );
                                                                         }
                                                                     }}
                                                                 />
                                                             </FormControl>
                                                             <p className="text-xs text-muted-foreground">
-                                                                Código único para identificar el sitio (se genera automáticamente, puedes editarlo)
+                                                                Código único
+                                                                para identificar
+                                                                el sitio (se
+                                                                genera
+                                                                automáticamente,
+                                                                puedes editarlo)
                                                             </p>
                                                             <FormMessage />
                                                         </FormItem>
@@ -587,12 +744,17 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     name="ubicacion"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Ubicación</FormLabel>
+                                                            <FormLabel>
+                                                                Ubicación
+                                                            </FormLabel>
                                                             <FormControl>
                                                                 <Input
                                                                     placeholder="Calle Principal 123, Ciudad"
                                                                     {...field}
-                                                                    value={field.value || ''}
+                                                                    value={
+                                                                        field.value ||
+                                                                        ''
+                                                                    }
                                                                 />
                                                             </FormControl>
                                                             <FormMessage />
@@ -604,13 +766,18 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                     name="descripcion"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Descripción</FormLabel>
+                                                            <FormLabel>
+                                                                Descripción
+                                                            </FormLabel>
                                                             <FormControl>
                                                                 <Textarea
                                                                     placeholder="Descripción del sitio..."
                                                                     rows={3}
                                                                     {...field}
-                                                                    value={field.value || ''}
+                                                                    value={
+                                                                        field.value ||
+                                                                        ''
+                                                                    }
                                                                 />
                                                             </FormControl>
                                                             <FormMessage />
@@ -625,8 +792,18 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                                             <FormControl>
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={field.value}
-                                                                    onChange={(e) => field.onChange(e.target.checked)}
+                                                                    checked={
+                                                                        field.value
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        field.onChange(
+                                                                            e
+                                                                                .target
+                                                                                .checked,
+                                                                        )
+                                                                    }
                                                                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                                 />
                                                             </FormControl>
@@ -640,12 +817,18 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                             <SheetFooter>
                                                 <Button
                                                     type="submit"
-                                                    disabled={inertiaFormSitio.processing}
+                                                    disabled={
+                                                        inertiaFormSitio.processing
+                                                    }
                                                 >
-                                                    {inertiaFormSitio.processing ? 'Creando...' : 'Crear Sitio'}
+                                                    {inertiaFormSitio.processing
+                                                        ? 'Creando...'
+                                                        : 'Crear Sitio'}
                                                 </Button>
                                                 <SheetClose asChild>
-                                                    <Button variant="outline">Cancelar</Button>
+                                                    <Button variant="outline">
+                                                        Cancelar
+                                                    </Button>
                                                 </SheetClose>
                                             </SheetFooter>
                                         </form>
@@ -662,7 +845,9 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                 {organizacion.sitios.map((sitio) => (
                                     <div
                                         key={sitio.id}
-                                        onClick={() => router.visit(`/sitios/${sitio.id}`)}
+                                        onClick={() =>
+                                            router.visit(`/sitios/${sitio.id}`)
+                                        }
                                         className="cursor-pointer rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
                                     >
                                         <div className="flex items-center justify-between">
@@ -707,47 +892,55 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-900">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
                                                 Usuario
                                             </th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
                                                 Rol
                                             </th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                            <th className="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase dark:text-gray-400">
                                                 Acciones
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                                        {organizacion.usuarios.map((usuario) => (
-                                            <tr key={usuario.id}>
-                                                <td className="whitespace-nowrap px-4 py-3">
-                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                        {usuario.name}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {usuario.email}
-                                                    </div>
-                                                </td>
-                                                <td className="whitespace-nowrap px-4 py-3">
-                                                    <span
-                                                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getRolBadgeColor(
-                                                            usuario.rol
-                                                        )}`}
-                                                    >
-                                                        {getRolLabel(usuario.rol)}
-                                                    </span>
-                                                </td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                                                    <button
-                                                        onClick={() => handleEliminarUsuario(usuario.id)}
-                                                        className="text-red-600 hover:text-red-800"
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {organizacion.usuarios.map(
+                                            (usuario) => (
+                                                <tr key={usuario.id}>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                            {usuario.name}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {usuario.email}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span
+                                                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getRolBadgeColor(
+                                                                usuario.rol,
+                                                            )}`}
+                                                        >
+                                                            {getRolLabel(
+                                                                usuario.rol,
+                                                            )}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
+                                                        <button
+                                                            onClick={() =>
+                                                                handleEliminarUsuario(
+                                                                    usuario.id,
+                                                                )
+                                                            }
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -760,14 +953,17 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                     <div className="fixed inset-0 z-50 overflow-y-auto">
                         <div className="flex min-h-screen items-center justify-center px-4">
                             <div
-                                className="fixed inset-0 bg-black bg-opacity-30"
+                                className="bg-opacity-30 fixed inset-0 bg-black"
                                 onClick={() => setMostrarModalUsuario(false)}
                             />
                             <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
                                 <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     Agregar Usuario
                                 </h3>
-                                <form onSubmit={handleAgregarUsuario} className="space-y-4">
+                                <form
+                                    onSubmit={handleAgregarUsuario}
+                                    className="space-y-4"
+                                >
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Email
@@ -775,12 +971,19 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                         <input
                                             type="email"
                                             value={formUsuario.email}
-                                            onChange={(e) => setFormUsuario('email', e.target.value)}
+                                            onChange={(e) =>
+                                                setFormUsuario(
+                                                    'email',
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                                             required
                                         />
                                         {errorsUsuario.email && (
-                                            <p className="mt-1 text-sm text-red-600">{errorsUsuario.email}</p>
+                                            <p className="mt-1 text-sm text-red-600">
+                                                {errorsUsuario.email}
+                                            </p>
                                         )}
                                     </div>
                                     <div>
@@ -789,12 +992,23 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                         </label>
                                         <select
                                             value={formUsuario.rol}
-                                            onChange={(e) => setFormUsuario('rol', e.target.value)}
+                                            onChange={(e) =>
+                                                setFormUsuario(
+                                                    'rol',
+                                                    e.target.value,
+                                                )
+                                            }
                                             className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                                         >
-                                            <option value="admin">Administrador</option>
-                                            <option value="member">Miembro</option>
-                                            <option value="viewer">Visualizador</option>
+                                            <option value="admin">
+                                                Administrador
+                                            </option>
+                                            <option value="member">
+                                                Miembro
+                                            </option>
+                                            <option value="viewer">
+                                                Visualizador
+                                            </option>
                                         </select>
                                     </div>
                                     <div className="flex gap-3">
@@ -807,7 +1021,9 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setMostrarModalUsuario(false)}
+                                            onClick={() =>
+                                                setMostrarModalUsuario(false)
+                                            }
                                             className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
                                         >
                                             Cancelar
@@ -822,4 +1038,3 @@ export default function OrganizacionesShow({ organizacion, todos_sitios = [] }: 
         </AppLayout>
     );
 }
-

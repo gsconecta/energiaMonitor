@@ -1,15 +1,11 @@
-import { Head, useForm, router } from '@inertiajs/react';
-import { Plus, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Head, useForm } from '@inertiajs/react';
+import { icons, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import * as Icons from 'lucide-react';
 
 import HeadingSmall from '@/components/heading-small';
 import { type BreadcrumbItem, type Kpi } from '@/types';
 
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
-import { edit as editGeneral } from '@/routes/general';
-import { store as storeKpi, update as updateKpi, destroy as destroyKpi } from '@/routes/kpis';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -25,17 +21,23 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import InputError from '@/components/input-error';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
+import { edit as editGeneral } from '@/routes/general';
+import {
+    destroy as destroyKpi,
+    store as storeKpi,
+    update as updateKpi,
+} from '@/routes/kpis';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -52,7 +54,17 @@ export default function General({ kpis }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingKpi, setEditingKpi] = useState<Kpi | null>(null);
 
-    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
+    const {
+        data,
+        setData,
+        post,
+        put,
+        delete: destroy,
+        processing,
+        errors,
+        reset,
+        clearErrors,
+    } = useForm({
         name: '',
         description: '',
         color: '#000000',
@@ -105,7 +117,9 @@ export default function General({ kpis }: Props) {
 
     // Helper to render dynamic icon
     const renderIcon = (iconName: string, className?: string) => {
-        const IconComponent = (Icons as any)[iconName];
+        const IconComponent = Object.hasOwn(icons, iconName)
+            ? icons[iconName as keyof typeof icons]
+            : undefined;
         return IconComponent ? <IconComponent className={className} /> : null;
     };
 
@@ -128,28 +142,42 @@ export default function General({ kpis }: Props) {
 
                     <div className="grid gap-6 md:grid-cols-2">
                         {kpis.map((kpi) => (
-                            <Card key={kpi.id} className="relative overflow-hidden">
+                            <Card
+                                key={kpi.id}
+                                className="relative overflow-hidden"
+                            >
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <div className="flex items-center space-x-2">
                                         <div
-                                            className="p-3 rounded-md text-white shadow-sm"
-                                            style={{ backgroundColor: kpi.color }}
+                                            className="rounded-md p-3 text-white shadow-sm"
+                                            style={{
+                                                backgroundColor: kpi.color,
+                                            }}
                                         >
-                                            {renderIcon(kpi.icon, "h-6 w-6")}
+                                            {renderIcon(kpi.icon, 'h-6 w-6')}
                                         </div>
-                                        <CardTitle className="text-lg font-medium ml-2">
+                                        <CardTitle className="ml-2 text-lg font-medium">
                                             {kpi.name}
                                         </CardTitle>
                                     </div>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Abrir menú</span>
+                                            <Button
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <span className="sr-only">
+                                                    Abrir menú
+                                                </span>
                                                 <MoreVertical className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEditDialog(kpi)}>
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    openEditDialog(kpi)
+                                                }
+                                            >
                                                 <Pencil className="mr-2 h-4 w-4" />
                                                 Editar
                                             </DropdownMenuItem>
@@ -179,7 +207,8 @@ export default function General({ kpis }: Props) {
                                     {editingKpi ? 'Editar KPI' : 'Crear KPI'}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    Configura los detalles del indicador clave de rendimiento.
+                                    Configura los detalles del indicador clave
+                                    de rendimiento.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -189,7 +218,9 @@ export default function General({ kpis }: Props) {
                                     <Input
                                         id="name"
                                         value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('name', e.target.value)
+                                        }
                                         placeholder="Ej: Energía Producción"
                                         required
                                     />
@@ -197,11 +228,18 @@ export default function General({ kpis }: Props) {
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="description">Descripción</Label>
+                                    <Label htmlFor="description">
+                                        Descripción
+                                    </Label>
                                     <Input
                                         id="description"
                                         value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'description',
+                                                e.target.value,
+                                            )
+                                        }
                                         placeholder="Descripción breve del KPI"
                                     />
                                     <InputError message={errors.description} />
@@ -215,13 +253,23 @@ export default function General({ kpis }: Props) {
                                                 id="color"
                                                 type="color"
                                                 value={data.color}
-                                                onChange={(e) => setData('color', e.target.value)}
-                                                className="w-12 h-9 p-1 px-2"
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'color',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="h-9 w-12 p-1 px-2"
                                                 required
                                             />
                                             <Input
                                                 value={data.color}
-                                                onChange={(e) => setData('color', e.target.value)}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'color',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="#000000"
                                                 className="flex-1"
                                                 required
@@ -231,32 +279,56 @@ export default function General({ kpis }: Props) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="icon">Icono (Lucide)</Label>
+                                        <Label htmlFor="icon">
+                                            Icono (Lucide)
+                                        </Label>
                                         <div className="flex items-center space-x-2">
                                             <Input
                                                 id="icon"
                                                 value={data.icon}
-                                                onChange={(e) => setData('icon', e.target.value)}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'icon',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="Ej: Sun"
                                                 required
                                             />
-                                            <div className="p-2 border rounded-md">
-                                                {renderIcon(data.icon, "h-4 w-4 text-muted-foreground")}
+                                            <div className="rounded-md border p-2">
+                                                {renderIcon(
+                                                    data.icon,
+                                                    'h-4 w-4 text-muted-foreground',
+                                                )}
                                             </div>
                                         </div>
                                         <InputError message={errors.icon} />
                                         <p className="text-[0.8rem] text-muted-foreground">
-                                            Nombre del icono de <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="underline">Lucide React</a>
+                                            Nombre del icono de{' '}
+                                            <a
+                                                href="https://lucide.dev/icons"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="underline"
+                                            >
+                                                Lucide React
+                                            </a>
                                         </p>
                                     </div>
                                 </div>
 
                                 <DialogFooter>
-                                    <Button type="button" variant="ghost" onClick={closeDialog}>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={closeDialog}
+                                    >
                                         Cancelar
                                     </Button>
                                     <Button type="submit" disabled={processing}>
-                                        {editingKpi ? 'Guardar cambios' : 'Crear KPI'}
+                                        {editingKpi
+                                            ? 'Guardar cambios'
+                                            : 'Crear KPI'}
                                     </Button>
                                 </DialogFooter>
                             </form>

@@ -161,7 +161,7 @@ interface VerificacionMeteorologica {
     edit_url: string | null;
 }
 
-interface Props {
+export interface Props {
     dispositivo?: Dispositivo;
     dispositivos: Dispositivo[];
     metricas?: Metricas;
