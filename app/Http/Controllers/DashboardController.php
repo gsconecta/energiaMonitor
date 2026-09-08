@@ -7,6 +7,7 @@ use App\Models\Lectura;
 use App\Models\Organizacion;
 use App\Models\Sitio;
 use App\Services\AemetService;
+use App\Services\Energia\ContadoresEnergia;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -393,6 +394,38 @@ class DashboardController extends Controller
         return $query->orderBy('fecha_lectura', 'asc')->get();
     }
 
+    /** Las estimaciones no deben puentear desconexiones ni potencias desconocidas. */
+    private function puedeEstimarEnergia($lecturas, $dispositivo): bool
+    {
+        $ordenadas = $lecturas->sortBy('fecha_lectura')->values();
+        if ($ordenadas->count() < 2) {
+            return false;
+        }
+        $canales = array_filter(range(1, 3), fn ($i) => in_array($dispositivo->getTipoCanal($i), ['red_electrica', 'fotovoltaica'], true));
+        if (! $canales) {
+            return false;
+        }
+        foreach ($ordenadas as $i => $lectura) {
+            foreach ($canales as $canal) {
+                $potencia = $lectura->getAttribute("potencia_canal_{$canal}_w");
+                if ($potencia === null || ! is_finite((float) $potencia)) {
+                    return false;
+                }
+            }
+            if (! $lectura->fecha_lectura) {
+                return false;
+            }
+            if ($i > 0) {
+                $segundos = $ordenadas[$i - 1]->fecha_lectura->diffInSeconds($lectura->fecha_lectura);
+                if ($segundos <= 0 || $segundos > 600) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private function calcularMetricas($lecturas, $dispositivo, $ultimaLecturaReal = null)
     {
         if ($lecturas->isEmpty()) {
@@ -400,24 +433,24 @@ class DashboardController extends Controller
                 'potencia_actual_kw' => 0,
                 'potencia_maxima_kw' => 0,
                 'potencia_promedio_kw' => 0,
-                'energia_total_kwh' => 0,
-                'energia_retornada_kwh' => 0,
-                'energia_canal_1_kwh' => 0,
-                'energia_canal_2_kwh' => 0,
-                'energia_canal_3_kwh' => 0,
+                'energia_total_kwh' => null,
+                'energia_retornada_kwh' => null,
+                'energia_canal_1_kwh' => null,
+                'energia_canal_2_kwh' => null,
+                'energia_canal_3_kwh' => null,
                 'voltaje_promedio' => 0,
                 'corriente_promedio_1' => 0,
                 'corriente_promedio_2' => 0,
                 'corriente_promedio_3' => 0,
                 'corriente_neutro_promedio' => 0,
                 'factor_potencia_promedio' => 0,
-                'consumo_casa_kwh' => 0,
-                'exportacion_neta_kwh' => 0,
-                'generacion_fotovoltaica_kwh' => 0,
-                'carga_baterias_kwh' => 0,
-                'importacion_red_kwh' => 0,
-                'exportacion_red_kwh' => 0,
-                'independencia_energetica_pct' => 0,
+                'consumo_casa_kwh' => null,
+                'exportacion_neta_kwh' => null,
+                'generacion_fotovoltaica_kwh' => null,
+                'carga_baterias_kwh' => null,
+                'importacion_red_kwh' => null,
+                'exportacion_red_kwh' => null,
+                'independencia_energetica_pct' => null,
                 'estado_conexion' => 'offline',
                 'wifi_conectado' => false,
                 'wifi_rssi' => null,
@@ -425,6 +458,7 @@ class DashboardController extends Controller
                 'ultima_actualizacion' => null,
                 'ultima_actualizacion_human' => null,
                 'numero_lecturas' => 0,
+                'calidad_energia' => ['estado' => 'no_disponible', 'contadores' => [], 'desde' => null, 'hasta' => null],
             ];
         }
 
@@ -456,26 +490,27 @@ class DashboardController extends Controller
             ? $pfPromedios->avg()
             : 0;
 
-        // Calcular energía retornada y por canal del período (diferencia entre primera y última lectura)
-        // NOTA: Los valores en la BD pueden estar en Wh, no en kWh, por lo que dividimos por 1000
-        $primeraLectura = $lecturas->first();
-        $energiaRetornadaWh = ($ultimaLectura->energia_retornada_kwh ?? 0) - ($primeraLectura->energia_retornada_kwh ?? 0);
-        $energiaCanal1Wh = ($ultimaLectura->energia_canal_1_kwh ?? 0) - ($primeraLectura->energia_canal_1_kwh ?? 0);
-        $energiaCanal2Wh = ($ultimaLectura->energia_canal_2_kwh ?? 0) - ($primeraLectura->energia_canal_2_kwh ?? 0);
-        $energiaCanal3Wh = ($ultimaLectura->energia_canal_3_kwh ?? 0) - ($primeraLectura->energia_canal_3_kwh ?? 0);
-
-        // Convertir de Wh a kWh (dividir por 1000) si el valor es muy grande (probablemente está en Wh)
-        // Si el valor es razonable (< 1000), asumimos que ya está en kWh
-        $energiaRetornada = $energiaRetornadaWh > 1000 ? $energiaRetornadaWh / 1000 : $energiaRetornadaWh;
-        $energiaCanal1 = $energiaCanal1Wh > 1000 ? $energiaCanal1Wh / 1000 : $energiaCanal1Wh;
-        $energiaCanal2 = $energiaCanal2Wh > 1000 ? $energiaCanal2Wh / 1000 : $energiaCanal2Wh;
-        $energiaCanal3 = $energiaCanal3Wh > 1000 ? $energiaCanal3Wh / 1000 : $energiaCanal3Wh;
-
-        // Asegurar que no sean negativos (por si hay algún problema con los datos)
-        $energiaRetornada = max(0, $energiaRetornada);
-        $energiaCanal1 = max(0, $energiaCanal1);
-        $energiaCanal2 = max(0, $energiaCanal2);
-        $energiaCanal3 = max(0, $energiaCanal3);
+        $contadores = [];
+        $calculador = app(ContadoresEnergia::class);
+        foreach (ContadoresEnergia::CAMPOS as $campo) {
+            $contadores[$campo] = $calculador->calcular($lecturas, $campo);
+        }
+        $energiaRetornada = $contadores['energia_retornada_kwh']['kwh'] ?? 0;
+        $energiaCanal1 = $contadores['energia_canal_1_kwh']['kwh'] ?? 0;
+        $energiaCanal2 = $contadores['energia_canal_2_kwh']['kwh'] ?? 0;
+        $energiaCanal3 = $contadores['energia_canal_3_kwh']['kwh'] ?? 0;
+        $contadoresFlujoValidos = $contadores['energia_retornada_kwh']['estado'] === 'valido';
+        $hayCanalesEnergeticos = false;
+        for ($canal = 1; $canal <= 3; $canal++) {
+            if (in_array($dispositivo->getTipoCanal($canal), ['red_electrica', 'fotovoltaica'], true)) {
+                $hayCanalesEnergeticos = true;
+                $contadoresFlujoValidos = $contadoresFlujoValidos
+                    && $contadores["energia_canal_{$canal}_kwh"]['estado'] === 'valido';
+            }
+        }
+        $contadoresFlujoValidos = $contadoresFlujoValidos && $hayCanalesEnergeticos;
+        $estimacionDisponible = $this->puedeEstimarEnergia($lecturas, $dispositivo);
+        $usoEstimacion = ! $contadoresFlujoValidos;
 
         // Estado WiFi y conexión
         $wifiConectado = $ultimaLectura->wifi_conectado ?? false;
@@ -510,17 +545,18 @@ class DashboardController extends Controller
             }
         }
 
-        $energiaIntegrada = $dispositivo->calcularEnergiaAcumulada($lecturas);
+        $energiaIntegrada = $estimacionDisponible ? $dispositivo->calcularEnergiaAcumulada($lecturas) : [];
         $generacionFotovoltaicaIntegrada = $energiaIntegrada['generacion_fotovoltaica_kwh'] ?? 0;
         $importacionRedIntegrada = $energiaIntegrada['importacion_red_kwh'] ?? 0;
         $exportacionRedIntegrada = $energiaIntegrada['exportacion_red_kwh'] ?? 0;
         $consumoCasaIntegrado = $energiaIntegrada['consumo_casa_kwh'] ?? 0;
 
-        $usarFlujosIntegrados = $dispositivo->tieneFotovoltaica()
+        $usarFlujosIntegrados = ! $contadoresFlujoValidos || ($dispositivo->tieneFotovoltaica()
             && $generacionFotovoltaicaIntegrada > 0
-            && ($energiaFotovoltaica <= 0 || $energiaRetornada > $generacionFotovoltaicaIntegrada);
+            && ($energiaFotovoltaica <= 0 || $energiaRetornada > $generacionFotovoltaicaIntegrada));
 
         if ($usarFlujosIntegrados) {
+            $usoEstimacion = true;
             $energiaFotovoltaica = $generacionFotovoltaicaIntegrada;
             $energiaRed = $importacionRedIntegrada;
             $energiaRetornada = $exportacionRedIntegrada;
@@ -528,14 +564,17 @@ class DashboardController extends Controller
         } else {
             if ($energiaFotovoltaica <= 0 && $generacionFotovoltaicaIntegrada > 0) {
                 $energiaFotovoltaica = $generacionFotovoltaicaIntegrada;
+                $usoEstimacion = true;
             }
 
             if ($energiaRed <= 0 && $importacionRedIntegrada > 0) {
                 $energiaRed = $importacionRedIntegrada;
+                $usoEstimacion = true;
             }
 
             if ($energiaRetornada <= 0 && $exportacionRedIntegrada > 0) {
                 $energiaRetornada = $exportacionRedIntegrada;
+                $usoEstimacion = true;
             }
 
             // Consumo de casa = Generación FV + Importación Red - Exportación
@@ -544,26 +583,30 @@ class DashboardController extends Controller
 
         if ($energiaConsumoCasa <= 0 && $consumoCasaIntegrado > 0) {
             $energiaConsumoCasa = $consumoCasaIntegrado;
+            $usoEstimacion = true;
         }
 
         $independenciaEnergetica = $energiaConsumoCasa > 0
             ? max(0, min(100, (1 - ($energiaRed / $energiaConsumoCasa)) * 100))
             : 0;
 
+        $energiaDisponible = ! $usoEstimacion || $estimacionDisponible;
+
         return [
             'potencia_actual_kw' => round(($ultimaLectura->potencia_total_w ?? 0) / 1000, 2),
             'potencia_maxima_kw' => round($potenciaMaxima / 1000, 2),
             'potencia_promedio_kw' => round($potenciaPromedio / 1000, 2),
-            'energia_total_kwh' => round(max(0, (function () use ($ultimaLectura, $primeraLectura) {
-                $diferencia = ($ultimaLectura->energia_total_kwh ?? 0) - ($primeraLectura->energia_total_kwh ?? 0);
-
-                // Convertir de Wh a kWh si el valor es muy grande
-                return $diferencia > 1000 ? $diferencia / 1000 : $diferencia;
-            })()), 2),
-            'energia_retornada_kwh' => round($energiaRetornada, 2),
-            'energia_canal_1_kwh' => round($energiaCanal1, 2),
-            'energia_canal_2_kwh' => round($energiaCanal2, 2),
-            'energia_canal_3_kwh' => round($energiaCanal3, 2),
+            'energia_total_kwh' => $contadores['energia_total_kwh']['kwh'] === null ? null : round($contadores['energia_total_kwh']['kwh'], 2),
+            'energia_retornada_kwh' => $energiaDisponible ? round($energiaRetornada, 2) : null,
+            'energia_canal_1_kwh' => $contadores['energia_canal_1_kwh']['kwh'] === null ? null : round($contadores['energia_canal_1_kwh']['kwh'], 2),
+            'energia_canal_2_kwh' => $contadores['energia_canal_2_kwh']['kwh'] === null ? null : round($contadores['energia_canal_2_kwh']['kwh'], 2),
+            'energia_canal_3_kwh' => $contadores['energia_canal_3_kwh']['kwh'] === null ? null : round($contadores['energia_canal_3_kwh']['kwh'], 2),
+            'calidad_energia' => [
+                'estado' => ! $energiaDisponible ? 'no_disponible' : ($usoEstimacion ? 'estimada' : 'contadores'),
+                'contadores' => $contadores,
+                'desde' => $lecturas->min('fecha_lectura')?->toIso8601String(),
+                'hasta' => $lecturas->max('fecha_lectura')?->toIso8601String(),
+            ],
             'voltaje_promedio' => round($voltajePromedio, 1),
             'corriente_promedio_1' => round($corrientePromedio1, 2),
             'corriente_promedio_2' => round($corrientePromedio2, 2),
@@ -583,13 +626,13 @@ class DashboardController extends Controller
             'q2_var_actual' => $ultimaLecturaReal?->reactiva_canal_2_var ?? 0,
             'q3_var_actual' => $ultimaLecturaReal?->reactiva_canal_3_var ?? 0,
             'q_total_var_actual' => $ultimaLecturaReal?->reactiva_total_var ?? 0,
-            'consumo_casa_kwh' => round($energiaConsumoCasa, 2),
-            'exportacion_neta_kwh' => round($energiaRetornada, 2),
-            'generacion_fotovoltaica_kwh' => round($energiaFotovoltaica, 2),
-            'carga_baterias_kwh' => round($energiaIntegrada['carga_baterias_kwh'] ?? 0, 2),
-            'importacion_red_kwh' => round($energiaRed, 2),
-            'exportacion_red_kwh' => round($energiaRetornada, 2),
-            'independencia_energetica_pct' => round($independenciaEnergetica, 1),
+            'consumo_casa_kwh' => $energiaDisponible ? round($energiaConsumoCasa, 2) : null,
+            'exportacion_neta_kwh' => $energiaDisponible ? round($energiaRetornada, 2) : null,
+            'generacion_fotovoltaica_kwh' => $energiaDisponible ? round($energiaFotovoltaica, 2) : null,
+            'carga_baterias_kwh' => $estimacionDisponible ? round($energiaIntegrada['carga_baterias_kwh'] ?? 0, 2) : null,
+            'importacion_red_kwh' => $energiaDisponible ? round($energiaRed, 2) : null,
+            'exportacion_red_kwh' => $energiaDisponible ? round($energiaRetornada, 2) : null,
+            'independencia_energetica_pct' => $energiaDisponible ? round($independenciaEnergetica, 1) : null,
             'estado_conexion' => $estaOnline ? 'online' : 'offline',
             'wifi_conectado' => $wifiConectado,
             'wifi_rssi' => $wifiRssi,

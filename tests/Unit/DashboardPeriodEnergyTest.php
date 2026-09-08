@@ -159,7 +159,7 @@ function createResidentialDashboardContext(): array
 it('calcula la generacion solar del periodo desde potencia cuando el contador FV no avanza', function () {
     [$user, $organizacion, $sitio, $dispositivo] = createResidentialDashboardContext();
 
-    foreach (['10:00:00', '11:00:00', '12:00:00'] as $hora) {
+    foreach (array_map(fn ($i) => Carbon::parse('10:00:00')->addMinutes($i * 3)->format('H:i:s'), range(0, 40)) as $hora) {
         Lectura::create([
             'dispositivo_id' => $dispositivo->id,
             'fecha_lectura' => "2026-05-12 {$hora}",
@@ -217,7 +217,7 @@ it('expone una etiqueta legible del periodo seleccionado para el dashboard', fun
 it('calcula la independencia energetica del periodo con las energias finales del dashboard', function () {
     [$user, $organizacion, $sitio, $dispositivo] = createResidentialDashboardContext();
 
-    foreach (['10:00:00', '11:00:00', '12:00:00'] as $hora) {
+    foreach (array_map(fn ($i) => Carbon::parse('10:00:00')->addMinutes($i * 3)->format('H:i:s'), range(0, 40)) as $hora) {
         Lectura::create([
             'dispositivo_id' => $dispositivo->id,
             'fecha_lectura' => "2026-05-12 {$hora}",
@@ -251,11 +251,11 @@ it('calcula la independencia energetica del periodo con las energias finales del
 it('mantiene la energia retornada coherente con la generacion solar integrada', function () {
     [$user, $organizacion, $sitio, $dispositivo] = createResidentialDashboardContext();
 
-    $contadoresRetornada = [
-        '10:00:00' => 1000,
-        '11:00:00' => 6000,
-        '12:00:00' => 11000,
-    ];
+    // Dos horas de medidas continuas cada tres minutos, sin puentear huecos.
+    $contadoresRetornada = [];
+    foreach (range(0, 40) as $i) {
+        $contadoresRetornada[Carbon::parse('10:00:00')->addMinutes($i * 3)->format('H:i:s')] = 1000 + $i * 250;
+    }
 
     foreach ($contadoresRetornada as $hora => $energiaRetornada) {
         Lectura::create([

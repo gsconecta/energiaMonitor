@@ -23,14 +23,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Metricas {
+    calidad_energia?: {
+        estado: 'contadores' | 'estimada' | 'no_disponible';
+        desde: string | null;
+        hasta: string | null;
+    };
     potencia_actual_kw: number;
     potencia_maxima_kw: number;
     potencia_promedio_kw: number;
-    energia_total_kwh: number;
-    energia_retornada_kwh: number;
-    energia_canal_1_kwh: number;
-    energia_canal_2_kwh: number;
-    energia_canal_3_kwh: number;
+    energia_total_kwh: number | null;
+    energia_retornada_kwh: number | null;
+    energia_canal_1_kwh: number | null;
+    energia_canal_2_kwh: number | null;
+    energia_canal_3_kwh: number | null;
     voltaje_promedio: number;
     corriente_promedio_1: number;
     corriente_promedio_2: number;
@@ -50,13 +55,13 @@ interface Metricas {
     q2_var_actual: number;
     q3_var_actual: number;
     q_total_var_actual: number;
-    consumo_casa_kwh: number;
-    exportacion_neta_kwh: number;
-    generacion_fotovoltaica_kwh: number;
-    carga_baterias_kwh: number;
-    importacion_red_kwh: number;
-    exportacion_red_kwh: number;
-    independencia_energetica_pct: number;
+    consumo_casa_kwh: number | null;
+    exportacion_neta_kwh: number | null;
+    generacion_fotovoltaica_kwh: number | null;
+    carga_baterias_kwh: number | null;
+    importacion_red_kwh: number | null;
+    exportacion_red_kwh: number | null;
+    independencia_energetica_pct: number | null;
     estado_conexion: 'online' | 'offline';
     wifi_conectado: boolean;
     wifi_rssi: number | null;
@@ -430,6 +435,39 @@ export default function Dashboard({
                             )}
                     </div>
                 </div>
+
+                {metricas?.calidad_energia && (
+                    <div
+                        role="status"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+                    >
+                        <p className="font-semibold">
+                            {metricas.calidad_energia.estado === 'contadores'
+                                ? 'Energía calculada por contador'
+                                : metricas.calidad_energia.estado === 'estimada'
+                                  ? 'Energía estimada a partir de la potencia'
+                                  : 'Energía del periodo no disponible'}
+                        </p>
+                        <p>
+                            {metricas.calidad_energia.estado === 'no_disponible'
+                                ? 'No hay contadores fiables ni suficientes medidas continuas para calcularla. Los valores instantáneos se muestran por separado.'
+                                : 'El cálculo cubre las muestras disponibles, no los tramos sin medidas al inicio o al final del periodo.'}
+                        </p>
+                        {metricas.calidad_energia.desde &&
+                            metricas.calidad_energia.hasta && (
+                                <p className="mt-1">
+                                    Muestras:{' '}
+                                    {new Date(
+                                        metricas.calidad_energia.desde,
+                                    ).toLocaleString('es-ES')}{' '}
+                                    —{' '}
+                                    {new Date(
+                                        metricas.calidad_energia.hasta,
+                                    ).toLocaleString('es-ES')}
+                                </p>
+                            )}
+                    </div>
+                )}
 
                 {/* Renderizado Condicional del Dashboard según Perfil */}
                 <div className="mt-2 sm:mt-0">

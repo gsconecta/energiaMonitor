@@ -88,3 +88,32 @@ de estimaciones; no sustituir resultados desconocidos por cero. Tampoco se ha
 cambiado la escala de nuevas lecturas: hacerlo aisladamente rompería la continuidad
 del histórico. La futura versión del lector necesitará metadatos explícitos para
 que esta interpretación histórica no se aplique a datos ya normalizados.
+
+## Dashboard conectado al cálculo y su fiabilidad
+
+El dashboard utiliza ahora `ContadoresEnergia` para total, retorno y canales;
+se elimina el heurístico de diferencias mayores de 1.000. Los indicadores de
+flujo distinguen `contadores`, `estimada` y `no_disponible`. El estado, los motivos
+por contador y las fechas de primera/última muestra viajan en `calidad_energia`.
+La pantalla muestra el método y el intervalo observado, tanto en móvil como en
+escritorio. Valores energéticos desconocidos se presentan como «Sin datos»; cero
+real continúa mostrando cero. Las potencias instantáneas siguen separadas.
+
+Se mantiene el método trapezoidal existente como alternativa cuando faltan
+contadores fiables o la solar requiere la estimación existente. Solo se admite
+con dos o más medidas, potencias conocidas en los canales configurados y sin
+intervalos superiores a diez minutos ni marcas temporales duplicadas. Es un
+límite conservador para la captura prevista cada 1–3 minutos, no una certificación
+metrológica. Si no se cumple, se evita publicar un cero o estimar toda una
+interrupción. Una estimación parcial no se presenta como total del periodo.
+
+Pruebas HTTP: conciliación de canales pequeños/grandes, formato desconocido,
+reinicio, ausencia de datos, hueco de 30 minutos y potencia ausente. Los escenarios
+solares previos ahora tienen lecturas cada tres minutos durante las dos horas;
+conservan sus resultados físicos esperados sin simular continuidad a través de
+huecos de una hora. Verificación local de render React con consumo medido, null
+y cero; no sustituye una revisión visual autenticada completa.
+
+Esta sección sustituye el estado anterior «aún no conectado al dashboard».
+Informes, compactación, versionado de captura y asignación por sitio siguen
+pendientes. No se modifica el histórico ni se despliega automáticamente este PR.
